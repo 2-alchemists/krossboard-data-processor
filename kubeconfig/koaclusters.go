@@ -1,4 +1,4 @@
-package koakubeconfig
+package kubeconfig
 
 import (
 	"flag"
@@ -16,8 +16,8 @@ type KoaCluster struct {
 	APIEndpoint string `json:"apiEndpoint,omitempty"`
 }
 
-// FindClustersFromConfig list Kubernetes clusters available in KUBECONFIG
-func FindClustersFromConfig() ([]*KoaCluster, error) {
+// FindKoaClusters list Kubernetes clusters available in KUBECONFIG
+func FindKoaClusters() ([]*KoaCluster, error) {
 	var kubeconfig *string
 	if home := koaHomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")

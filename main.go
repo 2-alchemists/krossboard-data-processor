@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/rchakode/kube-opex-analytics-mc/koainstance"
-	"github.com/rchakode/kube-opex-analytics-mc/koakubeconfig"
+	"github.com/rchakode/kube-opex-analytics-mc/kubeconfig"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -14,7 +14,7 @@ func main() {
 	viper.SetDefault("docker_api_version", "1.39")
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 
-	koaClusters, err := koakubeconfig.FindClustersFromConfig()
+	koaClusters, err := kubeconfig.FindKoaClusters()
 	if err != nil {
 		log.Fatalf("failed pulling container image: %v", err.Error())
 	}
