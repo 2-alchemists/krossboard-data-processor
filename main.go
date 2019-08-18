@@ -24,10 +24,10 @@ func main() {
 	}
 
 	for _, koaCluster := range koaClusters {
-		log.Infoln(koaCluster.Name, koaCluster.APIEndpoint)
-		token, err := kubeConfig.GetBearerTokenForCluster(koaCluster.Name)
+		log.Infoln(koaCluster.Context, koaCluster.APIEndpoint)
+		token, err := kubeConfig.GetBearerTokenForCluster(koaCluster.Context)
 		if err != nil {
-			log.Errorf("failed tp get Bearer token on cluster %v (%v): %v", koaCluster.Name, koaCluster.APIEndpoint, err.Error())
+			log.Errorf("failed tp get Bearer token on cluster %v (%v): %v", koaCluster.Context, koaCluster.APIEndpoint, err.Error())
 		} else {
 			log.Infoln("Bearer", token)
 		}

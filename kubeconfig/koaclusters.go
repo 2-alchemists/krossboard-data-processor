@@ -3,7 +3,6 @@ package kubeconfig
 import (
 	"encoding/base64"
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -12,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -22,7 +22,7 @@ type KubeConfig struct {
 
 // KoaCluster holds an object describing a K8s Cluster
 type KoaCluster struct {
-	Name        string `json:"name,omitempty"`
+	Context     string `json:"context,omitempty"`
 	APIEndpoint string `json:"apiEndpoint,omitempty"`
 }
 
@@ -41,30 +41,32 @@ func NewKubeConfig() *KubeConfig {
 }
 
 // ListClusters list Kubernetes clusters available in KUBECONFIG
-func (m *KubeConfig) ListClusters() ([]*KoaCluster, error) {
+func (m *KubeConfig) ListClusters() (map[string]*KoaCluster, error) {
 	config, err := clientcmd.LoadFromFile(m.Path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load config")
 	}
 
-	koaClusters := []*KoaCluster{}
+	koaClusters := map[string]*KoaCluster{}
 	for name, item := range config.Clusters {
-		koaClusters = append(koaClusters, &KoaCluster{
-			Name:        name,
+		koaClusters[name] = &KoaCluster{
 			APIEndpoint: item.Server,
-		})
+		}
+	}
+	for name, item := range config.Contexts {
+		if kc, found := koaClusters[item.Cluster]; found {
+			kc.Context = name
+		}
 	}
 	return koaClusters, nil
 }
 
 // GetBearerTokenForCluster retrieves the Bearer token for the connected user
-func (m *KubeConfig) GetBearerTokenForCluster(clusterName string) (string, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", m.Path)
+func (m *KubeConfig) GetBearerTokenForCluster(contextName string) (string, error) {
+	config, err := m.buildConfigFromFlags(contextName)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to load config")
 	}
-
-	// config.Insecure = viper.GetBool("k8s_verify_ssl")
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
@@ -76,18 +78,12 @@ func (m *KubeConfig) GetBearerTokenForCluster(clusterName string) (string, error
 		return "", errors.Wrap(err, "failed to listing secrets")
 	}
 
-	// TODO extract found secret
-	log.Printf("There are %d secrets in the cluster\n", len(secretList.Items))
 	tokenFound := false
-	token := ""
+	tokenRaw := ""
 	for _, secret := range secretList.Items {
 		if anno, found := secret.Annotations["kubernetes.io/service-account.name"]; found {
 			if anno == "default" {
-				tokenRaw := base64.StdEncoding.EncodeToString(secret.Data[corev1.ServiceAccountTokenKey])
-				tokenBase64 := make([]byte, base64.StdEncoding.DecodedLen(len(tokenRaw)))
-				n, _ := base64.StdEncoding.Decode(tokenBase64, []byte(tokenRaw))
-				token = string(tokenBase64[:n])
-
+				tokenRaw = base64.StdEncoding.EncodeToString(secret.Data[corev1.ServiceAccountTokenKey])
 				tokenFound = true
 				break
 			}
@@ -98,7 +94,21 @@ func (m *KubeConfig) GetBearerTokenForCluster(clusterName string) (string, error
 		return "", errors.New("no token found for the default serviceaccount")
 	}
 
-	return token, nil
+	tokenBase64 := make([]byte, base64.StdEncoding.DecodedLen(len(tokenRaw)))
+	n, err := base64.StdEncoding.Decode(tokenBase64, []byte(tokenRaw))
+	if err != nil {
+		return "", errors.Wrap(err, "failed decoding token")
+	}
+
+	return string(tokenBase64[:n]), nil
+}
+
+func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, error) {
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: m.Path},
+		&clientcmd.ConfigOverrides{
+			CurrentContext: contextName,
+		}).ClientConfig()
 }
 
 func userHomeDir() string {
