@@ -12,15 +12,25 @@ import (
 func main() {
 	viper.AutomaticEnv()
 	viper.SetDefault("docker_api_version", "1.39")
+	viper.SetDefault("k8s_verify_ssl", "true")
+
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 
-	koaClusters, err := kubeconfig.FindKoaClusters()
+	kubeConfig := kubeconfig.NewKubeConfig()
+
+	koaClusters, err := kubeConfig.ListClusters()
 	if err != nil {
 		log.Fatalf("failed pulling container image: %v", err.Error())
 	}
 
-	for _, c := range koaClusters {
-		log.Infoln(c.Name, c.APIEndpoint)
+	for _, koaCluster := range koaClusters {
+		log.Infoln(koaCluster.Name, koaCluster.APIEndpoint)
+		token, err := kubeConfig.GetBearerTokenForCluster(koaCluster.Name)
+		if err != nil {
+			log.Errorf("failed tp get Bearer token on cluster %v (%v): %v", koaCluster.Name, koaCluster.APIEndpoint, err.Error())
+		} else {
+			log.Infoln("Bearer", token)
+		}
 	}
 
 	instance := koainstance.NewInstance("rchakode/kube-opex-analytics")
