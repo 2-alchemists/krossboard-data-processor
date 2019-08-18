@@ -3,6 +3,8 @@ package koainstance
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 
 	dkrTypes "github.com/docker/docker/api/types"
@@ -13,27 +15,44 @@ import (
 	"github.com/pkg/errors"
 )
 
-// KOAInstance hold a Kubernetes Opex Analytics instance info
-type KOAInstance struct {
-	ID              string `json:"id"`
-	Image           string `json:"image"`
-	HostPort        int64  `json:"hostPort"`
-	ContainerPort   int64  `json:"containerPort"`
-	ClusterName     string `json:"clusterName"`
-	ClusterEndpoint string `json:"clusterEndpoint"`
-	DataVol         string `json:"dataVol"`
-	TokenVol        string `json:"tokenVol"`
+// Instance hold a Kubernetes Opex Analytics instance info
+type Instance struct {
+	ID              string `json:"id,omitempty"`
+	Image           string `json:"image,omitempty"`
+	HostPort        int64  `json:"hostPort,omitempty"`
+	ContainerPort   int64  `json:"containerPort,omitempty"`
+	ClusterName     string `json:"clusterName,omitempty"`
+	ClusterEndpoint string `json:"clusterEndpoint,omitempty"`
+	DataVol         string `json:"dataVol,omitempty"`
+	TokenVol        string `json:"tokenVol,omitempty"`
 }
 
-// NewKOAInstance returns a pointer to KOAInstance object
-func NewKOAInstance(image string) *KOAInstance {
-	return &KOAInstance{
+// NewInstance returns a pointer to an Instance object
+func NewInstance(image string) *Instance {
+	return &Instance{
 		Image: image,
 	}
 }
 
+// PullImage pulls image
+func (m *Instance) PullImage() error {
+	ctx := context.Background()
+	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "unable to create docker client")
+	}
+
+	reader, err := cli.ImagePull(ctx, m.Image, dkrTypes.ImagePullOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed pulling image")
+	}
+	io.Copy(os.Stdout, reader)
+
+	return nil
+}
+
 // CreateContainer creates a new container from given image
-func (m *KOAInstance) CreateContainer() error {
+func (m *Instance) CreateContainer() error {
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return errors.Wrap(err, "unable to create docker client")
@@ -69,11 +88,11 @@ func (m *KOAInstance) CreateContainer() error {
 		},
 		{
 			Type:   dkrMount.TypeBind,
-			Source: m.DataVol,
+			Source: m.TokenVol,
 			Target: "/var/run/secrets/kubernetes.io/serviceaccount",
 		},
 	}
-	
+
 	volumes := map[string]struct{}{
 		fmt.Sprintf("%s:%s", m.DataVol, m.DataVol): {},
 	}
@@ -105,7 +124,7 @@ func (m *KOAInstance) CreateContainer() error {
 }
 
 // StopContainer stops the container of given ID
-func (m *KOAInstance) StopContainer() error {
+func (m *Instance) StopContainer() error {
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return errors.Wrap(err, "unable to create docker client")
