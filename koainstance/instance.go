@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 
 	dkrTypes "github.com/docker/docker/api/types"
 	dkrContainer "github.com/docker/docker/api/types/container"
@@ -113,7 +114,8 @@ func (m *Instance) CreateContainer() error {
 			Mounts:       mounts,
 		},
 		nil,
-		"")
+		fmt.Sprintf("%s-%v", m.ClusterName, time.Now().Format("20060102T1504050700")))
+
 	if err != nil {
 		return errors.Wrap(err, "ContainerCreate failed")
 	}
