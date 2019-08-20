@@ -54,6 +54,7 @@ func (m *Instance) PullImage() error {
 
 // CreateContainer creates a new container from given image
 func (m *Instance) CreateContainer() error {
+	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
 		return errors.Wrap(err, "unable to create docker client")

@@ -1,21 +1,20 @@
 package kubeconfig
 
 import (
-	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// KoaCluster holds an object describing a K8s Cluster
+// KubeConfig holds an object describing a K8s Cluster
 type KubeConfig struct {
 	Path string `json:"path,omitempty"`
 }
@@ -29,7 +28,7 @@ type KoaCluster struct {
 // NewKubeConfig create a new KubeConfig object
 func NewKubeConfig() *KubeConfig {
 	var kubeconfig *string
-	if home := userHomeDir(); home != "" {
+	if home := UserHomeDir(); home != "" {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
@@ -61,46 +60,24 @@ func (m *KubeConfig) ListClusters() (map[string]*KoaCluster, error) {
 	return koaClusters, nil
 }
 
-// GetBearerTokenForCluster retrieves the Bearer token for the connected user
-func (m *KubeConfig) GetBearerTokenForCluster(contextName string) (string, error) {
-	config, err := m.buildConfigFromFlags(contextName)
+// GetGKEAccessToken retrieves access token from GKE credentials plugin
+func (m *KubeConfig) GetGKEAccessToken() (string, error) {
+	out, err := exec.Command(viper.GetString("gcp_gcloud_path"), "config", "config-helper", "--format=json").Output()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to load config")
+		return "", errors.Wrap(err, "'gcoud config config-helper' failed")
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	gcloudConfig := struct {
+		Credential struct {
+			AccessToken string `json:"access_token"`
+		} `json:"credential,omitempty"`
+	}{}
+	err = json.Unmarshal(out, &gcloudConfig)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create clientset")
+		return "", errors.Wrap(err, "failed decodng gcoud output")
 	}
 
-	secretList, err := clientset.CoreV1().Secrets("").List(metav1.ListOptions{})
-	if err != nil {
-		return "", errors.Wrap(err, "failed to listing secrets")
-	}
-
-	tokenFound := false
-	tokenRaw := ""
-	for _, secret := range secretList.Items {
-		if anno, found := secret.Annotations["kubernetes.io/service-account.name"]; found {
-			if anno == "default" {
-				tokenRaw = base64.StdEncoding.EncodeToString(secret.Data[corev1.ServiceAccountTokenKey])
-				tokenFound = true
-				break
-			}
-		}
-	}
-
-	if !tokenFound {
-		return "", errors.New("no token found for the default serviceaccount")
-	}
-
-	tokenBase64 := make([]byte, base64.StdEncoding.DecodedLen(len(tokenRaw)))
-	n, err := base64.StdEncoding.Decode(tokenBase64, []byte(tokenRaw))
-	if err != nil {
-		return "", errors.Wrap(err, "failed decoding token")
-	}
-
-	return string(tokenBase64[:n]), nil
+	return gcloudConfig.Credential.AccessToken, nil
 }
 
 func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, error) {
@@ -111,7 +88,8 @@ func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, err
 		}).ClientConfig()
 }
 
-func userHomeDir() string {
+// UserHomeDir returns the current use home directory
+func UserHomeDir() string {
 	if h := os.Getenv("HOME"); h != "" {
 		return h
 	}
