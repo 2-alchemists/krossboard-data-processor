@@ -19,14 +19,16 @@ import (
 
 // Instance hold a Kubernetes Opex Analytics instance info
 type Instance struct {
-	ID              string `json:"id,omitempty"`
-	Image           string `json:"image,omitempty"`
-	HostPort        int64  `json:"hostPort,omitempty"`
-	ContainerPort   int64  `json:"containerPort,omitempty"`
-	ClusterName     string `json:"clusterName,omitempty"`
-	ClusterEndpoint string `json:"clusterEndpoint,omitempty"`
-	DataVol         string `json:"dataVol,omitempty"`
-	TokenVol        string `json:"tokenVol,omitempty"`
+	ID              string    `json:"id,omitempty"`
+	Name            string    `json:"name,omitempty"`
+	Image           string    `json:"image,omitempty"`
+	HostPort        int64     `json:"hostPort,omitempty"`
+	ContainerPort   int64     `json:"containerPort,omitempty"`
+	ClusterName     string    `json:"clusterName,omitempty"`
+	ClusterEndpoint string    `json:"clusterEndpoint,omitempty"`
+	DataVol         string    `json:"dataVol,omitempty"`
+	TokenVol        string    `json:"tokenVol,omitempty"`
+	CreationDate    time.Time `json:"creationDate,omitempty"`
 }
 
 // NewInstance returns a pointer to an Instance object
@@ -55,6 +57,9 @@ func (m *Instance) PullImage() error {
 
 // CreateContainer creates a new container from given image
 func (m *Instance) CreateContainer() error {
+
+	m.Name = fmt.Sprintf("%s-%v", m.ClusterName, time.Now().Format("20060102T1504050700"))
+
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
@@ -114,7 +119,7 @@ func (m *Instance) CreateContainer() error {
 			Mounts:       mounts,
 		},
 		nil,
-		fmt.Sprintf("%s-%v", m.ClusterName, time.Now().Format("20060102T1504050700")))
+		m.Name)
 
 	if err != nil {
 		return errors.Wrap(err, "ContainerCreate failed")
@@ -125,6 +130,7 @@ func (m *Instance) CreateContainer() error {
 		return errors.Wrap(err, "ContainerStart failed")
 	}
 	m.ID = cont.ID
+	m.CreationDate = time.Now().UTC()
 	return nil
 }
 
