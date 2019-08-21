@@ -66,3 +66,20 @@ func (m *SystemStatus) UpdateInstanceSet(instanceSet *InstanceSet) error {
 	}
 	return nil
 }
+
+// FindInstance finds if there is an instance for a given K8s context
+func (m *SystemStatus) FindInstance(clusterContext string) (int, error) {
+	instanceSet, err := m.LoadInstanceSet()
+	if err != nil {
+		return -1, errors.Wrap(err, "failed loading instance set")
+	}
+
+	foundIndex := int(-1)
+	for index, instance := range instanceSet.Instances {
+		if instance.ClusterContext == clusterContext {
+			foundIndex = index
+			break
+		}
+	}
+	return foundIndex, nil
+}

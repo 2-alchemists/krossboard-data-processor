@@ -24,7 +24,7 @@ type Instance struct {
 	Image           string    `json:"image,omitempty"`
 	HostPort        int64     `json:"hostPort,omitempty"`
 	ContainerPort   int64     `json:"containerPort,omitempty"`
-	ClusterName     string    `json:"clusterName,omitempty"`
+	ClusterContext  string    `json:"clusterContext,omitempty"`
 	ClusterEndpoint string    `json:"clusterEndpoint,omitempty"`
 	DataVol         string    `json:"dataVol,omitempty"`
 	TokenVol        string    `json:"tokenVol,omitempty"`
@@ -58,7 +58,7 @@ func (m *Instance) PullImage() error {
 // CreateContainer creates a new container from given image
 func (m *Instance) CreateContainer() error {
 
-	m.Name = fmt.Sprintf("%s-%v", m.ClusterName, time.Now().Format("20060102T1504050700"))
+	m.Name = fmt.Sprintf("%s-%v", m.ClusterContext, time.Now().Format("20060102T1504050700"))
 
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())

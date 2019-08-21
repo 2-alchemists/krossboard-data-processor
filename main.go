@@ -80,6 +80,15 @@ func main() {
 		for _, cluster := range koaClusters {
 			log.Infoln(cluster.Context, cluster.APIEndpoint)
 
+			if index, err := systemStatus.FindInstance(cluster.Context); err != nil || index >= 0 {
+				if err != nil {
+					log.Error("failed finding instance", err.Error())
+				} else {
+					log.Infoln("instance already exists")
+				}
+				continue
+			}
+
 			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Context)
 			err = createDirIfNotExists(dataVol)
 			if err != nil {
@@ -96,7 +105,7 @@ func main() {
 			}
 			instance.HostPort = int64(instanceSet.NextHostPort)
 			instance.ContainerPort = int64(5483)
-			instance.ClusterName = cluster.Context
+			instance.ClusterContext = cluster.Context
 			instance.ClusterEndpoint = cluster.APIEndpoint
 			instance.TokenVol = viper.GetString("koamc_credentials_dir")
 			instance.DataVol = dataVol
@@ -107,7 +116,7 @@ func main() {
 				time.Sleep(UpdatePeriod)
 				break
 			}
-			log.Infoln("container created:", instance.ID)
+			log.Infoln("instance created:", instance.ID)
 			instanceSet.Instances = append(instanceSet.Instances, instance)
 			instanceSet.NextHostPort++
 			err := systemStatus.UpdateInstanceSet(instanceSet)
