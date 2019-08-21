@@ -20,11 +20,13 @@ type SystemStatus struct {
 	StatusFile string `json:"statusFile"`
 }
 
-// NewSystemStatus creates a new system status management object
-func NewSystemStatus(statusFile string) *SystemStatus {
-	return &SystemStatus{
+// LoadSystemStatus creates a new system status object and load new or existing system status
+func LoadSystemStatus(statusFile string) (*SystemStatus, error) {
+	systemStatus := &SystemStatus{
 		StatusFile: statusFile,
 	}
+	err := systemStatus.InitializeStatusIfEmpty()
+	return systemStatus, err
 }
 
 // LoadInstanceSet loads instance status from file

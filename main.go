@@ -20,6 +20,7 @@ func main() {
 	viper.SetDefault("docker_api_version", "1.39")
 	viper.SetDefault("k8s_verify_ssl", "false")
 	viper.SetDefault("gcp_gcloud_path", "gcloud")
+	viper.SetDefault("koacm_update_interval", 30)
 
 	// fixed config variables
 	viper.Set("koamc_config_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
@@ -31,30 +32,34 @@ func main() {
 	// create config folder of not exist
 	err := createDirIfNotExists(viper.GetString("koamc_config_dir"))
 	if err != nil {
-		log.Fatalln("failed initializing config directory", err.Error())
+		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
 	}
 
-	// create credentials folder of not exist
+	// create credentials folder if not exist
 	err = createDirIfNotExists(viper.GetString("koamc_credentials_dir"))
 	if err != nil {
-		log.Fatalln("failed initializing credential directory", err.Error())
+		log.WithField("message", err.Error()).Fatalln("Failed initializing credential directory")
 	}
 
-	systemStatus := systemstatus.NewSystemStatus(viper.GetString("koamc_status_file"))
-	err = systemStatus.InitializeStatusIfEmpty()
+	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
 	if err != nil {
-		log.Fatalln("cannot initialize status file", err.Error())
+		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
 	}
 
 	instanceSet, err := systemStatus.LoadInstanceSet()
 	if err != nil {
-		log.Fatalln("cannot load status file", err.Error())
+		log.WithField("message", err.Error()).Fatalln("Cannot load instance set")
 	}
 
-	const UpdatePeriod = 30 * time.Minute
-	for {
-		kubeConfig := kubeconfig.NewKubeConfig()
+	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	kubeConfig := kubeconfig.NewKubeConfig()
 
+	log.WithFields(log.Fields{
+		"configDir":  viper.Get("koamc_config_dir"),
+		"kubeconfig": kubeConfig.Path,
+	}).Info("Service started successully")
+
+	for {
 		koaClusters, err := kubeConfig.ListClusters()
 		if err != nil {
 			log.Fatalf("failed pulling container image: %v", err.Error())
@@ -64,7 +69,7 @@ func main() {
 		accessToken, err := kubeConfig.GetGKEAccessToken()
 		if err != nil {
 			log.Errorln("failed getting access token:", err.Error())
-			time.Sleep(UpdatePeriod)
+			time.Sleep(updatePeriod)
 			continue
 		}
 
@@ -72,19 +77,28 @@ func main() {
 		err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
 		if err != nil {
 			log.Error("failed writing token file", err.Error())
-			time.Sleep(UpdatePeriod)
+			time.Sleep(updatePeriod)
 			continue
 		}
 
-		// Create or update instance for each cluster
+		// Manage an instance for each context
 		for _, cluster := range koaClusters {
-			log.Infoln(cluster.Context, cluster.APIEndpoint)
+			log.WithFields(log.Fields{
+				"context":  cluster.Context,
+				"endpoint": cluster.APIEndpoint,
+			}).Debug("Start processing new context")
 
 			if index, err := systemStatus.FindInstance(cluster.Context); err != nil || index >= 0 {
 				if err != nil {
-					log.Error("failed finding instance", err.Error())
+					log.WithFields(log.Fields{
+						"context": cluster.Context,
+						"message": err.Error(),
+					}).Error("Failed finding instance")
 				} else {
-					log.Infoln("instance already exists")
+					log.WithFields(log.Fields{
+						"context":     cluster.Context,
+						"containerId": instanceSet.Instances[index].ID,
+					}).Debug("Instance already exists")
 				}
 				continue
 			}
@@ -92,15 +106,21 @@ func main() {
 			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Context)
 			err = createDirIfNotExists(dataVol)
 			if err != nil {
-				log.Errorln("failed creating data volume:", err)
-				time.Sleep(UpdatePeriod)
+				log.WithFields(log.Fields{
+					"path":    dataVol,
+					"message": err.Error(),
+				}).Errorln("Failed creating data volume")
+				time.Sleep(updatePeriod)
 				break
 			}
 
 			instance := koainstance.NewInstance("rchakode/kube-opex-analytics")
 			if err := instance.PullImage(); err != nil {
-				log.Errorln("failed pulling container image:", err.Error())
-				time.Sleep(UpdatePeriod)
+				log.WithFields(log.Fields{
+					"image":   instance.Image,
+					"message": err.Error(),
+				}).Errorln("Failed pulling container image")
+				time.Sleep(updatePeriod)
 				break
 			}
 			instance.HostPort = int64(instanceSet.NextHostPort)
@@ -112,22 +132,37 @@ func main() {
 
 			err = instance.CreateContainer()
 			if err != nil {
-				log.Errorln("failed creating container:", err)
-				time.Sleep(UpdatePeriod)
+				log.WithFields(log.Fields{
+					"image":   instance.Image,
+					"message": err.Error(),
+				}).Errorln("Failed creating container")
+				time.Sleep(updatePeriod)
 				break
 			}
-			log.Infoln("instance created:", instance.ID)
+			log.WithFields(log.Fields{
+				"context":     cluster.Context,
+				"containerId": instance.ID,
+			}).Info("New instance created")
+
 			instanceSet.Instances = append(instanceSet.Instances, instance)
 			instanceSet.NextHostPort++
 			err := systemStatus.UpdateInstanceSet(instanceSet)
 			if err != nil {
-				log.Errorln("failed to update system status:", err)
-				time.Sleep(UpdatePeriod)
+				log.WithFields(log.Fields{
+					"context": cluster.Context,
+					"message": err.Error(),
+				}).Errorln("Failed to update system status")
+				time.Sleep(updatePeriod)
 				break // or exist ?
 			}
+
+			log.WithFields(log.Fields{
+				"context":     cluster.Context,
+				"containerId": instance.ID,
+			}).Info("System status updated")
 		}
 
-		time.Sleep(UpdatePeriod)
+		time.Sleep(updatePeriod)
 	}
 }
 
