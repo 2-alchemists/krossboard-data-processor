@@ -158,10 +158,7 @@ func main() {
 				break // or exist ?
 			}
 
-			log.WithFields(log.Fields{
-				"cluster":     cluster.Name,
-				"containerId": instance.ID,
-			}).Info("System status updated")
+			log.Info("System status updated")
 		}
 
 		time.Sleep(updatePeriod)
