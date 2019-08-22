@@ -19,7 +19,6 @@ func main() {
 	// default config variables
 	viper.SetDefault("docker_api_version", "1.39")
 	viper.SetDefault("k8s_verify_ssl", "false")
-	viper.SetDefault("gcp_gcloud_path", "gcloud")
 	viper.SetDefault("koacm_update_interval", 30)
 
 	// fixed config variables
@@ -60,50 +59,52 @@ func main() {
 	}).Info("Service started successully")
 
 	for {
-		koaClusters, err := kubeConfig.ListClusters()
+		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
 			log.Fatalf("failed pulling container image: %v", err.Error())
 		}
 
-		// get access token
-		accessToken, err := kubeConfig.GetGKEAccessToken()
-		if err != nil {
-			log.Errorln("failed getting access token:", err.Error())
-			time.Sleep(updatePeriod)
-			continue
-		}
-
-		// udpate token file
-		err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
-		if err != nil {
-			log.Error("failed writing token file", err.Error())
-			time.Sleep(updatePeriod)
-			continue
-		}
-
-		// Manage an instance for each context
-		for _, cluster := range koaClusters {
+		// Manage an instance for each cluster
+		for _, cluster := range managedClusters {
 			log.WithFields(log.Fields{
-				"context":  cluster.Context,
+				"cluster":  cluster.Name,
 				"endpoint": cluster.APIEndpoint,
-			}).Debug("Start processing new context")
+			}).Debug("Start processing new cluster")
 
-			if index, err := systemStatus.FindInstance(cluster.Context); err != nil || index >= 0 {
+			if cluster.AuthInfo == nil || cluster.AuthInfo.AuthProvider == nil {
+				log.WithField("cluster", cluster.Name).Warn("Ignoring cluster with either no auth info or no auth provider")
+				continue
+			}
+
+			// get credentials plugin and write in a file
+			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo.AuthProvider)
+			if err != nil {
+				log.Errorln("failed getting access token:", err.Error())
+				continue
+			}
+			// TODO use a separated credentials volume per container ?
+			err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
+			if err != nil {
+				log.Error("failed writing token file", err.Error())
+				continue
+			}
+
+			if index, err := systemStatus.FindInstance(cluster.Name); err != nil || index >= 0 {
 				if err != nil {
 					log.WithFields(log.Fields{
-						"context": cluster.Context,
+						"cluster": cluster.Name,
 						"message": err.Error(),
 					}).Error("Failed finding instance")
 				} else {
 					log.WithFields(log.Fields{
-						"context":     cluster.Context,
+						"cluster":     cluster.Name,
 						"containerId": instanceSet.Instances[index].ID,
 					}).Debug("Instance already exists")
 				}
 				continue
 			}
 
-			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Context)
+			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Name)
 			err = createDirIfNotExists(dataVol)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -125,7 +126,7 @@ func main() {
 			}
 			instance.HostPort = int64(instanceSet.NextHostPort)
 			instance.ContainerPort = int64(5483)
-			instance.ClusterContext = cluster.Context
+			instance.ClusterName = cluster.Name
 			instance.ClusterEndpoint = cluster.APIEndpoint
 			instance.TokenVol = viper.GetString("koamc_credentials_dir")
 			instance.DataVol = dataVol
@@ -140,16 +141,16 @@ func main() {
 				break
 			}
 			log.WithFields(log.Fields{
-				"context":     cluster.Context,
+				"cluster":     cluster.Name,
 				"containerId": instance.ID,
 			}).Info("New instance created")
 
 			instanceSet.Instances = append(instanceSet.Instances, instance)
 			instanceSet.NextHostPort++
-			err := systemStatus.UpdateInstanceSet(instanceSet)
+			err = systemStatus.UpdateInstanceSet(instanceSet)
 			if err != nil {
 				log.WithFields(log.Fields{
-					"context": cluster.Context,
+					"cluster": cluster.Name,
 					"message": err.Error(),
 				}).Errorln("Failed to update system status")
 				time.Sleep(updatePeriod)
@@ -157,7 +158,7 @@ func main() {
 			}
 
 			log.WithFields(log.Fields{
-				"context":     cluster.Context,
+				"cluster":     cluster.Name,
 				"containerId": instance.ID,
 			}).Info("System status updated")
 		}
