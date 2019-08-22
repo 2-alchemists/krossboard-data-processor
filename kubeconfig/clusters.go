@@ -3,7 +3,6 @@ package kubeconfig
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,7 +78,6 @@ func (m *KubeConfig) GetAccessToken(authProvider *kapi.AuthProviderConfig) (stri
 		return "", errors.New("nil exec object provided")
 
 	}
-	fmt.Println(authProvider.Config["cmd-path"])
 	out, err := exec.Command(authProvider.Config["cmd-path"], strings.Split(authProvider.Config["cmd-args"], " ")...).Output()
 	if err != nil {
 		return "", errors.Wrap(err, "credentials plugin failed")
@@ -94,7 +92,7 @@ func (m *KubeConfig) GetAccessToken(authProvider *kapi.AuthProviderConfig) (stri
 		}{}
 		err = json.Unmarshal(out, &gcloudConfig)
 		if err != nil {
-			return "", errors.Wrap(err, "failed decodng gcoud output")
+			return "", errors.Wrap(err, "failed decoding gcoud output")
 		}
 		accessToken = gcloudConfig.Credential.AccessToken
 	}

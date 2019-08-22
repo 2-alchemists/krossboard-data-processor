@@ -15,11 +15,11 @@ import (
 
 func main() {
 	viper.AutomaticEnv()
-
 	// default config variables
 	viper.SetDefault("docker_api_version", "1.39")
 	viper.SetDefault("k8s_verify_ssl", "false")
 	viper.SetDefault("koacm_update_interval", 30)
+	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
 
 	// fixed config variables
 	viper.Set("koamc_config_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
@@ -115,7 +115,14 @@ func main() {
 				break
 			}
 
-			instance := koainstance.NewInstance("rchakode/kube-opex-analytics")
+			instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
+			instance.HostPort = int64(instanceSet.NextHostPort)
+			instance.ContainerPort = int64(5483)
+			instance.ClusterName = cluster.Name
+			instance.ClusterEndpoint = cluster.APIEndpoint
+			instance.TokenVol = viper.GetString("koamc_credentials_dir")
+			instance.DataVol = dataVol
+
 			if err := instance.PullImage(); err != nil {
 				log.WithFields(log.Fields{
 					"image":   instance.Image,
@@ -124,12 +131,6 @@ func main() {
 				time.Sleep(updatePeriod)
 				break
 			}
-			instance.HostPort = int64(instanceSet.NextHostPort)
-			instance.ContainerPort = int64(5483)
-			instance.ClusterName = cluster.Name
-			instance.ClusterEndpoint = cluster.APIEndpoint
-			instance.TokenVol = viper.GetString("koamc_credentials_dir")
-			instance.DataVol = dataVol
 
 			err = instance.CreateContainer()
 			if err != nil {
