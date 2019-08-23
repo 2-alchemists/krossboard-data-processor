@@ -201,6 +201,7 @@ func updateGKEClusters() {
 	for {
 		listReq := &gcontainerpbv1.ListClustersRequest{
 			// TODO :: Idea of extension: automatically discover all projects associated to the users and list all clusters included
+			// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
 			Parent: fmt.Sprintf("projects/%v/locations/-", viper.GetString("google_project_id")),
 		}
 
