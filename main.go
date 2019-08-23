@@ -1,17 +1,24 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"sync"
 	"time"
 
+	gcontainerv1 "cloud.google.com/go/container/apiv1"
 	"github.com/rchakode/kube-opex-analytics-mc/koainstance"
 	"github.com/rchakode/kube-opex-analytics-mc/kubeconfig"
 	"github.com/rchakode/kube-opex-analytics-mc/systemstatus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
 )
+
+var workers sync.WaitGroup
 
 func main() {
 	viper.AutomaticEnv()
@@ -20,6 +27,7 @@ func main() {
 	viper.SetDefault("k8s_verify_ssl", "false")
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
+	viper.SetDefault("google_gcloud_command_path", "gcloud")
 
 	// fixed config variables
 	viper.Set("koamc_config_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
@@ -50,18 +58,31 @@ func main() {
 		log.WithField("message", err.Error()).Fatalln("Cannot load instance set")
 	}
 
+	workers.Add(2)
+
+	go orchestrateInstances(systemStatus, instanceSet)
+	go updateGKEClusters()
+
+	workers.Wait()
+}
+
+func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *systemstatus.InstanceSet) {
+	defer workers.Done()
+
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	kubeConfig := kubeconfig.NewKubeConfig()
 
 	log.WithFields(log.Fields{
 		"configDir":  viper.Get("koamc_config_dir"),
 		"kubeconfig": kubeConfig.Path,
-	}).Info("Service started successully")
+	}).Infoln("Service started successully")
 
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
-			log.Fatalf("failed pulling container image: %v", err.Error())
+			log.WithError(err).Errorln("Failed to get clusters from KUBECONFIG")
+			time.Sleep(updatePeriod)
+			continue
 		}
 
 		// Manage an instance for each cluster
@@ -69,7 +90,7 @@ func main() {
 			log.WithFields(log.Fields{
 				"cluster":  cluster.Name,
 				"endpoint": cluster.APIEndpoint,
-			}).Debug("Start processing new cluster")
+			}).Debugln("Start processing new cluster")
 
 			if cluster.AuthInfo == nil || cluster.AuthInfo.AuthProvider == nil {
 				log.WithField("cluster", cluster.Name).Warn("Ignoring cluster with either no auth info or no auth provider")
@@ -85,7 +106,7 @@ func main() {
 			// TODO use a separated credentials volume per container ?
 			err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
 			if err != nil {
-				log.Error("failed writing token file", err.Error())
+				log.Errorln("failed writing token file", err.Error())
 				continue
 			}
 
@@ -94,12 +115,12 @@ func main() {
 					log.WithFields(log.Fields{
 						"cluster": cluster.Name,
 						"message": err.Error(),
-					}).Error("Failed finding instance")
+					}).Errorln("Failed finding instance")
 				} else {
 					log.WithFields(log.Fields{
 						"cluster":     cluster.Name,
 						"containerId": instanceSet.Instances[index].ID,
-					}).Debug("Instance already exists")
+					}).Debugln("Instance already exists")
 				}
 				continue
 			}
@@ -144,7 +165,7 @@ func main() {
 			log.WithFields(log.Fields{
 				"cluster":     cluster.Name,
 				"containerId": instance.ID,
-			}).Info("New instance created")
+			}).Infoln("New instance created")
 
 			instanceSet.Instances = append(instanceSet.Instances, instance)
 			instanceSet.NextHostPort++
@@ -158,7 +179,49 @@ func main() {
 				break // or exist ?
 			}
 
-			log.Info("System status updated")
+			log.Infoln("System status updated")
+		}
+
+		time.Sleep(updatePeriod)
+	}
+}
+
+func updateGKEClusters() {
+	defer workers.Done()
+
+	ctx := context.Background()
+	clusterManagerClient, err := gcontainerv1.NewClusterManagerClient(ctx)
+	if err != nil {
+		log.WithError(err).Errorln("Failed to instanciate GKE cluster manager")
+		return
+	}
+
+	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	// loop periodically after each updatePeriod
+	for {
+		listReq := &gcontainerpbv1.ListClustersRequest{
+			// TODO :: Idea of extension: automatically discover all projects associated to the users and list all clusters included
+			Parent: fmt.Sprintf("projects/%v/locations/-", viper.GetString("google_project_id")),
+		}
+
+		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
+		if err != nil {
+			log.WithError(err).Errorln("Failed to list GKE clusters")
+			time.Sleep(updatePeriod)
+			continue
+		}
+
+		for _, cluster := range listResp.Clusters {
+			_, err := exec.Command(viper.GetString("google_gcloud_command_path"),
+				"container",
+				"clusters",
+				"get-credentials",
+				cluster.Name).Output()
+			if err != nil {
+				log.WithError(err).Errorf("Failed getting credentials for GKE cluster %v", cluster.Name)
+			} else {
+				log.WithField("clusterName", cluster.Name).Debugln("Added/updated credentials for GKE cluster in KUBECONFIG")
+			}
 		}
 
 		time.Sleep(updatePeriod)
