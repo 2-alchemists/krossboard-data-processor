@@ -17,6 +17,7 @@ import (
 	"github.com/rchakode/kube-opex-analytics-mc/koainstance"
 	"github.com/rchakode/kube-opex-analytics-mc/kubeconfig"
 	"github.com/rchakode/kube-opex-analytics-mc/systemstatus"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
@@ -25,6 +26,12 @@ import (
 var workers sync.WaitGroup
 
 func main() {
+	// set log settings
+	customFormatter := new(log.TextFormatter)
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+	logrus.SetFormatter(customFormatter)
+	customFormatter.FullTimestamp = true
+
 	viper.AutomaticEnv()
 	// default config variables
 	viper.SetDefault("docker_api_version", "1.39")
@@ -215,7 +222,6 @@ func updateGKEClusters() {
 		listReq := &gcontainerpbv1.ListClustersRequest{
 			Parent: fmt.Sprintf("projects/%v/locations/-", projectID),
 		}
-
 		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
 		if err != nil {
 			log.WithError(err).Errorln("Failed to list GKE clusters")
