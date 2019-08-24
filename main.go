@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
 
 	gcontainerv1 "cloud.google.com/go/container/apiv1"
 	"github.com/rchakode/kube-opex-analytics-mc/koainstance"
@@ -117,6 +121,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 						"message": err.Error(),
 					}).Errorln("Failed finding instance")
 				} else {
+					// TODO check if instance is running or not
 					log.WithFields(log.Fields{
 						"cluster":     cluster.Name,
 						"containerId": instanceSet.Instances[index].ID,
@@ -197,12 +202,18 @@ func updateGKEClusters() {
 	}
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
-	// loop periodically after each updatePeriod
 	for {
+		// TODO An Idea of extension would be to automatically discover all projects associated
+		// to the authentocated users and list all GKE clusters included
+		// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
+		projectID, err := getGoogleProcectID()
+		if projectID <= int64(0) {
+			log.WithError(err).Errorln("Unable to retrieve GCP project ID")
+			time.Sleep(updatePeriod)
+			continue
+		}
 		listReq := &gcontainerpbv1.ListClustersRequest{
-			// TODO :: Idea of extension: automatically discover all projects associated to the users and list all clusters included
-			// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
-			Parent: fmt.Sprintf("projects/%v/locations/-", viper.GetString("google_project_id")),
+			Parent: fmt.Sprintf("projects/%v/locations/-", projectID),
 		}
 
 		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
@@ -234,4 +245,36 @@ func createDirIfNotExists(path string) error {
 		return os.MkdirAll(path, 0755)
 	}
 	return nil
+}
+
+func getGoogleProcectID() (int64, error) {
+	timeout := time.Duration(time.Second)
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id", nil)
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return viper.GetInt64("google_project_id"), errors.Wrap(err, "failed calling GCP metadata server")
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return -1, errors.Wrap(err, "failed ready response from GCP metadata server")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return -1, errors.New("GCP metadata server returned error: " + string(bodyBytes))
+	}
+	projectID, err := strconv.ParseInt(string(bodyBytes), 10, 64)
+	if err != nil {
+		return -1, errors.Wrap(err, "unexpected non integer value as project id")
+
+	}
+
+	return projectID, nil
 }
