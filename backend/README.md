@@ -27,6 +27,6 @@
 * Copy systemd scripts
 
   ```
-  $ sudo install 644 ./scripts/kube-opex-analytics-mc.service.env $KOAMC_ROOT_DIR/etc/
-  $ sudo install 644 ./scripts/kube-opex-analytics-mc.service /lib/systemd/system/
+  $ sudo install -m 644 ./scripts/kube-opex-analytics-mc.service.env $KOAMC_ROOT_DIR/etc/
+  $ sudo install -m 644 ./scripts/kube-opex-analytics-mc.service /lib/systemd/system/
   ```  
