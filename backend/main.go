@@ -39,16 +39,16 @@ func main() {
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
 	viper.SetDefault("google_gcloud_command_path", "gcloud")
+	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 
 	// fixed config variables
-	viper.Set("koamc_config_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
-	viper.Set("koamc_status_file", fmt.Sprintf("%s/status.json", viper.GetString("koamc_config_dir")))
-	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_config_dir")))
-	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_config_dir")))
+	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
+	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_k8s_token_file", fmt.Sprintf("%s/token", viper.GetString("koamc_credentials_dir")))
+	viper.Set("koamc_status_file", fmt.Sprintf("%s/run/status.json", viper.GetString("koamc_root_dir")))
 
 	// create config folder of not exist
-	err := createDirIfNotExists(viper.GetString("koamc_config_dir"))
+	err := createDirIfNotExists(viper.GetString("koamc_root_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
 	}
@@ -84,7 +84,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 	kubeConfig := kubeconfig.NewKubeConfig()
 
 	log.WithFields(log.Fields{
-		"configDir":  viper.Get("koamc_config_dir"),
+		"configDir":  viper.Get("koamc_root_dir"),
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("Service started successully")
 

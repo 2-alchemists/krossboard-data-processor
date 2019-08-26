@@ -21,11 +21,12 @@
   * Copy binaries
 
   ```
-  $ sudo install 755 /path/to/binary $KOAMC_ROOT_DIR/bin/
+  $ sudo install -m 755 /path/to/binary $KOAMC_ROOT_DIR/bin/
   ```
 
 * Copy systemd scripts
 
   ```
+  $ sudo install 644 ./scripts/kube-opex-analytics-mc.service.env $KOAMC_ROOT_DIR/etc/
   $ sudo install 644 ./scripts/kube-opex-analytics-mc.service /lib/systemd/system/
   ```  
