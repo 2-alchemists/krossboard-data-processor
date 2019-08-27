@@ -19,11 +19,12 @@ INSTALL_ASSET_DIR=$(dirname $0)
 KOAMC_BINARY_PATH=${1-$INSTALL_ASSET_DIR/$PROGRAM_NAME}
 KOAMC_USER=koamc
 KOAMC_ROOT_DIR=/opt/$KOAMC_USER
+DOCKER_GROUP=docker
 
 echo "Binary to be installed: $KOAMC_BINARY_PATH"
 
 id -u $KOAMC_USER &> /dev/null || \
-    useradd $KOAMC_USER -m --home-dir $KOAMC_ROOT_DIR
+     sudo useradd $KOAMC_USER -G $DOCKER_GROUP -m --home-dir $KOAMC_ROOT_DIR
 
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}
 install -m 755 $KOAMC_BINARY_PATH $KOAMC_ROOT_DIR/bin/
