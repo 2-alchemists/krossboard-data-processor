@@ -95,7 +95,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
-			log.WithError(err).Errorln("Failed to get clusters from KUBECONFIG")
+			log.WithError(err).Errorln("Failed getting clusters from KUBECONFIG")
 			time.Sleep(updatePeriod)
 			continue
 		}
@@ -238,7 +238,9 @@ func updateGKEClusters() {
 				"container",
 				"clusters",
 				"get-credentials",
-				cluster.Name).Output()
+				cluster.Name,
+				"--zone",
+				cluster.Zone).Output()
 			if err != nil {
 				log.WithError(err).Errorf("Failed getting credentials for GKE cluster %v", cluster.Name)
 			} else {
