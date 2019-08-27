@@ -45,15 +45,19 @@ func main() {
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_k8s_token_file", fmt.Sprintf("%s/token", viper.GetString("koamc_credentials_dir")))
-	viper.Set("koamc_status_file", fmt.Sprintf("%s/run/status.json", viper.GetString("koamc_root_dir")))
+	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
+	viper.Set("koamc_status_file", fmt.Sprintf("%s/status.json", viper.GetString("koamc_status_dir")))
 
-	// create config folder of not exist
 	err := createDirIfNotExists(viper.GetString("koamc_root_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
 	}
 
-	// create credentials folder if not exist
+	err = createDirIfNotExists(viper.GetString("koamc_status_dir"))
+	if err != nil {
+		log.WithField("message", err.Error()).Fatalln("Failed initializing status directory")
+	}
+
 	err = createDirIfNotExists(viper.GetString("koamc_credentials_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing credential directory")
