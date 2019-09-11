@@ -16,7 +16,7 @@ $ sudo apt install docker.io
 
 > Warning: If you already have a version of Docker installed by snap, pealease remove it first `snap remove docker`.
 
-* Set user and root installation directory
+Set user and root installation directory
 
 ```
 $ export KOAMC_USER=koamc
