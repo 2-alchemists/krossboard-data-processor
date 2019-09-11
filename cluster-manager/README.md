@@ -1,10 +1,16 @@
+# Build
+
+  ```
+  $ make
+  ```
+
+
 # Installation
 
 
 * Use Docker installed by apt
 
   ```
-  $
   $ sudo apt install docker.io
   ```
 
@@ -16,6 +22,7 @@
   $ export KOAMC_USER=koamc
   $ export KOAMC_ROOT_DIR=/opt/$KOAMC_USER
   $ export DOCKER_GROUP=docker
+  $ export KOAMC_BINARY=kube-opex-analytics-mc 
   ```
 
 * Create koamc user
@@ -34,7 +41,7 @@
   * Copy binaries
 
   ```
-  $ sudo install -m 755 /path/to/binary $KOAMC_ROOT_DIR/bin/
+  $ sudo install -m 755 $KOAMC_BINARY $KOAMC_ROOT_DIR/bin/
   ```
 
 * Copy systemd scripts
