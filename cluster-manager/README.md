@@ -22,7 +22,7 @@ Set user and root installation directory
 $ export KOAMC_USER=koamc
 $ export KOAMC_ROOT_DIR=/opt/$KOAMC_USER
 $ export DOCKER_GROUP=docker
-$ export KOAMC_BINARY=kube-opex-analytics-mc 
+$ export KOAMC_BINARY=koamc-cluster-manager
 ```
 
 Create koamc user
