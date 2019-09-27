@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"github.com/rchakode/kube-opex-analytics-mc/koainstance"
+	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
 )
 
 // InstanceSet hold the current status of an installation
