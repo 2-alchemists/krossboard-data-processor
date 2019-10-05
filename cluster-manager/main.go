@@ -13,13 +13,13 @@ import (
 
 	"github.com/pkg/errors"
 
+	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
+	"bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig"
+	"bitbucket.org/koamc/kube-opex-analytics-mc/systemstatus"
 	gcontainerv1 "cloud.google.com/go/container/apiv1"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
-	"bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig"
-	"bitbucket.org/koamc/kube-opex-analytics-mc/systemstatus"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -38,11 +38,12 @@ func main() {
 	viper.AutomaticEnv()
 	// default config variables
 	viper.SetDefault("docker_api_version", "1.39")
-	viper.SetDefault("k8s_verify_ssl", "false")
+	viper.SetDefault("koacm_k8s_verify_ssl", "false")
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
-	viper.SetDefault("google_gcloud_command_path", "gcloud")
+	viper.SetDefault("koacm_google_gcloud_command_path", "gcloud")
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
+	viper.SetDefault("koamc_cloud_provider", "CLOUD_PROVIDER_UNDEFINED")
 
 	// fixed config variables
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
@@ -73,19 +74,19 @@ func main() {
 
 	instanceSet, err := systemStatus.LoadInstanceSet()
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("Cannot load instance set")
+		log.WithField("message", err.Error()).Fatalln("cannot load instance set")
 	}
 
 	workers.Add(2)
 
-	cloudProvider := viper.GetString("CLOUD_PROVIDER")
+	cloudProvider := viper.GetString("KOAMC_CLOUD_PROVIDER")
 	switch cloudProvider {
 	case "GCP":
 		go updateGKEClusters()
 	case "AWS":
 		go updateEKSClusters()
 	default:
-		log.Fatalln("Cloud provider not supported:", cloudProvider)
+		log.Fatalln("Cloud Provider not supported:", cloudProvider)
 	}
 
 	go orchestrateInstances(systemStatus, instanceSet)
@@ -117,7 +118,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 			log.WithFields(log.Fields{
 				"cluster":  cluster.Name,
 				"endpoint": cluster.APIEndpoint,
-			}).Debugln("Start processing new cluster")
+			}).Debugln("Processing new cluster")
 
 			if cluster.AuthInfo == nil || cluster.AuthInfo.AuthProvider == nil {
 				log.WithField("cluster", cluster.Name).Warn("Ignoring cluster with either no auth info or no auth provider")
@@ -246,7 +247,7 @@ func updateGKEClusters() {
 		}
 
 		for _, cluster := range listResp.Clusters {
-			_, err := exec.Command(viper.GetString("google_gcloud_command_path"),
+			_, err := exec.Command(viper.GetString("koamc_google_gcloud_command_path"),
 				"container",
 				"clusters",
 				"get-credentials",
