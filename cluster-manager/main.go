@@ -43,7 +43,7 @@ func main() {
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
 	viper.SetDefault("koacm_google_gcloud_command_path", "gcloud")
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
-	viper.SetDefault("koamc_cloud_provider", "CLOUD_PROVIDER_UNDEFINED")
+	viper.SetDefault("koamc_cloud_provider", "")
 
 	// fixed config variables
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
@@ -79,14 +79,14 @@ func main() {
 
 	workers.Add(2)
 
-	cloudProvider := viper.GetString("KOAMC_CLOUD_PROVIDER")
+	cloudProvider := getCloudProvider()
 	switch cloudProvider {
 	case "GCP":
 		go updateGKEClusters()
 	case "AWS":
 		go updateEKSClusters()
 	default:
-		log.Fatalln("Cloud Provider not supported:", cloudProvider)
+		log.Fatalln("not supported cloud provider:", cloudProvider)
 	}
 
 	go orchestrateInstances(systemStatus, instanceSet)
@@ -230,7 +230,7 @@ func updateGKEClusters() {
 		// TODO An Idea of extension would be to automatically discover all projects associated
 		// to the authentocated users and list all GKE clusters included
 		// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
-		projectID, err := getGoogleProjectID()
+		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {
 			log.WithError(err).Errorln("Unable to retrieve GCP project ID")
 			time.Sleep(updatePeriod)
@@ -310,7 +310,33 @@ func createDirIfNotExists(path string) error {
 	return nil
 }
 
-func getGoogleProjectID() (int64, error) {
+func getAWSLocalHostname() (string, error) {
+	timeout := time.Duration(time.Second)
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	req, err := http.NewRequest("GET", "http://169.254.169.254/latest/meta-data/local-hostname", nil)
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", errors.Wrap(err, "failed calling AWS metadata service")
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "failed ready response from GCP metadata server")
+	}
+
+	outValue := string(body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("AWS metadata service returned error: " + string(body))
+	}
+
+	return outValue, nil
+}
+
+func getGCPProjectID() (int64, error) {
 	timeout := time.Duration(time.Second)
 	client := &http.Client{
 		Timeout: timeout,
@@ -325,19 +351,37 @@ func getGoogleProjectID() (int64, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return -1, errors.Wrap(err, "failed ready response from GCP metadata server")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return -1, errors.New("GCP metadata server returned error: " + string(bodyBytes))
+		return -1, errors.New("GCP metadata server returned error: " + string(body))
 	}
-	projectID, err := strconv.ParseInt(string(bodyBytes), 10, 64)
+	projectID, err := strconv.ParseInt(string(body), 10, 64)
 	if err != nil {
 		return -1, errors.Wrap(err, "unexpected non integer value as project id")
 
 	}
 
 	return projectID, nil
+}
+
+func getCloudProvider() string {
+	provider := viper.GetString("KOAMC_CLOUD_PROVIDER")
+	if provider == "" {
+		_, err := getGCPProjectID()
+		if err != nil {
+			_, err = getAWSLocalHostname()
+			if err != nil {
+				provider = "UNDEFINED"
+			} else {
+				provider = "AWS"
+			}
+		} else {
+			provider = "GCP"
+		}
+	}
+	return provider
 }
