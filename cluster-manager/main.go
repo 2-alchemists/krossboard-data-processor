@@ -230,7 +230,7 @@ func updateGKEClusters() {
 		// TODO An Idea of extension would be to automatically discover all projects associated
 		// to the authentocated users and list all GKE clusters included
 		// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
-		projectID, err := getGoogleProcectID()
+		projectID, err := getGoogleProjectID()
 		if projectID <= int64(0) {
 			log.WithError(err).Errorln("Unable to retrieve GCP project ID")
 			time.Sleep(updatePeriod)
@@ -310,7 +310,7 @@ func createDirIfNotExists(path string) error {
 	return nil
 }
 
-func getGoogleProcectID() (int64, error) {
+func getGoogleProjectID() (int64, error) {
 	timeout := time.Duration(time.Second)
 	client := &http.Client{
 		Timeout: timeout,
