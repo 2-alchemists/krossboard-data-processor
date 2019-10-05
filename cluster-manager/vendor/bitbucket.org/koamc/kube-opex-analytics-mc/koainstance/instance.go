@@ -86,7 +86,7 @@ func (m *Instance) CreateContainer() error {
 	envars := []string{
 		fmt.Sprintf("KOA_DB_LOCATION=%s", m.DataVol),
 		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", m.ClusterEndpoint),
-		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("k8s_verify_ssl")),
+		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("koacm_k8s_verify_ssl")),
 	}
 
 	mounts := []dkrMount.Mount{

@@ -4,7 +4,7 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get -v
-GOVENDOR=GO111MODULE=on $(GOCMD) mod vendor
+GOVENDOR=govendor
 UPX=upx
 BINARY_NAME=koamc-cluster-manager
 BINARY_UNIX=$(BINARY_NAME)_unix
@@ -26,7 +26,7 @@ run:
 deps:
 	$(GOGET)
 vendor:
-	$(GOVENDOR)
+	$(GOVENDOR) add +external
 
 # Cross compilation
 build-linux:
