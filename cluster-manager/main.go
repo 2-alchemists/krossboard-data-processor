@@ -17,10 +17,11 @@ import (
 	"bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig"
 	"bitbucket.org/koamc/kube-opex-analytics-mc/systemstatus"
 	gcontainerv1 "cloud.google.com/go/container/apiv1"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/sirupsen/logrus"
+	"github.com/buger/jsonparser"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
@@ -29,21 +30,21 @@ import (
 var workers sync.WaitGroup
 
 func main() {
-	// set log settings
-	customFormatter := new(log.TextFormatter)
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-	logrus.SetFormatter(customFormatter)
-	customFormatter.FullTimestamp = true
-
 	viper.AutomaticEnv()
 	// default config variables
+	viper.SetDefault("koamc_log_level", "http://metadata.google.internal")
 	viper.SetDefault("docker_api_version", "1.39")
 	viper.SetDefault("koacm_k8s_verify_ssl", "false")
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
-	viper.SetDefault("koacm_google_gcloud_command_path", "gcloud")
+	viper.SetDefault("koamc_gcloud_command", "gcloud")
+	viper.SetDefault("koamc_awscli_command", "aws")
+	viper.SetDefault("koacm_eksctl_command", "eksctl")
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 	viper.SetDefault("koamc_cloud_provider", "")
+	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
+	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
+	viper.SetDefault("koamc_log_level", "warn")
 
 	// fixed config variables
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
@@ -52,7 +53,21 @@ func main() {
 	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_status_file", fmt.Sprintf("%s/status.json", viper.GetString("koamc_status_dir")))
 
-	err := createDirIfNotExists(viper.GetString("koamc_root_dir"))
+	// configure logger
+	customFormatter := new(log.TextFormatter)
+	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+	customFormatter.FullTimestamp = true
+	log.SetFormatter(customFormatter)
+
+	logLevel, err := log.ParseLevel(viper.GetString("koamc_log_level"))
+	if err != nil {
+		log.WithError(err).Error("failed parsing log level")
+		logLevel = log.WarnLevel
+	}
+	log.SetLevel(logLevel)
+
+	// actual processing
+	err = createDirIfNotExists(viper.GetString("koamc_root_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
 	}
@@ -103,7 +118,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 	log.WithFields(log.Fields{
 		"configDir":  viper.Get("koamc_root_dir"),
 		"kubeconfig": kubeConfig.Path,
-	}).Infoln("Service started successully")
+	}).Infoln("service started successully")
 
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
@@ -118,19 +133,19 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 			log.WithFields(log.Fields{
 				"cluster":  cluster.Name,
 				"endpoint": cluster.APIEndpoint,
-			}).Debugln("Processing new cluster")
+			}).Debugln("processing new cluster")
 
-			if cluster.AuthInfo == nil || cluster.AuthInfo.AuthProvider == nil {
-				log.WithField("cluster", cluster.Name).Warn("Ignoring cluster with either no auth info or no auth provider")
+			if cluster.AuthInfo == nil {
+				log.WithField("cluster", cluster.Name).Warn("ignoring cluster with no AuthInfo")
 				continue
 			}
 
-			// get credentials plugin and write in a file
-			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo.AuthProvider)
+			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo)
 			if err != nil {
-				log.Errorln("failed getting access token:", err.Error())
+				log.WithField("cluster", cluster.Name).Warn("failed authenticating to cluster: ", err.Error())
 				continue
 			}
+
 			// TODO use a separated credentials volume per container ?
 			err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
 			if err != nil {
@@ -247,7 +262,7 @@ func updateGKEClusters() {
 		}
 
 		for _, cluster := range listResp.Clusters {
-			_, err := exec.Command(viper.GetString("koamc_google_gcloud_command_path"),
+			_, err := exec.Command(viper.GetString("koamc_gcloud_command"),
 				"container",
 				"clusters",
 				"get-credentials",
@@ -271,31 +286,37 @@ func updateEKSClusters() {
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
-		svc := eks.New(session.New())
+		awsRegion, err := getAWSRegion()
+		if err != nil {
+			log.WithError(err).Error("cannot retrieve AWS region")
+			time.Sleep(updatePeriod)
+			continue
+		}
+		svc := eks.New(session.New(), aws.NewConfig().WithRegion("us-west-2"))
 		listInput := &eks.ListClustersInput{}
 		listResult, err := svc.ListClusters(listInput)
 		if err != nil {
 			if aerr, ok := err.(awserr.Error); ok {
-				log.WithError(err).Errorf("Failed listing EKS cluster (code: %v)", aerr.Code())
+				log.WithError(err).Errorf("failed listing EKS clusters (%v)", aerr.Code())
 			} else {
-				log.WithError(err).Error("Failed listing EKS cluster")
+				log.WithError(err).Error("failed listing EKS clusters")
 			}
 			time.Sleep(updatePeriod)
 			continue
 		}
 		for _, clusterName := range listResult.Clusters {
-			_, err := exec.Command(viper.GetString("aws_cli_command_path"),
+			_, err := exec.Command(viper.GetString("koamc_awscli_command"),
 				"eks",
 				"update-kubeconfig",
 				"--name",
 				*clusterName,
 				"--region",
-				viper.GetString("AWS_REGION")).Output()
+				awsRegion).Output()
 
 			if err != nil {
-				log.WithError(err).Errorf("Failed getting credentials for GKE cluster %v", clusterName)
+				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", clusterName)
 			} else {
-				log.WithField("clusterName", clusterName).Debugln("Added/updated credentials for GKE cluster in KUBECONFIG")
+				log.WithField("clusterName", clusterName).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
 			}
 		}
 
@@ -310,13 +331,15 @@ func createDirIfNotExists(path string) error {
 	return nil
 }
 
-func getAWSLocalHostname() (string, error) {
+func getAWSRegion() (string, error) {
 	timeout := time.Duration(time.Second)
 	client := &http.Client{
 		Timeout: timeout,
 	}
 
-	req, err := http.NewRequest("GET", "http://169.254.169.254/latest/meta-data/local-hostname", nil)
+	req, err := http.NewRequest("GET",
+		viper.GetString("koamc_aws_metadata_service")+"/latest/meta-data/instance-identity/document",
+		nil)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "failed calling AWS metadata service")
@@ -328,12 +351,16 @@ func getAWSLocalHostname() (string, error) {
 		return "", errors.Wrap(err, "failed ready response from GCP metadata server")
 	}
 
-	outValue := string(body)
 	if resp.StatusCode != http.StatusOK {
 		return "", errors.New("AWS metadata service returned error: " + string(body))
 	}
 
-	return outValue, nil
+	out, err := jsonparser.GetString(body, "region")
+	if err != nil {
+		return "", errors.Wrap(err, "unexpected metatdata content")
+	}
+
+	return out, nil
 }
 
 func getGCPProjectID() (int64, error) {
@@ -342,7 +369,9 @@ func getGCPProjectID() (int64, error) {
 		Timeout: timeout,
 	}
 
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id", nil)
+	req, err := http.NewRequest("GET",
+		viper.GetString("koamc_gcp_metadata_service")+"/computeMetadata/v1/project/numeric-project-id",
+		nil)
 	req.Header.Add("Metadata-Flavor", "Google")
 
 	resp, err := client.Do(req)
@@ -373,8 +402,10 @@ func getCloudProvider() string {
 	if provider == "" {
 		_, err := getGCPProjectID()
 		if err != nil {
-			_, err = getAWSLocalHostname()
+			log.WithError(err).Debug("not AWS cloud")
+			_, err = getAWSRegion()
 			if err != nil {
+				log.WithError(err).Debug("not GCP cloud")
 				provider = "UNDEFINED"
 			} else {
 				provider = "AWS"

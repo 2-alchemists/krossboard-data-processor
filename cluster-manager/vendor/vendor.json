@@ -5,14 +5,14 @@
 		{
 			"checksumSHA1": "b6RvaxEL2n0JkHrxPpcQpdfCL4E=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/koainstance",
-			"revision": "3720a7d2885f041b925fc0374ecedac727b2166e",
-			"revisionTime": "2019-10-05T12:05:02Z"
+			"revision": "90a394388663c2652cda6bd7cacf1ebd3e8f6f2b",
+			"revisionTime": "2019-10-06T12:32:43Z"
 		},
 		{
-			"checksumSHA1": "p5eL/x9Umcwo9WxIbAFYunqQbaU=",
+			"checksumSHA1": "5qCd4vsZVi1dZ9TYAM7poZUmVWk=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig",
-			"revision": "bef251ff33acfbb9a90e7d9cdcaa29afa9b752c8",
-			"revisionTime": "2019-09-28T04:00:54Z"
+			"revision": "90a394388663c2652cda6bd7cacf1ebd3e8f6f2b",
+			"revisionTime": "2019-10-06T12:32:43Z"
 		},
 		{
 			"checksumSHA1": "vnRa0LioRArfsdOqtlE9/G+/ZyU=",
@@ -241,6 +241,12 @@
 			"path": "github.com/aws/aws-sdk-go/service/sts/stsiface",
 			"revision": "969127fb5e168189a973c3d7ea58d7bd37aef6af",
 			"revisionTime": "2019-08-27T18:26:42Z"
+		},
+		{
+			"checksumSHA1": "oGrbZ4USJyUrQrTeGaPlfPpZNGY=",
+			"path": "github.com/buger/jsonparser",
+			"revision": "ee4c978eae7efe2344eb024dd7d77918d3f7c55c",
+			"revisionTime": "2019-10-04T11:47:45Z"
 		},
 		{
 			"checksumSHA1": "ru5eKWdLzXfpNRL+Mi1bxbmY8DU=",
