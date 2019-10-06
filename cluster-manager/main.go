@@ -242,9 +242,6 @@ func updateGKEClusters() {
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
-		// TODO An Idea of extension would be to automatically discover all projects associated
-		// to the authentocated users and list all GKE clusters included
-		// Doc: https://godoc.org/google.golang.org/api/cloudresourcemanager/v1beta1
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {
 			log.WithError(err).Errorln("Unable to retrieve GCP project ID")
@@ -376,13 +373,13 @@ func getGCPProjectID() (int64, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return viper.GetInt64("google_project_id"), errors.Wrap(err, "failed calling GCP metadata server")
+		return viper.GetInt64("google_project_id"), errors.Wrap(err, "failed calling GCP metadata service")
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return -1, errors.Wrap(err, "failed ready response from GCP metadata server")
+		return -1, errors.Wrap(err, "failed ready response from GCP metadata service")
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -390,8 +387,7 @@ func getGCPProjectID() (int64, error) {
 	}
 	projectID, err := strconv.ParseInt(string(body), 10, 64)
 	if err != nil {
-		return -1, errors.Wrap(err, "unexpected non integer value as project id")
-
+		return -1, errors.Wrap(err, "unexpected non integer for project id")
 	}
 
 	return projectID, nil
@@ -402,10 +398,10 @@ func getCloudProvider() string {
 	if provider == "" {
 		_, err := getGCPProjectID()
 		if err != nil {
-			log.WithError(err).Debug("not AWS cloud")
+			log.WithError(err).Debug("not GCP cloud")
 			_, err = getAWSRegion()
 			if err != nil {
-				log.WithError(err).Debug("not GCP cloud")
+				log.WithError(err).Debug("not AWS cloud")
 				provider = "UNDEFINED"
 			} else {
 				provider = "AWS"
