@@ -1,13 +1,13 @@
 package kubeconfig
 
 import (
-	"encoding/json"
 	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
 
 	"k8s.io/client-go/rest"
@@ -48,10 +48,6 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 		return nil, errors.Wrap(err, "failed to load config")
 	}
 
-	// TODO test to extract access token from config.AuthInfos
-	// b, _ := json.Marshal(config.AuthInfos)
-	// fmt.Println(string(b))
-
 	authInfos := make(map[string]string)
 	for user, authInfo := range config.AuthInfos {
 		authInfos[user] = authInfo.Token
@@ -72,29 +68,30 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 	return managedClusters, nil
 }
 
-// GetAccessToken retrieves access token from credentials plugin
-func (m *KubeConfig) GetAccessToken(authProvider *kapi.AuthProviderConfig) (string, error) {
-	if authProvider == nil {
-		return "", errors.New("nil exec object provided")
-
+// GetAccessToken retrieves access token from AuthInfo
+func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
+	if authInfo == nil {
+		return "", errors.New("nil AuthInfo provided")
 	}
-	out, err := exec.Command(authProvider.Config["cmd-path"], strings.Split(authProvider.Config["cmd-args"], " ")...).Output()
+	cmd := ""
+	var args []string
+	if authInfo.AuthProvider != nil {
+		cmd = authInfo.AuthProvider.Config["cmd-path"]
+		args = strings.Split(authInfo.AuthProvider.Config["cmd-args"], " ")
+	} else if authInfo.Exec != nil {
+		cmd = authInfo.Exec.Command
+		args = authInfo.Exec.Args
+	} else {
+		return "", errors.New("not AuthInfo command provided")
+	}
+	out, err := exec.Command(cmd, args...).Output()
 	if err != nil {
 		return "", errors.Wrap(err, "credentials plugin failed")
 	}
 
-	accessToken := ""
-	if authProvider.Name == "gcp" {
-		gcloudConfig := struct {
-			Credential struct {
-				AccessToken string `json:"access_token"`
-			} `json:"credential,omitempty"`
-		}{}
-		err = json.Unmarshal(out, &gcloudConfig)
-		if err != nil {
-			return "", errors.Wrap(err, "failed decoding gcoud output")
-		}
-		accessToken = gcloudConfig.Credential.AccessToken
+	accessToken, err := jsonparser.GetString(out, "credential", "access_token")
+	if err != nil {
+		return "", errors.Wrap(err, "failed parsing gcoud output")
 	}
 
 	return accessToken, nil
