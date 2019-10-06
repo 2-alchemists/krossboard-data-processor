@@ -84,9 +84,10 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	} else {
 		return "", errors.New("not AuthInfo command provided")
 	}
-	out, err := exec.Command(cmd, args...).Output()
+
+	out, err := exec.Command(cmd, args...).CombinedOutput()
 	if err != nil {
-		return "", errors.Wrap(err, "credentials plugin failed")
+		return "", errors.Wrap(err, string(out))
 	}
 
 	accessToken, err := jsonparser.GetString(out, "credential", "access_token")
