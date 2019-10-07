@@ -90,12 +90,16 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		return "", errors.Wrap(err, string(out))
 	}
 
-	accessToken, err := jsonparser.GetString(out, "credential", "access_token")
+	token, err := jsonparser.GetString(out, "credential", "access_token") // extracts token from GKE-compliant credentials
 	if err != nil {
-		return "", errors.Wrap(err, "failed parsing gcoud output")
+		errOut := errors.Wrap(err, "credentials seem to be not GKE compliant")
+		token, err = jsonparser.GetString(out, "status", "token") // extracts token from EKS-compliant credentials
+		if err != nil {
+			return "", errors.Wrap(errOut, "credentials seem to be not EKS compliant")
+		}
 	}
 
-	return accessToken, nil
+	return token, nil
 }
 
 func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, error) {
