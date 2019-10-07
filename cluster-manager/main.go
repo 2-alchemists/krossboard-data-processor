@@ -44,12 +44,11 @@ func main() {
 	viper.SetDefault("koamc_cloud_provider", "")
 	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
-	viper.SetDefault("koamc_log_level", "warn")
+	viper.SetDefault("koamc_log_level", "info")
 
 	// fixed config variables
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
-	viper.Set("koamc_k8s_token_file", fmt.Sprintf("%s/token", viper.GetString("koamc_credentials_dir")))
 	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_status_file", fmt.Sprintf("%s/status.json", viper.GetString("koamc_status_dir")))
 
@@ -62,7 +61,7 @@ func main() {
 	logLevel, err := log.ParseLevel(viper.GetString("koamc_log_level"))
 	if err != nil {
 		log.WithError(err).Error("failed parsing log level")
-		logLevel = log.WarnLevel
+		logLevel = log.InfoLevel
 	}
 	log.SetLevel(logLevel)
 
@@ -123,7 +122,17 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
-			log.WithError(err).Errorln("Failed getting clusters from KUBECONFIG")
+			log.WithError(err).Errorln("Failed reading KUBECONFIG")
+			time.Sleep(updatePeriod)
+			continue
+		}
+
+		instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
+		if err := instance.PullImage(); err != nil {
+			log.WithFields(log.Fields{
+				"image":   instance.Image,
+				"message": err.Error(),
+			}).Errorln("Failed pulling container image")
 			time.Sleep(updatePeriod)
 			continue
 		}
@@ -140,14 +149,36 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				continue
 			}
 
+			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Name)
+			err = createDirIfNotExists(dataVol)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"path":    dataVol,
+					"message": err.Error(),
+				}).Errorln("Failed creating data volume")
+				time.Sleep(updatePeriod)
+				break
+			}
+
+			tokenVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_credentials_dir"), cluster.Name)
+			err = createDirIfNotExists(tokenVol)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"path":    tokenVol,
+					"message": err.Error(),
+				}).Errorln("Failed creating token volume")
+				time.Sleep(updatePeriod)
+				continue
+			}
+
+			// update access token
 			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo)
 			if err != nil {
 				log.WithField("cluster", cluster.Name).Warn("failed getting access token from credentials plugin: ", err.Error())
 				continue
 			}
-
-			// TODO use a separated credentials volume per container ?
-			err = ioutil.WriteFile(viper.GetString("koamc_k8s_token_file"), []byte(accessToken), 0600)
+			tokenFile := fmt.Sprintf("%s/token", tokenVol)
+			err = ioutil.WriteFile(tokenFile, []byte(accessToken), 0600)
 			if err != nil {
 				log.Errorln("failed writing token file", err.Error())
 				continue
@@ -160,7 +191,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 						"message": err.Error(),
 					}).Errorln("Failed finding instance")
 				} else {
-					// TODO check if instance is running or not
+					// TODO check if instance is already running or not
 					log.WithFields(log.Fields{
 						"cluster":     cluster.Name,
 						"containerId": instanceSet.Instances[index].ID,
@@ -169,33 +200,13 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				continue
 			}
 
-			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Name)
-			err = createDirIfNotExists(dataVol)
-			if err != nil {
-				log.WithFields(log.Fields{
-					"path":    dataVol,
-					"message": err.Error(),
-				}).Errorln("Failed creating data volume")
-				time.Sleep(updatePeriod)
-				break
-			}
-
 			instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
 			instance.HostPort = int64(instanceSet.NextHostPort)
 			instance.ContainerPort = int64(5483)
 			instance.ClusterName = cluster.Name
 			instance.ClusterEndpoint = cluster.APIEndpoint
-			instance.TokenVol = viper.GetString("koamc_credentials_dir")
+			instance.TokenVol = tokenVol
 			instance.DataVol = dataVol
-
-			if err := instance.PullImage(); err != nil {
-				log.WithFields(log.Fields{
-					"image":   instance.Image,
-					"message": err.Error(),
-				}).Errorln("Failed pulling container image")
-				time.Sleep(updatePeriod)
-				break
-			}
 
 			err = instance.CreateContainer()
 			if err != nil {
@@ -220,7 +231,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 					"message": err.Error(),
 				}).Errorln("Failed to update system status")
 				time.Sleep(updatePeriod)
-				break // or exist ?
+				break // or exit ?
 			}
 
 			log.Infoln("System status updated")
