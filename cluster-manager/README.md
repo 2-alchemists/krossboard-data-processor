@@ -16,6 +16,8 @@ curl --silent --location "https://github.com/weaveworks/eksctl/releases/download
 sudo mv /tmp/eksctl /usr/local/bin
 ```
 
+Metrics server is required. See https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html
+
 
 # Installation
 
