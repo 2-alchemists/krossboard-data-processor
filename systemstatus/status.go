@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/pkg/errors"
 	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
+	"github.com/pkg/errors"
 )
 
 // InstanceSet hold the current status of an installation
@@ -29,26 +29,26 @@ func LoadSystemStatus(statusFile string) (*SystemStatus, error) {
 	return systemStatus, err
 }
 
-// LoadInstanceSet loads instance status from file
-func (m *SystemStatus) LoadInstanceSet() (*InstanceSet, error) {
+// GetInstances loads instances from status file
+func (m *SystemStatus) GetInstances() (*InstanceSet, error) {
 	content, err := ioutil.ReadFile(m.StatusFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed reading file %v", m.StatusFile)
 	}
-	systemStatus := &InstanceSet{}
-	err = json.Unmarshal(content, systemStatus)
+	instances := &InstanceSet{}
+	err = json.Unmarshal(content, instances)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed decoding status file content")
 	}
 
-	return systemStatus, nil
+	return instances, nil
 }
 
 // InitializeStatusIfEmpty initializes the status file with empty instance list
 func (m *SystemStatus) InitializeStatusIfEmpty() error {
 	_, err := os.Stat(m.StatusFile)
 	if os.IsNotExist(err) {
-		return m.UpdateInstanceSet(&InstanceSet{
+		return m.UpdateInstances(&InstanceSet{
 			NextHostPort: 49000,
 			Instances:    []*koainstance.Instance{},
 		})
@@ -56,8 +56,8 @@ func (m *SystemStatus) InitializeStatusIfEmpty() error {
 	return err
 }
 
-// UpdateInstanceSet update system status with given instance data
-func (m *SystemStatus) UpdateInstanceSet(instanceSet *InstanceSet) error {
+// UpdateInstances update system status with given instance data set
+func (m *SystemStatus) UpdateInstances(instanceSet *InstanceSet) error {
 	content, err := json.Marshal(&instanceSet)
 	if err != nil {
 		return errors.Wrapf(err, "failed marhsaling status object")
@@ -71,7 +71,7 @@ func (m *SystemStatus) UpdateInstanceSet(instanceSet *InstanceSet) error {
 
 // FindInstance finds if there is an instance for a given K8s name
 func (m *SystemStatus) FindInstance(clusterName string) (int, error) {
-	instanceSet, err := m.LoadInstanceSet()
+	instanceSet, err := m.GetInstances()
 	if err != nil {
 		return -1, errors.Wrap(err, "failed loading instance set")
 	}
