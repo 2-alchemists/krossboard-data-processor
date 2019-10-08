@@ -60,7 +60,7 @@ func (m *SystemStatus) InitializeStatusIfEmpty() error {
 func (m *SystemStatus) UpdateRunningConfig(instanceSet *InstanceSet) error {
 	content, err := json.Marshal(&instanceSet)
 	if err != nil {
-		return errors.Wrapf(err, "failed marhsaling status object")
+		return errors.Wrapf(err, "failed marshaling status object")
 	}
 	err = ioutil.WriteFile(m.StatusFile, content, 0600)
 	if err != nil {

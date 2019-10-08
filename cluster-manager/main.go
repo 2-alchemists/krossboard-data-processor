@@ -86,13 +86,32 @@ func main() {
 		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
 	}
 
-	instanceSet, err := systemStatus.LoadInstanceSet()
+	runningConfig, err := systemStatus.GetInstances()
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("cannot load instance set")
+		log.WithField("message", err.Error()).Fatalln("cannot load running configuration")
 	}
 
-	workers.Add(2)
+	containerManager := koainstance.NewContainerManager("")
+	conatainersDeleted, err := containerManager.PruneContainers()
+	if err != nil {
+		log.WithError(err).Fatalln("cannot delete failed containers")
+	}
+	for _, deletedContainer := range conatainersDeleted {
+		err := systemStatus.RemoveInstanceByContainerID(deletedContainer)
+		if err != nil {
+			log.WithError(err).Errorln("failed removed instance with deleted container:", deletedContainer)
+		} else {
+			log.Infoln("instance cleaned:", deletedContainer)
+		}
+	}
 
+	// containerStatuses, err := containerManager.GetAllContainersStatuses()
+	// if err != nil {
+	// 	log.WithError(err).Fatalln("cannot list containers")
+	// }
+	// log.Println(containerStatuses)
+
+	workers.Add(2)
 	cloudProvider := getCloudProvider()
 	switch cloudProvider {
 	case "GCP":
@@ -103,30 +122,30 @@ func main() {
 		log.Fatalln("not supported cloud provider:", cloudProvider)
 	}
 
-	go orchestrateInstances(systemStatus, instanceSet)
+	go orchestrateInstances(systemStatus, runningConfig)
 
 	workers.Wait()
 }
 
-func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *systemstatus.InstanceSet) {
+func orchestrateInstances(systemStatus *systemstatus.SystemStatus, runningConfig *systemstatus.InstanceSet) {
 	defer workers.Done()
 
-	instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
-	if err := instance.PullImage(); err != nil {
-		log.WithFields(log.Fields{
-			"image":   instance.Image,
-			"message": err.Error(),
-		}).Fatalln("Failed pulling container image")
-	}
-
-	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	kubeConfig := kubeconfig.NewKubeConfig()
+
+	containerManager := koainstance.NewContainerManager(viper.GetString("koacm_default_image"))
+	if err := containerManager.PullImage(); err != nil {
+		log.WithFields(log.Fields{
+			"image":   containerManager.Image,
+			"message": err.Error(),
+		}).Fatalln("failed pulling base container image")
+	}
 
 	log.WithFields(log.Fields{
 		"configDir":  viper.Get("koamc_root_dir"),
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("service started successully")
 
+	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
@@ -153,7 +172,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				log.WithFields(log.Fields{
 					"path":    dataVol,
 					"message": err.Error(),
-				}).Errorln("Failed creating data volume")
+				}).Errorln("failed creating data volume")
 				time.Sleep(updatePeriod)
 				break
 			}
@@ -164,7 +183,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				log.WithFields(log.Fields{
 					"path":    tokenVol,
 					"message": err.Error(),
-				}).Errorln("Failed creating token volume")
+				}).Errorln("failed creating token volume")
 				time.Sleep(updatePeriod)
 				continue
 			}
@@ -191,21 +210,24 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				} else {
 					log.WithFields(log.Fields{
 						"cluster":     cluster.Name,
-						"containerId": instanceSet.Instances[ii].ID,
+						"containerId": runningConfig.Instances[ii].ID,
 					}).Debugln("instance found")
 				}
 				continue
 			}
 
-			instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
-			instance.HostPort = int64(instanceSet.NextHostPort)
-			instance.ContainerPort = int64(5483)
-			instance.ClusterName = cluster.Name
-			instance.ClusterEndpoint = cluster.APIEndpoint
-			instance.TokenVol = tokenVol
-			instance.DataVol = dataVol
+			instance := &koainstance.Instance{
+				Image:           containerManager.Image,
+				Name: 			 fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700")),
+				HostPort:        int64(runningConfig.NextHostPort),
+				ContainerPort:   int64(5483),
+				ClusterName:     cluster.Name,
+				ClusterEndpoint: cluster.APIEndpoint,
+				TokenVol:        tokenVol,
+				DataVol:         dataVol,
+			}
 
-			err = instance.CreateContainer()
+			err = containerManager.CreateContainer(instance)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"image":   instance.Image,
@@ -219,9 +241,9 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				"containerId": instance.ID,
 			}).Infoln("new instance created")
 
-			instanceSet.Instances = append(instanceSet.Instances, instance)
-			instanceSet.NextHostPort++
-			err = systemStatus.UpdateInstanceSet(instanceSet)
+			runningConfig.Instances = append(runningConfig.Instances, instance)
+			runningConfig.NextHostPort++
+			err = systemStatus.UpdateRunningConfig(runningConfig)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"cluster": cluster.Name,

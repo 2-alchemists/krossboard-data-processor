@@ -8,9 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	dkrTypes "github.com/docker/docker/api/types"
 	dkrContainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	dkrMount "github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/client"
 	dkrClient "github.com/docker/docker/client"
 	dkrNat "github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
@@ -31,15 +34,20 @@ type Instance struct {
 	CreationDate    time.Time `json:"creationDate,omitempty"`
 }
 
-// NewInstance returns a pointer to an Instance object
-func NewInstance(image string) *Instance {
-	return &Instance{
+// ContainerManager object to manipule containers
+type ContainerManager struct {
+	Image           string    `json:"image,omitempty"`
+}
+
+// NewContainerManager creates a new container manager object
+func NewContainerManager(image string) *ContainerManager {
+	return &ContainerManager{
 		Image: image,
 	}
 }
 
 // PullImage pulls image
-func (m *Instance) PullImage() error {
+func (m *ContainerManager) PullImage() error {
 	ctx := context.Background()
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
@@ -56,10 +64,7 @@ func (m *Instance) PullImage() error {
 }
 
 // CreateContainer creates a new container from given image
-func (m *Instance) CreateContainer() error {
-
-	m.Name = fmt.Sprintf("%s-%v", m.ClusterName, time.Now().Format("20060102T1504050700"))
-
+func (m *ContainerManager) CreateContainer(instance *Instance) error {
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
 	if err != nil {
@@ -68,9 +73,9 @@ func (m *Instance) CreateContainer() error {
 
 	hostBinding := dkrNat.PortBinding{
 		HostIP:   "0.0.0.0",
-		HostPort: strconv.FormatInt(m.HostPort, 10),
+		HostPort: strconv.FormatInt(instance.HostPort, 10),
 	}
-	containerPort, err := dkrNat.NewPort("tcp", strconv.FormatInt(m.ContainerPort, 10))
+	containerPort, err := dkrNat.NewPort("tcp", strconv.FormatInt(instance.ContainerPort, 10))
 	if err != nil {
 		return errors.Wrap(err, "unable to get newPort")
 	}
@@ -84,32 +89,32 @@ func (m *Instance) CreateContainer() error {
 	}
 
 	envars := []string{
-		fmt.Sprintf("KOA_DB_LOCATION=%s", m.DataVol),
-		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", m.ClusterEndpoint),
+		fmt.Sprintf("KOA_DB_LOCATION=%s", instance.DataVol),
+		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", instance.ClusterEndpoint),
 		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("koacm_k8s_verify_ssl")),
 	}
 
 	mounts := []dkrMount.Mount{
 		{
 			Type:   dkrMount.TypeBind,
-			Source: m.DataVol,
-			Target: m.DataVol,
+			Source: instance.DataVol,
+			Target: instance.DataVol,
 		},
 		{
 			Type:   dkrMount.TypeBind,
-			Source: m.TokenVol,
+			Source: instance.TokenVol,
 			Target: "/var/run/secrets/kubernetes.io/serviceaccount",
 		},
 	}
 
 	volumes := map[string]struct{}{
-		fmt.Sprintf("%s:%s", m.DataVol, m.DataVol): {},
+		fmt.Sprintf("%s:%s", instance.DataVol, instance.DataVol): {},
 	}
 
 	cont, err := cli.ContainerCreate(
 		context.Background(),
 		&dkrContainer.Config{
-			Image:        m.Image,
+			Image:        instance.Image,
 			Volumes:      volumes,
 			Env:          envars,
 			ExposedPorts: exposedPorts,
@@ -119,7 +124,7 @@ func (m *Instance) CreateContainer() error {
 			Mounts:       mounts,
 		},
 		nil,
-		m.Name)
+		instance.Name)
 
 	if err != nil {
 		return errors.Wrap(err, "ContainerCreate failed")
@@ -129,21 +134,40 @@ func (m *Instance) CreateContainer() error {
 	if err != nil {
 		return errors.Wrap(err, "ContainerStart failed")
 	}
-	m.ID = cont.ID
-	m.CreationDate = time.Now().UTC()
+	instance.ID = cont.ID
+	instance.CreationDate = time.Now().UTC()
 	return nil
 }
 
-// StopContainer stops the container of given ID
-func (m *Instance) StopContainer() error {
-	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
+// PruneContainers clears all containers that are not running and returns the list of deleted items
+func (m *ContainerManager) PruneContainers() ([]string, error) {
+
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return errors.Wrap(err, "unable to create docker client")
+		return nil, errors.Wrap(err, "unable to create docker client")
 	}
 
-	err = cli.ContainerStop(context.Background(), m.ID, nil)
+	var pruneReport types.ContainersPruneReport
+	pruneReport, err = cli.ContainersPrune(context.Background(), filters.Args{})
 	if err != nil {
-		return errors.Wrap(err, "Stop container failed")
+		return nil, errors.Wrap(err, "prune container failed")
 	}
-	return nil
+	return pruneReport.ContainersDeleted, nil
+}
+
+// GetAllContainersStatuses lists all the containers running on host machine
+func (m *ContainerManager) GetAllContainersStatuses() (map[string]string, error) {
+	cli, err := client.NewClientWithOpts(client.WithVersion(viper.GetString("docker_api_version")))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get new docker client")
+	}
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list containers: %v")
+	}
+	containersStatuses := make(map[string]string)
+	for _, container := range containers {
+		containersStatuses[container.ID] = container.Status
+	}
+	return containersStatuses, nil
 }

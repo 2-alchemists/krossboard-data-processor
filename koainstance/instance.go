@@ -146,7 +146,7 @@ func (m *ContainerManager) PruneContainers() ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create docker client")
 	}
-	
+
 	var pruneReport types.ContainersPruneReport
 	pruneReport, err = cli.ContainersPrune(context.Background(), filters.Args{})
 	if err != nil {
