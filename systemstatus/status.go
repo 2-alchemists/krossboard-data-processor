@@ -87,10 +87,10 @@ func (m *SystemStatus) FindInstance(clusterName string) (int, error) {
 }
 
 // RemoveInstanceByContainerID removes an instance mathing a container's ID
-func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) (*InstanceSet, error) {
+func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) error {
 	runningConfig, err := m.GetInstances()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed fetching running configuration")
+		return errors.Wrap(err, "failed fetching running configuration")
 	}
 
 	newRunningConfig := &InstanceSet{
@@ -106,7 +106,7 @@ func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) (*Instanc
 	}
 	
 	if foundItemIndex != -1 {
-		m.UpdateRunningConfig(newRunningConfig)
+		return m.UpdateRunningConfig(newRunningConfig)
 	}
-    return m.GetInstances()
+    return nil
 }
