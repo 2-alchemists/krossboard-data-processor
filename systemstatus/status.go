@@ -93,19 +93,20 @@ func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) (*Instanc
 		return nil, errors.Wrap(err, "failed fetching running configuration")
 	}
 
+	newRunningConfig := &InstanceSet{
+		NextHostPort : runningConfig.NextHostPort,
+	}
 	foundItemIndex := int(-1)
 	for index, instance := range runningConfig.Instances {
 		if instance.ID == containerID {
 			foundItemIndex = index
-			break
+		} else {
+			newRunningConfig.Instances = append(newRunningConfig.Instances, instance)
 		}
 	}
 	
-	count := len(runningConfig.Instances)
-	if foundItemIndex >= 0 && foundItemIndex < count {
-		runningConfig.Instances[foundItemIndex] = runningConfig.Instances[count-1]
-		runningConfig.Instances = runningConfig.Instances[:count-1]
-		m.UpdateRunningConfig(runningConfig)
+	if foundItemIndex != -1 {
+		m.UpdateRunningConfig(newRunningConfig)
 	}
     return m.GetInstances()
 }
