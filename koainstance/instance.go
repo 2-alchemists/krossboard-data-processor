@@ -8,9 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	dkrTypes "github.com/docker/docker/api/types"
 	dkrContainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	dkrMount "github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/client"
 	dkrClient "github.com/docker/docker/client"
 	dkrNat "github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
@@ -134,16 +137,32 @@ func (m *Instance) CreateContainer() error {
 	return nil
 }
 
-// StopContainer stops the container of given ID
-func (m *Instance) StopContainer() error {
-	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
+// PruneContainers clears all containers that are not running
+func (m *Instance) PruneContainers() error {
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		return errors.Wrap(err, "unable to create docker client")
 	}
-
-	err = cli.ContainerStop(context.Background(), m.ID, nil)
+	_, err = cli.ContainersPrune(context.Background(), filters.Args{})
 	if err != nil {
-		return errors.Wrap(err, "Stop container failed")
+		return errors.Wrap(err, "prune container failed")
 	}
 	return nil
+}
+
+// GetAllContainersStatuses lists all the containers running on host machine
+func (m *Instance) GetAllContainersStatuses() (map[string]string, error) {
+	cli, err := client.NewClientWithOpts(client.WithVersion(viper.GetString("docker_api_version")))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get new docker client")
+	}
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list containers: %v")
+	}
+	containersStatuses := make(map[string]string)
+	for _, container := range containers {
+		containersStatuses[container.ID] = container.Status
+	}
+	return containersStatuses, nil
 }
