@@ -48,7 +48,7 @@ func (m *SystemStatus) GetInstances() (*InstanceSet, error) {
 func (m *SystemStatus) InitializeStatusIfEmpty() error {
 	_, err := os.Stat(m.StatusFile)
 	if os.IsNotExist(err) {
-		return m.UpdateInstances(&InstanceSet{
+		return m.UpdateRunningConfig(&InstanceSet{
 			NextHostPort: 49000,
 			Instances:    []*koainstance.Instance{},
 		})
@@ -56,8 +56,8 @@ func (m *SystemStatus) InitializeStatusIfEmpty() error {
 	return err
 }
 
-// UpdateInstances update system status with given instance data set
-func (m *SystemStatus) UpdateInstances(instanceSet *InstanceSet) error {
+// UpdateRunningConfig update system status with given instance data set
+func (m *SystemStatus) UpdateRunningConfig(instanceSet *InstanceSet) error {
 	content, err := json.Marshal(&instanceSet)
 	if err != nil {
 		return errors.Wrapf(err, "failed marhsaling status object")
@@ -71,17 +71,40 @@ func (m *SystemStatus) UpdateInstances(instanceSet *InstanceSet) error {
 
 // FindInstance finds if there is an instance for a given K8s name
 func (m *SystemStatus) FindInstance(clusterName string) (int, error) {
-	instanceSet, err := m.GetInstances()
+	runningConfig, err := m.GetInstances()
 	if err != nil {
-		return -1, errors.Wrap(err, "failed loading instance set")
+		return -1, errors.Wrap(err, "failed fetching running configuration")
 	}
 
-	foundIndex := int(-1)
-	for index, instance := range instanceSet.Instances {
+	foundItemIndex := int(-1)
+	for index, instance := range runningConfig.Instances {
 		if instance.ClusterName == clusterName {
-			foundIndex = index
+			foundItemIndex = index
 			break
 		}
 	}
-	return foundIndex, nil
+	return foundItemIndex, nil
+}
+
+// RemoveInstanceByContainerID removes an instance mathing a container's ID
+func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) (*InstanceSet, error) {
+	runningConfig, err := m.GetInstances()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed fetching running configuration")
+	}
+
+	foundItemIndex := int(-1)
+	for index, instance := range runningConfig.Instances {
+		if instance.ID == containerID {
+			foundItemIndex = index
+			break
+		}
+	}
+	
+	if foundItemIndex > 0 && foundItemIndex <= len(runningConfig.Instances) {
+		runningConfig.Instances[foundItemIndex] = runningConfig.Instances[len(runningConfig.Instances)-1]
+		runningConfig.Instances = runningConfig.Instances[:len(runningConfig.Instances)-1]
+		m.UpdateRunningConfig(runningConfig)
+	}
+    return m.GetInstances()
 }
