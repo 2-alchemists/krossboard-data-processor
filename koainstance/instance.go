@@ -139,19 +139,20 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 	return nil
 }
 
-// PruneContainers clears all containers that are not running
-func (m *ContainerManager) PruneContainers() (dkrTypes.ContainersPruneReport, error) {
-	var pruneReport types.ContainersPruneReport
+// PruneContainers clears all containers that are not running and returns the list of deleted items
+func (m *ContainerManager) PruneContainers() ([]string, error) {
 
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
-		return pruneReport, errors.Wrap(err, "unable to create docker client")
+		return nil, errors.Wrap(err, "unable to create docker client")
 	}
+	
+	var pruneReport types.ContainersPruneReport
 	pruneReport, err = cli.ContainersPrune(context.Background(), filters.Args{})
 	if err != nil {
-		return pruneReport, errors.Wrap(err, "prune container failed")
+		return nil, errors.Wrap(err, "prune container failed")
 	}
-	return pruneReport, nil
+	return pruneReport.ContainersDeleted, nil
 }
 
 // GetAllContainersStatuses lists all the containers running on host machine
