@@ -182,18 +182,17 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				continue
 			}
 
-			if index, err := systemStatus.FindInstance(cluster.Name); err != nil || index >= 0 {
+			if ii, err := systemStatus.FindInstance(cluster.Name); err != nil || ii >= 0 {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"cluster": cluster.Name,
 						"message": err.Error(),
-					}).Errorln("Failed finding instance")
+					}).Errorln("failed finding instance")
 				} else {
-					// TODO check if instance is already running or not
 					log.WithFields(log.Fields{
 						"cluster":     cluster.Name,
-						"containerId": instanceSet.Instances[index].ID,
-					}).Debugln("Instance already exists")
+						"containerId": instanceSet.Instances[ii].ID,
+					}).Debugln("instance found")
 				}
 				continue
 			}
