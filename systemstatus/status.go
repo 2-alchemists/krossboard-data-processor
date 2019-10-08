@@ -101,7 +101,7 @@ func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) (*Instanc
 		}
 	}
 	
-	if foundItemIndex > 0 && foundItemIndex <= len(runningConfig.Instances) {
+	if foundItemIndex >= 0 && foundItemIndex < len(runningConfig.Instances) {
 		runningConfig.Instances[foundItemIndex] = runningConfig.Instances[len(runningConfig.Instances)-1]
 		runningConfig.Instances = runningConfig.Instances[:len(runningConfig.Instances)-1]
 		m.UpdateRunningConfig(runningConfig)
