@@ -111,6 +111,14 @@ func main() {
 func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *systemstatus.InstanceSet) {
 	defer workers.Done()
 
+	instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
+	if err := instance.PullImage(); err != nil {
+		log.WithFields(log.Fields{
+			"image":   instance.Image,
+			"message": err.Error(),
+		}).Fatalln("Failed pulling container image")
+	}
+
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	kubeConfig := kubeconfig.NewKubeConfig()
 
@@ -123,16 +131,6 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
 			log.WithError(err).Errorln("Failed reading KUBECONFIG")
-			time.Sleep(updatePeriod)
-			continue
-		}
-
-		instance := koainstance.NewInstance(viper.GetString("koacm_default_image"))
-		if err := instance.PullImage(); err != nil {
-			log.WithFields(log.Fields{
-				"image":   instance.Image,
-				"message": err.Error(),
-			}).Errorln("Failed pulling container image")
 			time.Sleep(updatePeriod)
 			continue
 		}
@@ -220,7 +218,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 			log.WithFields(log.Fields{
 				"cluster":     cluster.Name,
 				"containerId": instance.ID,
-			}).Infoln("New instance created")
+			}).Infoln("new instance created")
 
 			instanceSet.Instances = append(instanceSet.Instances, instance)
 			instanceSet.NextHostPort++
@@ -229,12 +227,12 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, instanceSet *
 				log.WithFields(log.Fields{
 					"cluster": cluster.Name,
 					"message": err.Error(),
-				}).Errorln("Failed to update system status")
+				}).Errorln("failed to update system status")
 				time.Sleep(updatePeriod)
 				break // or exit ?
 			}
 
-			log.Infoln("System status updated")
+			log.Infoln("system status updated")
 		}
 
 		time.Sleep(updatePeriod)
@@ -247,7 +245,7 @@ func updateGKEClusters() {
 	ctx := context.Background()
 	clusterManagerClient, err := gcontainerv1.NewClusterManagerClient(ctx)
 	if err != nil {
-		log.WithError(err).Errorln("Failed to instanciate GKE cluster manager")
+		log.WithError(err).Errorln("failed to instanciate GKE cluster manager")
 		return
 	}
 
@@ -255,7 +253,7 @@ func updateGKEClusters() {
 	for {
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {
-			log.WithError(err).Errorln("Unable to retrieve GCP project ID")
+			log.WithError(err).Errorln("unable to retrieve GCP project ID")
 			time.Sleep(updatePeriod)
 			continue
 		}
@@ -279,9 +277,9 @@ func updateGKEClusters() {
 				cluster.Zone).Output()
 
 			if err != nil {
-				log.WithError(err).Errorf("Failed getting credentials for GKE cluster %v", cluster.Name)
+				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", cluster.Name)
 			} else {
-				log.WithField("clusterName", cluster.Name).Debugln("Added/updated credentials for GKE cluster in KUBECONFIG")
+				log.WithField("clusterName", cluster.Name).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
 			}
 		}
 
