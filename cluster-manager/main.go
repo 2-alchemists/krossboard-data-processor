@@ -87,7 +87,7 @@ func main() {
 	}
 
 	containerManager := koainstance.NewContainerManager("")
-	cStatuses, err := containerManager.GetAllContainersStates()
+	cStates, err := containerManager.GetAllContainersStates()
 	if err != nil {
 		log.WithError(err).Fatalln("cannot list containers")
 	}
@@ -95,9 +95,8 @@ func main() {
 		"exited": true,
 		"dead":   true,
 	}
-	log.Infoln(cStatuses)
-	for cID, cStatus := range cStatuses {
-		if _, statusFound := containerNotRunningStatus[cStatus]; statusFound {
+	for cID, cState := range cStates {
+		if _, statusFound := containerNotRunningStatus[cState]; statusFound {
 			err := systemStatus.RemoveInstanceByContainerID(cID)
 			if err != nil {
 				log.WithError(err).Errorln("failed cleaning from status database:", cID)
