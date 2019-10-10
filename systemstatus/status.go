@@ -94,7 +94,7 @@ func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) error {
 	}
 
 	newRunningConfig := &InstanceSet{
-		NextHostPort : runningConfig.NextHostPort,
+		NextHostPort: runningConfig.NextHostPort,
 	}
 	foundItemIndex := int(-1)
 	for index, instance := range runningConfig.Instances {
@@ -104,9 +104,9 @@ func (m *SystemStatus) RemoveInstanceByContainerID(containerID string) error {
 			newRunningConfig.Instances = append(newRunningConfig.Instances, instance)
 		}
 	}
-	
+
 	if foundItemIndex != -1 {
 		return m.UpdateRunningConfig(newRunningConfig)
 	}
-    return nil
+	return nil
 }

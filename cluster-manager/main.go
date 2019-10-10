@@ -86,30 +86,33 @@ func main() {
 		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
 	}
 
-	runningConfig, err := systemStatus.GetInstances()
-	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("cannot load running configuration")
-	}
-
 	containerManager := koainstance.NewContainerManager("")
-	conatainersDeleted, err := containerManager.PruneContainers()
+	cStatuses, err := containerManager.GetAllContainersStates()
 	if err != nil {
-		log.WithError(err).Fatalln("cannot delete failed containers")
+		log.WithError(err).Fatalln("cannot list containers")
 	}
-	for _, deletedContainer := range conatainersDeleted {
-		err := systemStatus.RemoveInstanceByContainerID(deletedContainer)
-		if err != nil {
-			log.WithError(err).Errorln("failed removed instance with deleted container:", deletedContainer)
-		} else {
-			log.Infoln("instance cleaned:", deletedContainer)
+	containerNotRunningStatus := map[string]bool{
+		"exited": true,
+		"dead":   true,
+	}
+	log.Infoln(cStatuses)
+	for cID, cStatus := range cStatuses {
+		if _, statusFound := containerNotRunningStatus[cStatus]; statusFound {
+			err := systemStatus.RemoveInstanceByContainerID(cID)
+			if err != nil {
+				log.WithError(err).Errorln("failed cleaning from status database:", cID)
+			} else {
+				log.Infoln("instance cleaned from status database:", cID)
+			}
 		}
 	}
 
-	// containerStatuses, err := containerManager.GetAllContainersStatuses()
-	// if err != nil {
-	// 	log.WithError(err).Fatalln("cannot list containers")
-	// }
-	// log.Println(containerStatuses)
+	containersDeleted, err := containerManager.PruneContainers()
+	if err != nil {
+		log.WithError(err).Fatalln("cannot delete failed containers")
+	} else {
+		log.Infoln(len(containersDeleted), "not running container(s) cleaned")
+	}
 
 	workers.Add(2)
 	cloudProvider := getCloudProvider()
@@ -122,12 +125,12 @@ func main() {
 		log.Fatalln("not supported cloud provider:", cloudProvider)
 	}
 
-	go orchestrateInstances(systemStatus, runningConfig)
+	go orchestrateInstances(systemStatus)
 
 	workers.Wait()
 }
 
-func orchestrateInstances(systemStatus *systemstatus.SystemStatus, runningConfig *systemstatus.InstanceSet) {
+func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
 	kubeConfig := kubeconfig.NewKubeConfig()
@@ -150,6 +153,13 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, runningConfig
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
 			log.WithError(err).Errorln("Failed reading KUBECONFIG")
+			time.Sleep(updatePeriod)
+			continue
+		}
+
+		runningConfig, err := systemStatus.GetInstances()
+		if err != nil {
+			log.WithField("message", err.Error()).Errorln("cannot load running configuration")
 			time.Sleep(updatePeriod)
 			continue
 		}
@@ -218,7 +228,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus, runningConfig
 
 			instance := &koainstance.Instance{
 				Image:           containerManager.Image,
-				Name: 			 fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700")),
+				Name:            fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700")),
 				HostPort:        int64(runningConfig.NextHostPort),
 				ContainerPort:   int64(5483),
 				ClusterName:     cluster.Name,

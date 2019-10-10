@@ -3,10 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "9mT4VOw34D6TMla+gG3/CK0yCWM=",
+			"checksumSHA1": "huKXThi+aAa7Q6SqgOTSib+ZnFM=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/koainstance",
-			"revision": "9977a98103e61d1dcdeb1c8b27318a69e4831955",
-			"revisionTime": "2019-10-08T21:14:52Z"
+			"revision": "89bbe5d0aa4312a41b86a88ace4023da5cfa5fe5",
+			"revisionTime": "2019-10-10T18:49:54Z"
 		},
 		{
 			"checksumSHA1": "Vf+8MFHN5vPpzdZiFwGpQ3pEl94=",
