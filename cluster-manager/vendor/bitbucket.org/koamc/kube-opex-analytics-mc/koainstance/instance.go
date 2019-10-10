@@ -163,7 +163,7 @@ func (m *ContainerManager) GetAllContainersStates() (map[string]string, error) {
 	}
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to list containers: %v")
+		return nil, errors.Wrap(err, "unable to list containers")
 	}
 	cStates := make(map[string]string)
 	for _, container := range containers {
