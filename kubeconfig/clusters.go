@@ -45,7 +45,7 @@ func NewKubeConfig() *KubeConfig {
 func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 	config, err := clientcmd.LoadFromFile(m.Path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load config")
+		return nil, errors.Wrap(err, "failed loading KUBECONFIG")
 	}
 
 	authInfos := make(map[string]string)
@@ -71,7 +71,7 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 // GetAccessToken retrieves access token from AuthInfo
 func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	if authInfo == nil {
-		return "", errors.New("nil AuthInfo provided")
+		return "", errors.New("no AuthInfo provided")
 	}
 	cmd := ""
 	var args []string
@@ -82,7 +82,7 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		cmd = authInfo.Exec.Command
 		args = authInfo.Exec.Args
 	} else {
-		return "", errors.New("not AuthInfo command provided")
+		return "", errors.New("no AuthInfo command provided")
 	}
 
 	out, err := exec.Command(cmd, args...).CombinedOutput()
