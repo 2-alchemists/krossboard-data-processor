@@ -36,7 +36,7 @@ type Instance struct {
 
 // ContainerManager object to manipule containers
 type ContainerManager struct {
-	Image           string    `json:"image,omitempty"`
+	Image string `json:"image,omitempty"`
 }
 
 // NewContainerManager creates a new container manager object
@@ -155,19 +155,19 @@ func (m *ContainerManager) PruneContainers() ([]string, error) {
 	return pruneReport.ContainersDeleted, nil
 }
 
-// GetAllContainersStatuses lists all the containers running on host machine
-func (m *ContainerManager) GetAllContainersStatuses() (map[string]string, error) {
+// GetAllContainersStates lists all the containers running on host machine
+func (m *ContainerManager) GetAllContainersStates() (map[string]string, error) {
 	cli, err := client.NewClientWithOpts(client.WithVersion(viper.GetString("docker_api_version")))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get new docker client")
 	}
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list containers: %v")
 	}
-	containersStatuses := make(map[string]string)
+	cStates := make(map[string]string)
 	for _, container := range containers {
-		containersStatuses[container.ID] = container.Status
+		cStates[container.ID] = container.State
 	}
-	return containersStatuses, nil
+	return cStates, nil
 }
