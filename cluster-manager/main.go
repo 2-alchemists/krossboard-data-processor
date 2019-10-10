@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/eks"
-	"github.com/buger/jsonparser"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
@@ -225,9 +225,10 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 				continue
 			}
 
+			rawName := fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700"))
 			instance := &koainstance.Instance{
 				Image:           containerManager.Image,
-				Name:            fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700")),
+				Name:            strings.Replace(strings.Replace(rawName, ":", "_", -1), "/", "_", -1),
 				HostPort:        int64(runningConfig.NextHostPort),
 				ContainerPort:   int64(5483),
 				ClusterName:     cluster.Name,
@@ -328,7 +329,7 @@ func updateEKSClusters() {
 			time.Sleep(updatePeriod)
 			continue
 		}
-		svc := eks.New(session.New(), aws.NewConfig().WithRegion("us-west-2"))
+		svc := eks.New(session.New(), aws.NewConfig().WithRegion(awsRegion))
 		listInput := &eks.ListClustersInput{}
 		listResult, err := svc.ListClusters(listInput)
 		if err != nil {
@@ -374,7 +375,7 @@ func getAWSRegion() (string, error) {
 	}
 
 	req, err := http.NewRequest("GET",
-		viper.GetString("koamc_aws_metadata_service")+"/latest/meta-data/instance-identity/document",
+		viper.GetString("koamc_aws_metadata_service")+"/latest/meta-data/placement/availability-zone",
 		nil)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -387,16 +388,12 @@ func getAWSRegion() (string, error) {
 		return "", errors.Wrap(err, "failed ready response from GCP metadata server")
 	}
 
+	bodyText := string(body)
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("AWS metadata service returned error: " + string(body))
+		return "", errors.New("AWS metadata service returned error: " + bodyText)
 	}
 
-	out, err := jsonparser.GetString(body, "region")
-	if err != nil {
-		return "", errors.Wrap(err, "unexpected metatdata content")
-	}
-
-	return out, nil
+	return bodyText[:len(bodyText)-1], nil
 }
 
 func getGCPProjectID() (int64, error) {

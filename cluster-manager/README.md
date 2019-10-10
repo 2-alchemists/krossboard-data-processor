@@ -9,14 +9,37 @@
 
 ## AWS
 
-Installing eksctl
+### Install aws client
 
 ```
-curl --silent --location "https://github.com/weaveworks/eksctl/releases/download/latest_release/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
-sudo mv /tmp/eksctl /usr/local/bin
+$ sudo apt-get update
+$ sudo apt-get -y install python3-pip
+$ sudo pip3 install --upgrade --user awscli
+$ sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
 ```
 
-Metrics server is required. See https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html
+### Install Kubernetes Metrics Server 
+
+Refer to official docs: https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html
+
+### IAM role
+Create a role with the following policies
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "eks:ListClusters",
+                "eks:DescribeCluster"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
 
 
 # Installation
