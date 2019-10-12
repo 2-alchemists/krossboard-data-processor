@@ -17,6 +17,7 @@ import (
 	dkrClient "github.com/docker/docker/client"
 	dkrNat "github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -46,7 +47,7 @@ func NewContainerManager(image string) *ContainerManager {
 	}
 }
 
-// PullImage pulls image
+// PullImage pulls the referenced image
 func (m *ContainerManager) PullImage() error {
 	ctx := context.Background()
 	cli, err := dkrClient.NewClientWithOpts(dkrClient.FromEnv, dkrClient.WithAPIVersionNegotiation())
@@ -58,7 +59,10 @@ func (m *ContainerManager) PullImage() error {
 	if err != nil {
 		return errors.Wrap(err, "failed pulling image")
 	}
-	io.Copy(os.Stdout, reader)
+
+	if log.GetLevel() == log.DebugLevel {
+		io.Copy(os.Stdout, reader)
+	}
 
 	return nil
 }
