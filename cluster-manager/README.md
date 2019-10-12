@@ -4,26 +4,39 @@
   $ make
   ```
 
-
 # Requirements
 
-## AWS
+Ubuntu Server 18.04 64 bits LTS 
 
-### Install aws client
+## EKS Requirements
+
+### Install AWS CLI tool
 
 ```
-$ sudo apt-get update
-$ sudo apt-get -y install python3-pip
-$ sudo pip3 install --upgrade --user awscli
-$ sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
+sudo apt-get update
+sudo apt-get -y install python3-pip
+pip3 install --upgrade --user awscli
+sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
 ```
 
 ### Install Kubernetes Metrics Server 
+The following steps is based on [official EKS docs](https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html) and require install [jq](https://stedolan.github.io/jq/).
 
-Refer to official docs: https://docs.aws.amazon.com/eks/latest/userguide/metrics-server.html
+```
+DOWNLOAD_URL=$(curl --silent "https://api.github.com/repos/kubernetes-incubator/metrics-server/releases/latest" | jq -r .tarball_url)
+DOWNLOAD_VERSION=$(grep -o '[^/v]*$' <<< $DOWNLOAD_URL)
+curl -Ls $DOWNLOAD_URL -o metrics-server-$DOWNLOAD_VERSION.tar.gz
+mkdir metrics-server-$DOWNLOAD_VERSION
+tar -xzf metrics-server-$DOWNLOAD_VERSION.tar.gz --directory metrics-server-$DOWNLOAD_VERSION --strip-components 1
+kubectl apply -f metrics-server-$DOWNLOAD_VERSION/deploy/1.8+/
+```
 
-### IAM role
-Create a role with the following policies
+### Create IAM Role for KOAMC Cluster Manager
+We describe below two approaches, one based on manual creation through AWS Management Console and the other one thorough Terraform.
+
+#### Role creation through AWS Management Console
+
+Set the following JSON policies.
 
 ```
 {
@@ -41,15 +54,44 @@ Create a role with the following policies
 }
 ```
 
+#### Role creation though Terraform
+Use the following Terraform content (see file `create-koamc-iam-role.tf`).
+
+Known issue
+
+```
+Value (koamc-cluster-manager) for parameter iamInstanceProfile.name is invalid. Invalid IAM Instance Profile name
+```
+
+
+### Set RBAC permissions for the EKS cluster
+First edit the EKS's aws-auth ConfigMap
+
+```
+kubectl -n kube-system edit configmap aws-auth
+```
+
+Add the following entry under `mapRoles` section.
+```
+    - rolearn: <ARN of instances role for KOAMC Cluster Manager)>
+      username: system:node:{{EC2PrivateDNSName}}
+      groups:
+        - koamc-cluster-manager
+```
+
+> Take care to not remove existing `mapRoles` entries.
+
+That above entry is meant to enable instances holding the given role to act as members of the group `koamc-cluster-manager` within Kubernetes cluster. For additional details you can refer to [EKS documentation](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html).
 
 # Installation
-
-
-Use official Docker distribution, which can be installed as follows
+Connect to a terminal on the host and perform the following steps.
 
 ```
-$ sudo apt install docker.io
+sudo apt install -y docker.io
+sudo usermod -G docker $USER
 ```
+
+Disconnect on the host and reconnect again so that group assignation takes effect.
 
 > Warning: If you already have a version of Docker installed by snap, pealease remove it first `snap remove docker`.
 
