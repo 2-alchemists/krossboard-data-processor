@@ -28,6 +28,7 @@ resource "aws_iam_policy" "policy_koamc_cluster_manager" {
         {
             "Effect": "Allow",
             "Action": [
+                "sts:AssumeRole",
                 "eks:ListClusters",
                 "eks:DescribeCluster"
             ],
