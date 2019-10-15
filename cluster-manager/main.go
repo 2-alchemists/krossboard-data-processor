@@ -121,9 +121,11 @@ func main() {
 	case "AWS":
 		go updateEKSClusters()
 	default:
-		log.Fatalln("not supported cloud provider:", cloudProvider)
+		log.Fatalln("invalid or unauthorized execution environment:", cloudProvider)
 	}
-
+	
+    time.Sleep(2 * time.Second)
+	
 	go orchestrateInstances(systemStatus)
 
 	workers.Wait()
