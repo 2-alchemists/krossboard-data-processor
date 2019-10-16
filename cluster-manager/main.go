@@ -147,9 +147,9 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("service started successully")
 
-	const WaitSecondBeforePulling = time.Second
-	log.Infoln("Will starting instance orchestration in ", WaitSecondBeforePulling, "second(s)")
-	time.Sleep(WaitSecondBeforePulling)
+	const WaitSecondBeforePulling = 1
+	log.Infof("wait %v seconds before starting instance orchestration\n", WaitSecondBeforePulling)
+	time.Sleep(WaitSecondBeforePulling * time.Second)
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
@@ -303,7 +303,7 @@ func updateGKEClusters() {
 		}
 
 		for _, cluster := range listResp.Clusters {
-			_, err := exec.Command(viper.GetString("koamc_gcloud_command"),
+			cmdout, err := exec.Command(viper.GetString("koamc_gcloud_command"),
 				"container",
 				"clusters",
 				"get-credentials",
@@ -312,9 +312,9 @@ func updateGKEClusters() {
 				cluster.Zone).CombinedOutput()
 
 			if err != nil {
-				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", cluster.Name)
+				log.WithField("cluster", cluster.Name).Errorln("failed getting credentials from GKE cluster:", string(cmdout))
 			} else {
-				log.WithField("clusterName", cluster.Name).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
+				log.WithField("cluster", cluster.Name).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
 			}
 		}
 
@@ -346,7 +346,7 @@ func updateEKSClusters() {
 			continue
 		}
 		for _, clusterName := range listResult.Clusters {
-			_, err := exec.Command(viper.GetString("koamc_awscli_command"),
+			cmdout, err := exec.Command(viper.GetString("koamc_awscli_command"),
 				"eks",
 				"update-kubeconfig",
 				"--name",
@@ -355,9 +355,9 @@ func updateEKSClusters() {
 				awsRegion).CombinedOutput()
 
 			if err != nil {
-				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", clusterName)
+				log.WithField("cluster", clusterName).Errorf("failed getting credentials for GKE cluster %v", string(cmdout))
 			} else {
-				log.WithField("clusterName", clusterName).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
+				log.WithField("cluster", clusterName).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
 			}
 		}
 
