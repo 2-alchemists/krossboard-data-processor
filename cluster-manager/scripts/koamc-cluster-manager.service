@@ -1,4 +1,4 @@
-cluster[Unit]
+[Unit]
 Description=Kubernetes Opex Analytics Multi Clusters
 ConditionPathExists=/opt/koamc/bin/koamc-cluster-manager
 After=network.target
