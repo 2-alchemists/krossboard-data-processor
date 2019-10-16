@@ -1,4 +1,4 @@
-[Unit]
+cluster[Unit]
 Description=Kubernetes Opex Analytics Multi Clusters
 ConditionPathExists=/opt/koamc/bin/koamc-cluster-manager
 After=network.target
@@ -14,14 +14,14 @@ RestartSec=10
 StartLimitInterval=60
 WorkingDirectory=/tmp/
 ExecStart=/opt/koamc/bin/koamc-cluster-manager
-EnvironmentFile=/opt/koamc/etc/koamc.service.env
+EnvironmentFile=/opt/koamc/etc/koamc-cluster-manager.service.env
 PermissionsStartOnly=true
 ExecStartPre=/bin/mkdir -p /var/log/koamc
 ExecStartPre=/bin/chown syslog:adm /var/log/koamc
 ExecStartPre=/bin/chmod 755 /var/log/koamc
 StandardOutput=syslog
 StandardError=syslog
-SyslogIdentifier=koamc
+SyslogIdentifier=koamc-cluster-manager
 
 [Install]
 WantedBy=multi-user.target

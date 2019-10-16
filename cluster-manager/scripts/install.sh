@@ -15,8 +15,8 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 PROGRAM_NAME=koamc-cluster-manager
-INSTALL_ASSET_DIR=$(dirname $0)
-KOAMC_BINARY_PATH=${1-$INSTALL_ASSET_DIR/$PROGRAM_NAME}
+INSTALL_DIR=$(dirname $0)
+KOAMC_BINARY_PATH=${1-$INSTALL_DIR/$PROGRAM_NAME}
 KOAMC_USER=koamc
 KOAMC_ROOT_DIR=/opt/$KOAMC_USER
 DOCKER_GROUP=docker
@@ -28,8 +28,8 @@ id -u $KOAMC_USER &> /dev/null || \
 
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}
 install -m 755 $KOAMC_BINARY_PATH $KOAMC_ROOT_DIR/bin/
-install -m 644 $INSTALL_ASSET_DIR/$PROGRAM_NAME.service.env $KOAMC_ROOT_DIR/etc/
-install -m 644 $INSTALL_ASSET_DIR/$PROGRAM_NAME.service /lib/systemd/system/
+install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service.env $KOAMC_ROOT_DIR/etc/
+install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service /lib/systemd/system/
 
 GOOGLE_GCLOUD_COMMAND_PATH=$(which gcloud || echo "")
 if [ "$GOOGLE_GCLOUD_COMMAND_PATH" != "" ]; then

@@ -123,9 +123,7 @@ func main() {
 	default:
 		log.Fatalln("invalid or unauthorized execution environment:", cloudProvider)
 	}
-	
-    time.Sleep(2 * time.Second)
-	
+
 	go orchestrateInstances(systemStatus)
 
 	workers.Wait()
@@ -148,6 +146,10 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 		"configDir":  viper.Get("koamc_root_dir"),
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("service started successully")
+
+	const WaitSecondBeforePulling = time.Second
+	log.Infoln("Will starting instance orchestration in ", WaitSecondBeforePulling, "second(s)")
+	time.Sleep(WaitSecondBeforePulling)
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
@@ -307,7 +309,7 @@ func updateGKEClusters() {
 				"get-credentials",
 				cluster.Name,
 				"--zone",
-				cluster.Zone).Output()
+				cluster.Zone).CombinedOutput()
 
 			if err != nil {
 				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", cluster.Name)
@@ -350,7 +352,7 @@ func updateEKSClusters() {
 				"--name",
 				*clusterName,
 				"--region",
-				awsRegion).Output()
+				awsRegion).CombinedOutput()
 
 			if err != nil {
 				log.WithError(err).Errorf("failed getting credentials for GKE cluster %v", clusterName)

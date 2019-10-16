@@ -127,8 +127,8 @@ $ sudo install -m 755 $KOAMC_BINARY $KOAMC_ROOT_DIR/bin/
 Copy systemd scripts
 
 ```
-$ sudo install -m 644 ./scripts/kube-opex-analytics-mc.service.env $KOAMC_ROOT_DIR/etc/
-$ sudo install -m 644 ./scripts/kube-opex-analytics-mc.service /lib/systemd/system/
+$ sudo install -m 644 ./scripts/koamc-cluster-manager.service.env $KOAMC_ROOT_DIR/etc/
+$ sudo install -m 644 ./scripts/koamc-cluster-manager.service /lib/systemd/system/
 ```
 
 Fix permissions on directories
