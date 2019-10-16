@@ -150,6 +150,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	const WaitSecondBeforePulling = 1
 	log.Infof("wait %v seconds before starting instance orchestration\n", WaitSecondBeforePulling)
 	time.Sleep(WaitSecondBeforePulling * time.Second)
+	log.Infoln("starting instance orchestration")
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
