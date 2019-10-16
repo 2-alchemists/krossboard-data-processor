@@ -5,14 +5,14 @@
 		{
 			"checksumSHA1": "bI4oyp52GseOHh/FPr0RFIK+JtY=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/koainstance",
-			"revision": "c2a2db57d74cc82b5a3857f7b3fe73ea1f500521",
-			"revisionTime": "2019-10-12T12:10:52Z"
+			"revision": "2ccee40f2eb98a2ced2500eca29cf1e10ed8e301",
+			"revisionTime": "2019-10-15T11:38:18Z"
 		},
 		{
 			"checksumSHA1": "OPDOCD1nj+6kdpBn68LRmxp94Aw=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig",
-			"revision": "cf681465a206aa57fb7167864947902ac383bde7",
-			"revisionTime": "2019-10-10T21:29:03Z"
+			"revision": "2ccee40f2eb98a2ced2500eca29cf1e10ed8e301",
+			"revisionTime": "2019-10-15T11:38:18Z"
 		},
 		{
 			"checksumSHA1": "WLJg0OnzrjlVNOj3UTaUDOiGY6s=",
