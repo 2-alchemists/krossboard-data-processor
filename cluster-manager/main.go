@@ -126,13 +126,18 @@ func main() {
 
 	go orchestrateInstances(systemStatus)
 
+	log.Infoln("service started")
+
 	workers.Wait()
 }
 
 func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
-	kubeConfig := kubeconfig.NewKubeConfig()
+	const WaitSecondBeforePulling = 1
+	log.Infof("wait %v seconds before starting instance orchestration\n", WaitSecondBeforePulling)
+	time.Sleep(WaitSecondBeforePulling * time.Second)
+	log.Infoln("starting instance orchestration")
 
 	containerManager := koainstance.NewContainerManager(viper.GetString("koacm_default_image"))
 	if err := containerManager.PullImage(); err != nil {
@@ -142,15 +147,10 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 		}).Fatalln("failed pulling base container image")
 	}
 
+	kubeConfig := kubeconfig.NewKubeConfig()
 	log.WithFields(log.Fields{
-		"configDir":  viper.Get("koamc_root_dir"),
 		"kubeconfig": kubeConfig.Path,
-	}).Infoln("service started successully")
-
-	const WaitSecondBeforePulling = 1
-	log.Infof("wait %v seconds before starting instance orchestration\n", WaitSecondBeforePulling)
-	time.Sleep(WaitSecondBeforePulling * time.Second)
-	log.Infoln("starting instance orchestration")
+	}).Infoln("KUBECONFIG loaded")
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
