@@ -33,17 +33,20 @@ install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service /lib/systemd/system/
 
 KOAMC_GCLOUD_COMMAND=$(which gcloud || echo "")
 if [ "$KOAMC_GCLOUD_COMMAND" != "" ]; then
-    echo -e "\nKOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND\n" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+    echo "gcloud found at $KOAMC_GCLOUD_COMMAND"
+    echo "KOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
 fi
 
 KOAMC_AWS_COMMAND=$(which aws || echo "")
 if [ "$KOAMC_AWS_COMMAND" != "" ]; then
-    echo -e "\nKOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND\n" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+    echo "aws found at $KOAMC_AWS_COMMAND"
+    echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
 fi
 
 KOAMC_AZURE_COMMAND=$(which az || echo "")
 if [ "$KOAMC_AZURE_COMMAND" != "" ]; then
-    echo -e "\nKOAMC_AZURE_COMMAND=$KOAMC_AZURE_COMMAND\n" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+    echo "az found at $KOAMC_AZURE_COMMAND"
+    echo "KOAMC_AZURE_COMMAND=$KOAMC_AZURE_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
 fi
 
 chown -R $KOAMC_USER:$KOAMC_USER $KOAMC_ROOT_DIR/
