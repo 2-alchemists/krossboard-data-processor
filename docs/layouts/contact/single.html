@@ -1,0 +1,61 @@
+{{ define "title"}} {{ .Title}} {{end}}
+{{ define "header"}} {{ partial "header" .}} {{end}}
+
+{{ define "main"}}
+<div class="push-center" itemscope itemtype="http://schema.org/BlogPosting">
+    {{ template "_internal/schema.html" . }}
+<div id="hero">
+    <h1 itemprop="headline">  {{.Title}}</h1>
+    {{ if .Description }}
+    <blockquote itemprop="description">{{ .Description }}</blockquote>
+    {{ end }}
+</div>
+<div id="post-box">
+
+  <div id="reply-message"></div>
+    <div>
+      <fieldset>
+      <legend>Please fill in the form to submit your request</legend>
+      <form action="{{.Site.Params.contactRequestApiEndpoint}}" method="post">
+        <div class="form-item">
+          <label for="name">Name</label>
+          <input type="text" name="name" id="name"  placeholder="Mr. Smith" />
+        </div>
+        
+        <div class="form-item">
+          <label for="email">Email <span class="req"></span></label>
+          <input type="text" name="email" id="email"  class="required email" placeholder="smith@company.com" />
+        </div>
+
+        <div class="form-item">
+          <label for="organization">Organization</label>
+          <input type="text" name="organization" id="organization"  placeholder="Company, Inc." />
+        </div> 
+          
+        {{ if in .Params.tags "contact" }}  
+        <div class="form-item">
+          <label for="subject">Subject</label>
+          <input type="text" name="subject" id="subject"  value="" placeholder="Need help or expertise?" />
+          <input type="hidden" name="target" id="target"  value="contact" />
+        </div>
+        <div class="form-item">
+          <label for="message">Message</label>
+          <textarea  rows="6" name="message" id="message"  placeholder="Please add details concerning your requests."></textarea>
+        </div>
+        {{ else }}    
+        <div class="form-item">
+          <input type="hidden" name="subject" id="subject"  value="Your Access to our Demo Plaform!" />
+          <input type="hidden" name="target" id="target"  value="demo" />
+        </div>  
+        {{ end }}
+        <input  class="button"  type="submit" value="Submit">
+      </form>
+    </fieldset>
+  </div>
+ </div> 
+
+
+<script src="{{ "/js/contact.min.js" | relURL }}" type="text/javascript"> </script>
+  
+{{ end }}
+{{ define "footer"}} {{ partial "footer.html" .}} {{ end }}

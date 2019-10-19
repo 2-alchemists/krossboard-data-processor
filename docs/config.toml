@@ -1,0 +1,45 @@
+baseURL = "http://koamc.com/"
+languageCode = "en-us"
+title = "Multi-Cluster Kubernetes Opex Analytics"
+theme = "kube"
+description = ""
+Paginate = 4
+googleAnalytics = "UA-127187736-1"
+
+[Params]
+  RSSLink = "/index.xml"
+  author = "Company Name"
+  releaseYear = "2020"
+  github = "https://github.com/rchakode/koamc"
+  twitter = "koamc"
+  email = "contact@koamc.com"
+  logo = "/images/logo/company-website-logo.png"
+  favicon = "/favicon.ico"
+  contactRequestApiEndpoint = "https://demo.koamc.com/mx-gateway/sendmail"
+
+[params.seo.webmaster_verifications]
+  google = "" # Optionnel, Google verification code
+  bing = "" # Optionnel, Bing verification code
+  alexa = "" # Optionnel, Alexa verification code
+  yandex = "" # Optionnel, Yandex verification code  
+
+#[[menu.main]]
+#    name = "Downloads"
+#    weight = -100
+#    url = "/downloads/"  
+[[menu.main]]
+    name = "Documentation"
+    weight = -100
+    url = "/docs/"
+#[[menu.main]]
+#    name = "Blog"
+#    weight = -100
+#    url = "/blog/"    
+[[menu.main]]
+    name = "Support"
+    weight = -100
+    url = "/contact/support-and-contact/" 
+#[[menu.main]]
+#    name = "Try Online Demo"
+#    weight = -100
+#    url = "/contact/try-online-demo/" 

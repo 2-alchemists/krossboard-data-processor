@@ -1,0 +1,71 @@
+{{ define "title"}} {{ .Site.Title}} {{end}}
+{{ define "header"}} {{ partial "header" .}} {{end}}
+{{ define "main"}}
+
+<div id="main">
+  <div id="hero">
+    <h1>Track Kubernetes operations costs, <br/> Predict capacity scale up/down.</h1>
+    <p>{{.Description}}</p>
+    <div id="home-buttons">
+      <a class="button primary big" href="/docs/aws-eks-installation/">Getting Started with EKS</a> 
+      <a class="button outline big" href="/docs/gcp-gke-installation/">Getting Started with GKE</a></div>
+  </div>
+  <div id="action-buttons">
+    <legend>{{.Content}}</legend>
+  </div>
+  <!--
+  <div class="message focus" data-component="message"> <span class="close small"></span>
+    {{.Content}}
+  </div>
+  -->
+  <div id="kube-features">
+    <div class="row gutters">
+      
+      <div class="col col-6 item">
+        <figure>
+          <img alt="" height="48" src="{{ "/images/icons/icon-monitor-business-values.png" | relURL }}" width="48">
+        </figure>
+        <h3>Track usage, Prevent overpaying</h3>
+        <p>CPU and memory usage are periodically collected, processes and consolidates them over various time-aggregation perspectives (hourly, daily, monthly) to produce resource usage reports covering up to a year. The reports focus on namespace level, while a special care is taken to also account and highlight shares of non-allocatable capacities.</p>
+      </div>
+      
+      <div class="col col-6 item">
+        <figure>
+          <img alt="" height="48" src="{{ "/images/icons/icon-tactical-dashboard.png" | relURL }}" width="48">
+        </figure>        
+        <h3>Forecast usage, Anticipate capacities</h3>          
+        <p>Our tools provide short-, mid-, and long-term resource usage reports, which show you how amount of resources your different projects are spending over time. The final goal being to help organizations make cost allocation and capacity planning decisions with factual analytics.</p>
+      </div>        
+      
+      <div class="col col-6 item">
+        <figure>
+          <img alt="" height="48" src="{{ "/images/icons/icon-easy-integration.png" | relURL }}" width="48">
+        </figure>
+        <h3>Marketplace solution, Easy deployment</h3>
+        <p>Available on AWS and GCP (Azure to be supported very soon), you just have to deploy an instance and let it automatically discover and take over your existing and new Kubernetes clusters running on Amazon Elastic Kubernetes Service (EKS) or Google Kubernetes Engine (GKE), without limit.</p>
+      </div>      
+      
+      <div class="col col-6 item">
+        <figure>
+          <img alt="" height="48" src="{{ "/images/icons/icon-tactical-dashboard.png" | relURL }}" width="48">
+        </figure>        
+        <h3>Export data, Extract additional values</h3>          
+        <p>Our tools are meant to provide you with valuable insights on usage data we build, but we're aware you may need specific analytics that are not built-in. No worry! In those cases you will have the ability to export data, in CSV and/or JSON formats, for one or many clusters, covering an hour to up a year, that your BI/AI teams can use to extract additional insight.</p>
+      </div>
+      
+    
+  
+    </div>
+  </div>
+  
+  <div id="screencast">
+    <div class="row">
+      <div class="col col-12">
+        <h3>Screenshots</h3>
+        <img alt="sample screenshot" src="{{ "/images/screenshot-home-page.png" | relURL }}" />
+      </div>
+     </div>
+   </div>
+  </div>
+{{ end }}
+{{ define "footer"}} {{ partial "footer" .}} {{end}}
