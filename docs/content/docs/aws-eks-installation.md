@@ -1,5 +1,5 @@
 +++
-title = "Installation for AWS EKS clusters"
+title = "Installation for AWS EKS"
 description = ""
 weight = 20
 draft = false

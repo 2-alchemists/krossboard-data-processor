@@ -4,13 +4,13 @@ title = "Multi-Cluster Kubernetes Opex Analytics"
 theme = "kube"
 description = ""
 Paginate = 4
-googleAnalytics = "UA-127187736-1"
+googleAnalytics = ""
 
 [Params]
   RSSLink = "/index.xml"
   author = "Company Name"
   releaseYear = "2020"
-  github = "https://github.com/rchakode/koamc"
+  github = ""
   twitter = "koamc"
   email = "contact@koamc.com"
   logo = "/images/logo/company-website-logo.png"

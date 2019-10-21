@@ -1,5 +1,5 @@
 +++
-title = "Installation for GCP GKE clusters"
+title = "Installation for GCP GKE"
 description = ""
 weight = 20
 draft = false
