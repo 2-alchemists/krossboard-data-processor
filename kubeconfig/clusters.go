@@ -25,6 +25,7 @@ type ManagedCluster struct {
 	Name        string         `json:"name,omitempty"`
 	APIEndpoint string         `json:"apiEndpoint,omitempty"`
 	AuthInfo    *kapi.AuthInfo `json:"authInfo,omitempty"`
+	CaData      []byte         `json:"cacert,omitempty"`
 }
 
 // NewKubeConfig create a new KubeConfig object
@@ -58,6 +59,7 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 		managedClusters[clusterName] = &ManagedCluster{
 			Name:        clusterName,
 			APIEndpoint: clusterInfo.Server,
+			CaData:      clusterInfo.CertificateAuthorityData,
 		}
 	}
 	for _, context := range config.Contexts {
