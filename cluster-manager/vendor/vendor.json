@@ -509,6 +509,12 @@
 			"revisionTime": "2019-05-13T18:38:25Z"
 		},
 		{
+			"checksumSHA1": "Ly2DPGZEU/9uJgLXtlqbJ0rZUAA=",
+			"path": "github.com/gorilla/mux",
+			"revision": "884b5ffcbd3a11b730f0b75f5c86ac408753c34d",
+			"revisionTime": "2019-08-30T12:11:56Z"
+		},
+		{
 			"checksumSHA1": "UThRII2e7MEeIJ2sTHbCXC+4tKU=",
 			"path": "github.com/hashicorp/golang-lru/simplelru",
 			"revision": "7f827b33c0f158ec5dfbba01bb0b14a4541fd81d",
