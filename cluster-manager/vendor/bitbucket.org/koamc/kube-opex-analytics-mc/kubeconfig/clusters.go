@@ -25,6 +25,7 @@ type ManagedCluster struct {
 	Name        string         `json:"name,omitempty"`
 	APIEndpoint string         `json:"apiEndpoint,omitempty"`
 	AuthInfo    *kapi.AuthInfo `json:"authInfo,omitempty"`
+	CaData      []byte         `json:"cacert,omitempty"`
 }
 
 // NewKubeConfig create a new KubeConfig object
@@ -58,6 +59,7 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 		managedClusters[clusterName] = &ManagedCluster{
 			Name:        clusterName,
 			APIEndpoint: clusterInfo.Server,
+			CaData:      clusterInfo.CertificateAuthorityData,
 		}
 	}
 	for _, context := range config.Contexts {
@@ -92,10 +94,10 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 
 	token, err := jsonparser.GetString(out, "credential", "access_token") // extracts token from GKE-compliant credentials
 	if err != nil {
-		errOut := errors.Wrap(err, "credentials seem to be not GKE compliant")
-		token, err = jsonparser.GetString(out, "status", "token") // extracts token from EKS-compliant credentials
+		errOut := errors.Wrap(err, "credentials string not compliant with GKE")
+		token, err = jsonparser.GetString(out, "status", "token") // try to extract it as EKS  credentials
 		if err != nil {
-			return "", errors.Wrap(errOut, "credentials seem to be not EKS compliant")
+			return "", errors.Wrap(errOut, "credentials string not compliant with EKS")
 		}
 	}
 
