@@ -31,7 +31,7 @@ var workers sync.WaitGroup
 
 func main() {
 	viper.AutomaticEnv()
-	// default config variables
+	viper.SetDefault("koamc_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("koamc_log_level", "http://metadata.google.internal")
 	viper.SetDefault("docker_api_version", "1.39")
 	viper.SetDefault("koacm_k8s_verify_ssl", "true")
@@ -127,6 +127,8 @@ func main() {
 	go orchestrateInstances(systemStatus)
 
 	log.Infoln("service started")
+
+	startAPI()
 
 	workers.Wait()
 }
