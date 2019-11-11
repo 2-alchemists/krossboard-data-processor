@@ -34,7 +34,7 @@ func main() {
 	// default config variables
 	viper.SetDefault("koamc_log_level", "http://metadata.google.internal")
 	viper.SetDefault("docker_api_version", "1.39")
-	viper.SetDefault("koacm_k8s_verify_ssl", "false")
+	viper.SetDefault("koacm_k8s_verify_ssl", "true")
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
 	viper.SetDefault("koamc_gcloud_command", "gcloud")
@@ -202,7 +202,13 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 				continue
 			}
 
-			// update access token
+			caFile := fmt.Sprintf("%s/cacert.pem", tokenVol)
+			err = ioutil.WriteFile(caFile, cluster.CaData, 0600)
+			if err != nil {
+				log.Errorln("failed writing CA file", err.Error())
+				continue
+			}
+
 			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo)
 			if err != nil {
 				log.WithField("cluster", cluster.Name).Warn("failed getting access token from credentials plugin: ", err.Error())

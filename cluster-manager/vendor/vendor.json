@@ -3,16 +3,16 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "bI4oyp52GseOHh/FPr0RFIK+JtY=",
+			"checksumSHA1": "NScqYhxjJ/aosSJitJaqRNJFJCc=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/koainstance",
-			"revision": "2ccee40f2eb98a2ced2500eca29cf1e10ed8e301",
-			"revisionTime": "2019-10-15T11:38:18Z"
+			"revision": "93a87298dbc2155e0eb9a03405276d19e7e6a4f3",
+			"revisionTime": "2019-11-11T17:18:28Z"
 		},
 		{
 			"checksumSHA1": "P1PQ1sVzPsW81sQbW85AiPcavWs=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig",
-			"revision": "be7174d9b311dfcf47c5c944175c08a4fa9c8e0d",
-			"revisionTime": "2019-11-11T16:35:51Z"
+			"revision": "06ecd694cb5178f8cfdf413728084a7d409ebf36",
+			"revisionTime": "2019-11-11T16:36:43Z"
 		},
 		{
 			"checksumSHA1": "WLJg0OnzrjlVNOj3UTaUDOiGY6s=",
