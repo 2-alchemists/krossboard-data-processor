@@ -96,7 +96,7 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 		fmt.Sprintf("KOA_DB_LOCATION=%s", instance.DataVol),
 		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", instance.ClusterEndpoint),
 		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("koacm_k8s_verify_ssl")),
-		fmt.Sprintf("KOA_K8S_CACERT=%s/cacert.pem", instance.TokenVol),
+		fmt.Sprintf("KOA_K8S_CACERT=/var/run/secrets/kubernetes.io/serviceaccount/cacert.pem"),
 	}
 
 	mounts := []dkrMount.Mount{
