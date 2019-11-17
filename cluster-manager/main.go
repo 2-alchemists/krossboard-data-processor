@@ -50,7 +50,7 @@ func main() {
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
-	viper.Set("koamc_status_file", fmt.Sprintf("%s/status.json", viper.GetString("koamc_status_dir")))
+	viper.Set("koamc_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("koamc_status_dir")))
 
 	// configure logger
 	customFormatter := new(log.TextFormatter)
@@ -321,9 +321,9 @@ func updateGKEClusters() {
 				cluster.Zone).CombinedOutput()
 
 			if err != nil {
-				log.WithField("cluster", cluster.Name).Errorln("failed getting credentials from GKE cluster:", string(cmdout))
+				log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(cmdout))
 			} else {
-				log.WithField("cluster", cluster.Name).Debugln("added/updated credentials for GKE cluster in KUBECONFIG")
+				log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
 			}
 		}
 
