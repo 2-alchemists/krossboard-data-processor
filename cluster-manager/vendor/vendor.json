@@ -600,6 +600,12 @@
 			"revisionTime": "2019-06-21T16:12:01Z"
 		},
 		{
+			"checksumSHA1": "cIiyvAduLLFvu+tg1Qr5Jw3jeWo=",
+			"path": "github.com/jtolds/gls",
+			"revision": "b4936e06046bbecbb94cae9c18127ebe510a2cb9",
+			"revisionTime": "2018-11-10T20:28:10Z"
+		},
+		{
 			"checksumSHA1": "nsiDN1JmbYszL69i6eYUAyL9y8E=",
 			"path": "github.com/magiconair/properties",
 			"revision": "de8848e004dd33dc07a2947b3d76f618a7fc7ef1",
@@ -663,6 +669,48 @@
 			"revisionTime": "2019-08-07T10:34:36Z"
 		},
 		{
+			"checksumSHA1": "AE3KrY+HDFH2rHWhIwV96bJIlHw=",
+			"path": "github.com/smartystreets/assertions",
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
+		},
+		{
+			"checksumSHA1": "a0CRqejGZH1LxO4G/DZsux7ULWA=",
+			"path": "github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch",
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
+		},
+		{
+			"checksumSHA1": "v6W3GIQMzr3QSXB2NtBa9X7SwiI=",
+			"path": "github.com/smartystreets/assertions/internal/go-render/render",
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
+		},
+		{
+			"checksumSHA1": "r6FauVdOTFnwYQgrKGFuWUbIAJE=",
+			"path": "github.com/smartystreets/assertions/internal/oglematchers",
+			"revision": "8df9578143a50c65c2675d8e3207386ca9375d31",
+			"revisionTime": "2019-08-01T02:41:32Z"
+		},
+		{
+			"checksumSHA1": "tzcUwQrH1EMR+RPvTE1Ico6kqT4=",
+			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
+			"checksumSHA1": "6Mgn4H/4vpqYGlaIKZ0UwOmJN0E=",
+			"path": "github.com/smartystreets/goconvey/convey/gotest",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
+			"checksumSHA1": "zUFddnpn7/A+gjwhShq642PM40I=",
+			"path": "github.com/smartystreets/goconvey/convey/reporting",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
 			"checksumSHA1": "2d0rR/VhqllUdrcH6kwHHrhqJ2E=",
 			"path": "github.com/spf13/afero",
 			"revision": "588a75ec4f32903aa5e39a2619ba6a4631e28424",
@@ -703,6 +751,12 @@
 			"path": "github.com/subosito/gotenv",
 			"revision": "422ef8095f112cfaf9f40c368e0b9ae8c0714cfb",
 			"revisionTime": "2019-08-13T02:47:33Z"
+		},
+		{
+			"checksumSHA1": "stCiGyIYuevU6kONHVzBEsIskLs=",
+			"path": "github.com/ziutek/rrd",
+			"revision": "03be5a97889438a9bc3e12ff7cdb8ab317a8cf7e",
+			"revisionTime": "2019-04-18T22:05:01Z"
 		},
 		{
 			"checksumSHA1": "w+WRj7WpdItd5iR7PcaQQKMrVB0=",
