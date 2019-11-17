@@ -16,6 +16,7 @@ build:
 compress:
 		$(UPX) $(PACKAGE_NAME)
 test:
+		$(GOCMD) clean -testcache
 		$(GOTEST) -v ./...
 clean:
 		$(GOCLEAN)
