@@ -15,11 +15,12 @@ func TestSpec(t *testing.T) {
 		viper.Set("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 		viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
 
-		Convey("The call getAllClustersCurrentUsage  should succeed", func() {
+		Convey("The call getAllClustersCurrentUsage should succeed", func() {
 			allUsage, err := getAllClustersCurrentUsage()
 			So(err, ShouldBeNil)
+			So(len(allUsage), ShouldEqual, 3)
 			b, _ := json.Marshal(allUsage)
-			fmt.Println(string(b))
+			fmt.Println("\ntest output", string(b))
 		})
 	})
 }

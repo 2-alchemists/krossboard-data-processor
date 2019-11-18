@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,11 +15,11 @@ import (
 
 // ClusterUsage holds used and non-allocatable memory and CPU resource of a cluster
 type ClusterUsage struct {
-	ClusterName       string  `json:"clusterName,omitempty"`
-	CPUUsed           float64 `json:"cpuUsed,omitempty"`
-	MemUsed           float64 `json:"memUsed,omitempty"`
-	CPUNonAllocatable float64 `json:"cpuNonAllocatable,omitempty"`
-	MemNonAllocatable float64 `json:"memNonAllocatable,omitempty"`
+	ClusterName       string  `json:"clusterName"`
+	CPUUsed           float64 `json:"cpuUsed"`
+	MemUsed           float64 `json:"memUsed"`
+	CPUNonAllocatable float64 `json:"cpuNonAllocatable"`
+	MemNonAllocatable float64 `json:"memNonAllocatable"`
 }
 
 func getAllClustersCurrentUsage() ([]*ClusterUsage, error) {
@@ -36,22 +36,21 @@ func getAllClustersCurrentUsage() ([]*ClusterUsage, error) {
 			if err != nil {
 				log.WithError(err).Warnln("error getting current cluster usage for entry:", entry.Name())
 			} else {
-				b, _ := json.Marshal(usage)
-				log.Infoln(string(b))
 				allUsage = append(allUsage, usage)
 			}
 		}
 	}
-
 	return allUsage, nil
 }
 
 func getClusterCurrentUsage(baseDataDir string, clusterName string) (*ClusterUsage, error) {
-	const RRDStepFiveMins = 300
+	const (
+		RRDStepFiveMins = 300
+		RRDFetchWindow  = -2 * RRDStepFiveMins
+	)
 	rrdEndEpoch := int64(int64(time.Now().Unix()/RRDStepFiveMins) * RRDStepFiveMins)
 	rrdEnd := time.Unix(rrdEndEpoch, 0)
-	rrdStart := rrdEnd.Add(-1 * RRDStepFiveMins * time.Second)
-
+	rrdStart := rrdEnd.Add(RRDFetchWindow * time.Second)
 	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
 	dbfiles, err := ioutil.ReadDir(rrdDir)
 	if err != nil {
@@ -70,7 +69,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*ClusterUsa
 			continue
 		}
 		rrdfile := fmt.Sprintf("%s/%s", rrdDir, dbfile.Name())
-		fetchRes, err := rrd.Fetch(rrdfile, "AVERAGE", rrdStart, rrdEnd, RRDStepFiveMins*time.Second)
+		fetchRes, err := rrd.Fetch(rrdfile, "LAST", rrdStart, rrdEnd, RRDStepFiveMins*time.Second)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to fetch data from rrd database")
 		}
@@ -78,12 +77,17 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*ClusterUsa
 
 		rrdRow := 0
 		for ti := fetchRes.Start.Add(fetchRes.Step); ti.Before(rrdEnd) || ti.Equal(rrdEnd); ti = ti.Add(fetchRes.Step) {
+			cpu := fetchRes.ValueAt(0, rrdRow)
+			mem := fetchRes.ValueAt(1, rrdRow)
+			if math.IsNaN(cpu) || math.IsNaN(mem) {
+				continue
+			}
 			if dbfile.Name() == "non-allocatable" {
-				usage.CPUNonAllocatable = fetchRes.ValueAt(0, rrdRow)
-				usage.MemNonAllocatable = fetchRes.ValueAt(1, rrdRow)
+				usage.CPUNonAllocatable = cpu
+				usage.MemNonAllocatable = mem
 			} else {
-				usage.CPUUsed += fetchRes.ValueAt(0, rrdRow)
-				usage.MemUsed += fetchRes.ValueAt(1, rrdRow)
+				usage.CPUUsed += cpu
+				usage.MemUsed += mem
 			}
 			rrdRow++
 		}
