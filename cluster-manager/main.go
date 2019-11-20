@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -39,6 +40,7 @@ func main() {
 	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
 	viper.Set("koamc_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("koamc_status_dir")))
+	viper.Set("koamc_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("koamc_status_dir")))
 
 	// configure logger
 	customFormatter := new(log.TextFormatter)
@@ -195,7 +197,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 			caFile := fmt.Sprintf("%s/cacert.pem", tokenVol)
 			err = ioutil.WriteFile(caFile, cluster.CaData, 0600)
 			if err != nil {
-				log.Errorln("failed writing CA file", err.Error())
+				log.WithError(err).Errorln("failed writing CA file")
 				continue
 			}
 
@@ -207,7 +209,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 			tokenFile := fmt.Sprintf("%s/token", tokenVol)
 			err = ioutil.WriteFile(tokenFile, []byte(accessToken), 0600)
 			if err != nil {
-				log.Errorln("failed writing token file", err.Error())
+				log.WithError(err).Errorln("failed writing token file")
 				continue
 			}
 
@@ -264,9 +266,21 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 				break // or exit ?
 			}
 
-			log.Infoln("system status updated")
+			log.Infoln("system status updated with cluster", cluster.Name)
 		}
 
+		currentUsage, err := getAllClustersCurrentUsage()
+		if err != nil {
+			log.WithError(err).Errorln("get getting clusters' current usage")
+		} else {
+			currentUsageFile := viper.GetString("koamc_current_usage_file")
+			currentUsageData, _ := json.Marshal(currentUsage)
+			err = ioutil.WriteFile(currentUsageFile, currentUsageData, 0644)
+			if err != nil {
+				log.WithError(err).Errorln("failed writing current usage file")
+				continue
+			}
+		}
 		time.Sleep(updatePeriod)
 	}
 }

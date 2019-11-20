@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,6 +31,12 @@ type DiscoveryResp struct {
 	Instances []*KOAAPI `json:"instances,omitempty"`
 }
 
+type CurrentUsageResp struct {
+	Status       string          `json:"status,omitempty"`
+	Message      string          `json:"message,omitempty"`
+	ClusterUsage []*ClusterUsage `json:"clusterUsage,omitempty"`
+}
+
 func startAPI() {
 
 	var wait time.Duration
@@ -38,6 +45,7 @@ func startAPI() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/discovery", DiscoveryHandler)
+	router.HandleFunc("/currentstatus", CurrentUsageHandler)
 
 	srv := &http.Server{
 		Addr:         viper.GetString("koamc_api_addr"),
@@ -94,5 +102,36 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	outRaw, _ := json.Marshal(discoveryResp)
+	w.Write(outRaw)
+}
+
+// CurrentUsageHandler returns current clusters' usage
+func CurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	currentUsageResp := &CurrentUsageResp{}
+	currentUsageFile := viper.GetString("koamc_current_usage_file")
+	currentUsageData, err := ioutil.ReadFile(currentUsageFile)
+	respHTTPStatus := http.StatusInternalServerError
+	if err != nil {
+		log.WithError(err).Errorln("failed reading current status file")
+		currentUsageResp.Status = "error"
+		currentUsageResp.Message = "failed reading current status file"
+	} else {
+		var currentUsage []*ClusterUsage
+		err := json.Unmarshal(currentUsageData, &currentUsage)
+		if err != nil {
+			log.WithError(err).Errorln("failed decoding current usage data")
+			currentUsageResp.Status = "error"
+			currentUsageResp.Message = "invalid current usage data"
+		} else {
+			respHTTPStatus = http.StatusOK
+			currentUsageResp.Status = "ok"
+			currentUsageResp.ClusterUsage = currentUsage
+		}
+	}
+
+	w.WriteHeader(respHTTPStatus)
+	outRaw, _ := json.Marshal(currentUsageResp)
 	w.Write(outRaw)
 }
