@@ -28,11 +28,13 @@ func main() {
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
 	viper.SetDefault("koamc_gcloud_command", "gcloud")
 	viper.SetDefault("koamc_awscli_command", "aws")
-	viper.SetDefault("koacm_eksctl_command", "eksctl")
+	viper.SetDefault("koamc_az_command", "az")
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 	viper.SetDefault("koamc_cloud_provider", "")
 	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
+	viper.SetDefault("koamc_azure_metadata_service", "http://169.254.169.254")
+
 	viper.SetDefault("koamc_log_level", "info")
 
 	// fixed config variables
@@ -106,12 +108,14 @@ func main() {
 	workers.Add(2)
 	cloudProvider := getCloudProvider()
 	switch cloudProvider {
-	case "GCP":
-		go updateGKEClusters()
 	case "AWS":
 		go updateEKSClusters()
+	case "AZURE":
+		go updateAKSClusters()
+	case "GCP":
+		go updateGKEClusters()
 	default:
-		log.Fatalln("invalid or unauthorized execution environment:", cloudProvider)
+		log.Fatalln("unauthorized execution environment:", cloudProvider)
 	}
 
 	go orchestrateInstances(systemStatus)
@@ -301,7 +305,13 @@ func getCloudProvider() string {
 			_, err = getAWSRegion()
 			if err != nil {
 				log.WithError(err).Debug("not AWS cloud")
-				provider = "UNDEFINED"
+				_, err = getAzureResourceGroup()
+				if err != nil {
+					log.WithError(err).Debug("not Azure cloud")
+					provider = "UNDEFINED"
+				} else {
+					provider = "AZURE"
+				}
 			} else {
 				provider = "AWS"
 			}

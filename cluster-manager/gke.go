@@ -77,7 +77,7 @@ func getGCPProjectID() (int64, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return viper.GetInt64("google_project_id"), errors.Wrap(err, "failed calling GCP metadata service")
+		return -1, errors.Wrap(err, "failed calling GCP metadata service")
 	}
 	defer resp.Body.Close()
 
