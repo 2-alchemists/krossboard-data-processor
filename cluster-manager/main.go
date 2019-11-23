@@ -298,26 +298,20 @@ func createDirIfNotExists(path string) error {
 
 func getCloudProvider() string {
 	provider := viper.GetString("KOAMC_CLOUD_PROVIDER")
-	if provider == "" {
-		_, err := getGCPProjectID()
-		if err != nil {
-			log.WithError(err).Debug("not GCP cloud")
-			_, err = getAWSRegion()
-			if err != nil {
-				log.WithError(err).Debug("not AWS cloud")
-				_, err = getAzureResourceGroup()
-				if err != nil {
-					log.WithError(err).Debug("not Azure cloud")
-					provider = "UNDEFINED"
-				} else {
-					provider = "AZURE"
-				}
-			} else {
-				provider = "AWS"
-			}
-		} else {
-			provider = "GCP"
-		}
+	if provider != "" {
+		return provider
 	}
-	return provider
+	_, err := getGCPProjectID()
+	if err == nil {
+		return "GCP"
+	}
+	_, err = getAWSRegion()
+	if err == nil {
+		return "AWS"
+	}
+	_, err = getAzureResourceGroup()
+	if err == nil {
+		return "AZURE"
+	}
+	return "UNDEFINED"
 }
