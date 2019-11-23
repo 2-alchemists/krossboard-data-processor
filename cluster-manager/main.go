@@ -207,7 +207,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 
 			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo)
 			if err != nil {
-				log.WithField("cluster", cluster.Name).Warn("failed getting access token from credentials plugin: ", err.Error())
+				log.WithField("cluster", cluster.Name).Error("failed getting access token from credentials plugin: ", err.Error())
 				continue
 			}
 			tokenFile := fmt.Sprintf("%s/token", tokenVol)
