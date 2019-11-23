@@ -75,27 +75,32 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	if authInfo == nil {
 		return "", errors.New("no AuthInfo provided")
 	}
-	cmd := ""
+
+	if authInfo.Token != "" {
+		return authInfo.Token, nil // AKS and alike
+	}
+
+	authHookCmd := ""
 	var args []string
 	if authInfo.AuthProvider != nil {
-		cmd = authInfo.AuthProvider.Config["cmd-path"]
+		authHookCmd = authInfo.AuthProvider.Config["cmd-path"]
 		args = strings.Split(authInfo.AuthProvider.Config["cmd-args"], " ")
 	} else if authInfo.Exec != nil {
-		cmd = authInfo.Exec.Command
+		authHookCmd = authInfo.Exec.Command
 		args = authInfo.Exec.Args
 	} else {
 		return "", errors.New("no AuthInfo command provided")
 	}
 
-	out, err := exec.Command(cmd, args...).CombinedOutput()
+	out, err := exec.Command(authHookCmd, args...).CombinedOutput()
 	if err != nil {
 		return "", errors.Wrap(err, string(out))
 	}
 
-	token, err := jsonparser.GetString(out, "credential", "access_token") // extracts token from GKE-compliant credentials
+	token, err := jsonparser.GetString(out, "credential", "access_token") // GKE and alike
 	if err != nil {
 		errOut := errors.Wrap(err, "credentials string not compliant with GKE")
-		token, err = jsonparser.GetString(out, "status", "token") // try to extract it as EKS  credentials
+		token, err = jsonparser.GetString(out, "status", "token") // EKS and alike
 		if err != nil {
 			return "", errors.Wrap(errOut, "credentials string not compliant with EKS")
 		}
