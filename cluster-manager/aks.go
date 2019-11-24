@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -10,6 +12,9 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+
+	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
+	kvauth "github.com/Azure/azure-sdk-for-go/services/keyvault/auth"
 )
 
 func updateAKSClusters() {
@@ -17,12 +22,20 @@ func updateAKSClusters() {
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
+		err := azLogin()
+		if err != nil {
+			log.WithError(err).Errorln("failed to log in to Azure")
+			time.Sleep(updatePeriod)
+			continue
+		}
+
 		resourceGroups, err := listAzureResourceGroups()
 		if err != nil {
 			log.WithError(err).Errorln("failed list Azure resource groups")
 			time.Sleep(updatePeriod)
 			continue
 		}
+
 		for _, rg := range resourceGroups {
 			cmdout, err := exec.Command(viper.GetString("koamc_az_command"),
 				"aks",
@@ -102,7 +115,7 @@ func listAzureResourceGroups() ([]string, error) {
 		"json").CombinedOutput()
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed listing Azure resource groups:"+string(cmdout))
+		return nil, errors.Wrap(err, string(cmdout))
 	}
 
 	var resourceGroups []string
@@ -111,8 +124,41 @@ func listAzureResourceGroups() ([]string, error) {
 		resourceGroups = append(resourceGroups, rg)
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed decoding output of Azure list resource groups: "+string(cmdout))
+		return nil, errors.Wrap(err, "failed decoding list resource groups output: "+string(cmdout))
 	}
 
 	return resourceGroups, nil
+}
+
+func azLogin() error {
+	authorizer, err := kvauth.NewAuthorizerFromEnvironment()
+	if err != nil {
+		return errors.Wrap(err, "unable to get an authorizer for Key Vault")
+	}
+
+	keyvaultClient := keyvault.New()
+	keyvaultClient.Authorizer = authorizer
+
+	secret, err := keyvaultClient.GetSecret(context.Background(),
+		fmt.Sprintf("https://%s.vault.azure.net", viper.GetString("koamc_azure_keyvault_name")),
+		viper.GetString("koamc_azure_keyvault_aks_password_secret"),
+		viper.GetString("koamc_azure_keyvault_aks_password_secret_version"))
+
+	if err != nil {
+		return errors.Wrap(err, "unable to get AKS user password from Key Vault")
+	}
+
+	cmdout, err := exec.Command(viper.GetString("koamc_az_command"),
+		"login",
+		"--username",
+		viper.GetString("koamc_aks_user"),
+		"--password",
+		*secret.Value,
+		"--allow-no-subscriptions").CombinedOutput()
+
+	if err != nil {
+		return errors.Wrap(err, string(cmdout))
+	}
+
+	return nil
 }

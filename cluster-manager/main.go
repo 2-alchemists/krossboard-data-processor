@@ -20,22 +20,27 @@ var workers sync.WaitGroup
 
 func main() {
 	viper.AutomaticEnv()
+	// KOAMC default settings
+	viper.SetDefault("koamc_cloud_provider", "")
 	viper.SetDefault("koamc_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("koamc_log_level", "http://metadata.google.internal")
-	viper.SetDefault("docker_api_version", "1.39")
+	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 	viper.SetDefault("koacm_k8s_verify_ssl", "true")
 	viper.SetDefault("koacm_update_interval", 30)
 	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
-	viper.SetDefault("koamc_gcloud_command", "gcloud")
-	viper.SetDefault("koamc_awscli_command", "aws")
-	viper.SetDefault("koamc_az_command", "az")
-	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
-	viper.SetDefault("koamc_cloud_provider", "")
-	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
-	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
-	viper.SetDefault("koamc_azure_metadata_service", "http://169.254.169.254")
-
 	viper.SetDefault("koamc_log_level", "info")
+	// Docker default settings
+	viper.SetDefault("docker_api_version", "1.39")
+	// AWS default settings
+	viper.SetDefault("koamc_awscli_command", "aws")
+	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
+	// GCP default settings
+	viper.SetDefault("koamc_gcloud_command", "gcloud")
+	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
+	// AZURE default settings
+	viper.SetDefault("koamc_az_command", "az")
+	viper.SetDefault("koamc_azure_metadata_service", "http://169.254.169.254")
+	viper.SetDefault("koamc_azure_keyvault_aks_password_secret", "koamc-aks-password")
 
 	// fixed config variables
 	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
@@ -107,6 +112,7 @@ func main() {
 
 	workers.Add(2)
 	cloudProvider := getCloudProvider()
+	log.Infoln("selected cloud provider:", cloudProvider)
 	switch cloudProvider {
 	case "AWS":
 		go updateEKSClusters()
@@ -133,7 +139,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	const WaitSecondBeforePulling = 1
 	log.Infof("wait %v seconds before starting instance orchestration\n", WaitSecondBeforePulling)
 	time.Sleep(WaitSecondBeforePulling * time.Second)
-	log.Infoln("starting instance orchestration")
+	log.Infoln("starting orchestration")
 
 	containerManager := koainstance.NewContainerManager(viper.GetString("koacm_default_image"))
 	if err := containerManager.PullImage(); err != nil {
