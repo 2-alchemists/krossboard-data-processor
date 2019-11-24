@@ -39,6 +39,90 @@
 			"revisionTime": "2019-08-22T00:35:15Z"
 		},
 		{
+			"checksumSHA1": "fD9xgsdUbaTfV6mYsUFm0II4jNE=",
+			"path": "github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
+			"checksumSHA1": "lcOSPM4/AyvB/K+ezOSvjwYfga8=",
+			"path": "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
+			"checksumSHA1": "QzafocsheoWTC/PDyDI+HzwCjJk=",
+			"path": "github.com/Azure/azure-sdk-for-go/services/keyvault/auth",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
+			"checksumSHA1": "iTWK13IzGu+91mcKEbiBExc4bl8=",
+			"path": "github.com/Azure/azure-sdk-for-go/version",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
+			"checksumSHA1": "aDAGv8zdDrun77KVMYPtGD9t5n4=",
+			"path": "github.com/Azure/go-autorest/autorest",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "+sZIvmeyhDh28yRhsXVt9+I7Dhk=",
+			"path": "github.com/Azure/go-autorest/autorest/adal",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "sV4wrmfmuKvYpPRPkoPObeBC77g=",
+			"path": "github.com/Azure/go-autorest/autorest/azure",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "S5giB0ep3QAQtB4cQJlLiaPmcFA=",
+			"path": "github.com/Azure/go-autorest/autorest/azure/auth",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "thSHLNGJe/E+o7BjGctLPb0pzK8=",
+			"path": "github.com/Azure/go-autorest/autorest/azure/cli",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "I9jacF5Ym6s2GU8dpi9yUT6I1hM=",
+			"path": "github.com/Azure/go-autorest/autorest/date",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "o3pFknhovwgqplUNXkr6mOpEw24=",
+			"path": "github.com/Azure/go-autorest/autorest/to",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "uh3gcvSj8u8aPYC+x4YU19Gu8Tw=",
+			"path": "github.com/Azure/go-autorest/autorest/validation",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "nXtlS0uRMjqa8+dmeEqo3j3AXEo=",
+			"path": "github.com/Azure/go-autorest/logger",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
+			"checksumSHA1": "StsBozgf+C8kMv6htCiFBJbmmUw=",
+			"path": "github.com/Azure/go-autorest/tracing",
+			"revision": "3492b2aff5036c67228ab3c7dba3577c871db200",
+			"revisionTime": "2019-10-28T18:08:45Z"
+		},
+		{
 			"checksumSHA1": "5aEZAfzmhNpX+fKMUb5x0GjetfI=",
 			"path": "github.com/aws/aws-sdk-go/aws",
 			"revision": "969127fb5e168189a973c3d7ea58d7bd37aef6af",
@@ -260,6 +344,18 @@
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "d8f796af33cc11cb798c1aaeb27a4ebc5099927d",
 			"revisionTime": "2018-08-30T19:11:22Z"
+		},
+		{
+			"checksumSHA1": "P6u6fDWwSfRL2Bc6uhZ9kcoPsek=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "5e25c22bd5d6de03265bbe5462dcd162f85046f6",
+			"revisionTime": "2019-06-20T18:01:02Z"
+		},
+		{
+			"checksumSHA1": "L7NqEfBxi5sjuvjE8hnDimfGemA=",
+			"path": "github.com/dimchansky/utfbom",
+			"revision": "d2133a1ce379ef6fa992b0514a77146c60db9d1c",
+			"revisionTime": "2018-12-05T23:29:56Z"
 		},
 		{
 			"checksumSHA1": "Gj+xR1VgFKKmFXYOJMnAczC3Znk=",
@@ -612,6 +708,12 @@
 			"revisionTime": "2019-05-10T14:34:07Z"
 		},
 		{
+			"checksumSHA1": "7zLQC+jG19ndjH24FVh/+ZliHac=",
+			"path": "github.com/mitchellh/go-homedir",
+			"revision": "af06845cf3004701891bf4fdb884bfe4920b3727",
+			"revisionTime": "2019-01-27T04:21:35Z"
+		},
+		{
 			"checksumSHA1": "J+g0oZePWp2zSIISD2dZZKTxmgg=",
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "3536a929edddb9a5b34bd6861dc4a9647cb459fe",
@@ -859,6 +961,18 @@
 			"path": "go.opencensus.io/trace/tracestate",
 			"revision": "b4a14686f0a98096416fe1b4cb848e384fb2b22b",
 			"revisionTime": "2019-07-13T07:22:01Z"
+		},
+		{
+			"checksumSHA1": "US9Z/XwhkXQXbHk1sPAQE3qMt5Y=",
+			"path": "golang.org/x/crypto/pkcs12",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
+		},
+		{
+			"checksumSHA1": "p0GC51McIdA7JygoP223twJ1s0E=",
+			"path": "golang.org/x/crypto/pkcs12/internal/rc2",
+			"revision": "4def268fd1a49955bfb3dda92fe3db4f924f2285",
+			"revisionTime": "2019-07-01T08:59:26Z"
 		},
 		{
 			"checksumSHA1": "Zsm3tvgRFJOt3afwwhrGymcSZgg=",
