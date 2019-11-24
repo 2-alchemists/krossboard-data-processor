@@ -37,3 +37,13 @@ You will need an Azure having permissions
 az role assignment create --assignee $GROUP_ID \
  --role "Azure Kubernetes Service Cluster User Role"
 ``̀
+
+
+## Edit/update `koamc-cluster-manager` config file
+
+Edit `/opt/koamc/etc/koamc-cluster-manager.service.env` and add the following lines with appropriate values:
+
+```
+KOAMC_AZURE_KEYVAULT_NAME=kv-koamc-cluster-manager
+KOAMC_AZURE_KEYVAULT_AKS_PASSWORD_VERSION=5ae6a32f47ca44c5a6f6bb9cb02ebbbc
+```

@@ -43,10 +43,10 @@ if [ "$KOAMC_AWS_COMMAND" != "" ]; then
     echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
 fi
 
-KOAMC_AZURE_COMMAND=$(which az || echo "")
-if [ "$KOAMC_AZURE_COMMAND" != "" ]; then
-    echo "az found at $KOAMC_AZURE_COMMAND"
-    echo "KOAMC_AZURE_COMMAND=$KOAMC_AZURE_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+KOAMC_AZ_COMMAND=$(which az || echo "")
+if [ "$KOAMC_AZ_COMMAND" != "" ]; then
+    echo "az found at $KOAMC_AZ_COMMAND"
+    echo "KOAMC_AZ_COMMAND=$KOAMC_AZ_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
 fi
 
 chown -R $KOAMC_USER:$KOAMC_USER $KOAMC_ROOT_DIR/

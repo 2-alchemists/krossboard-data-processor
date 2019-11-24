@@ -13,13 +13,26 @@ Build and make release (include a binany compression step with upx)
 
 # Installation
 
-## Requirements
+## Base OS
 
-* Ubuntu Server 18.04 64 bits LTS 
+* Ubuntu Server 18.04 64 bits LTS
 
-## EKS Requirements
+## Common requirements
+librrd and Docker
 
-### AWS CLI
+```
+export DOCKER_GROUP=docker
+sudo apt install -y docker.io librrd-dev
+sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
+sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
+```
+
+> Warning: If you already have a version of Docker installed through snap, please remove it first `snap remove docker`.
+
+Disconnect on the host and reconnect again so that group assignation takes effect.
+
+## EKS additional requirements
+AWS CLI
 
 ```
 sudo apt-get update
@@ -28,54 +41,25 @@ pip3 install --upgrade --user awscli
 sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
 ```
 
-# Installation
-Connect to a terminal on the host and perform the following steps.
+## AKS additional requirements
+Azure CLI
 
 ```
-sudo apt install -y docker.io
-sudo usermod -G docker $USER
+sudo curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 ```
 
-Disconnect on the host and reconnect again so that group assignation takes effect.
-
-> Warning: If you already have a version of Docker installed by snap, pealease remove it first `snap remove docker`.
-
-Set user and root installation directory
+# Installing koamc-cluster-manager
+Run installation scripts
 
 ```
-$ export KOAMC_USER=koamc
-$ export KOAMC_ROOT_DIR=/opt/$KOAMC_USER
-$ export DOCKER_GROUP=docker
-$ export KOAMC_BINARY=koamc-cluster-manager
+KOAMC_VERSION=1.0.0-beta1
+tar zxf koamc-cluster-manager-${KOAMC_VERSION}-x86_64.tgz
+cd koamc-cluster-manager-${KOAMC_VERSION}-x86_64
+sudo ./install.sh
 ```
 
-Create koamc user
+# Cleanup
 
 ```
-$ sudo useradd $KOAMC_USER -G $DOCKER_GROUP -m --home-dir $KOAMC_ROOT_DIR
-```
-
-Create installation tree
-
-```
-$ sudo install -d $KOAMC_ROOT_DIR/{bin,data,etc,run}
-```
-
-Copy binaries
-
-```
-$ sudo install -m 755 $KOAMC_BINARY $KOAMC_ROOT_DIR/bin/
-```
-
-Copy systemd scripts
-
-```
-$ sudo install -m 644 ./scripts/koamc-cluster-manager.service.env $KOAMC_ROOT_DIR/etc/
-$ sudo install -m 644 ./scripts/koamc-cluster-manager.service /lib/systemd/system/
-```
-
-Fix permissions on directories
-
-```
-$ sudo chown -R $KOAMC_USER:$KOAMC_USER $KOAMC_ROOT_DIR/{data,run}
+sudo sudo apt autoremove -y
 ```
