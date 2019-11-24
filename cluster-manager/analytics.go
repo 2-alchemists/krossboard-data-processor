@@ -78,7 +78,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*ClusterUsa
 		}
 
 		if rrdStart.Sub(time.Unix(int64(rrdFileInfo["last_update"].(uint)), 0)) > time.Duration(0) {
-			log.Warn("not recently updated rrd file", rrdfile)
+			log.Debug("not recently updated rrd file", rrdfile)
 			continue
 		}
 
