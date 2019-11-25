@@ -74,3 +74,8 @@ Add the following entry under `mapRoles` section.
 > Take care to not remove existing `mapRoles` entries. And also replace `{{AccountID}}` with the id of your AWS account.
 
 That above entry is meant to enable instances holding the given role to act as members of the group `koamc-cluster-manager` within Kubernetes cluster. For additional details you can refer to [EKS documentation](https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html).
+
+
+```
+kubectl apply -f ./deploy/clusterrolebinding-eks.yml
+```

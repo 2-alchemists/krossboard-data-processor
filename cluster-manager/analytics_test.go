@@ -18,7 +18,6 @@ func TestSpec(t *testing.T) {
 		Convey("The call getAllClustersCurrentUsage should succeed", func() {
 			allUsage, err := getAllClustersCurrentUsage()
 			So(err, ShouldBeNil)
-			So(len(allUsage), ShouldEqual, 3)
 			b, _ := json.Marshal(allUsage)
 			fmt.Println("\ntest output", string(b))
 		})

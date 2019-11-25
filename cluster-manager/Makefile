@@ -13,7 +13,7 @@ UPX=upx
 all: test build
 build:
 		$(GOBUILD) -o $(PACKAGE_NAME) -v
-compress:
+compress: build
 		$(UPX) $(PACKAGE_NAME)
 test:
 		$(GOCMD) clean -testcache

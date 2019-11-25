@@ -45,6 +45,12 @@
 			"revisionTime": "2019-11-18T06:05:48Z"
 		},
 		{
+			"checksumSHA1": "4Z6c+ApKRl5vMknmr5f0ofBGBKo=",
+			"path": "github.com/Azure/azure-sdk-for-go/services/containerservice/mgmt/2017-09-30/containerservice",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
 			"checksumSHA1": "lcOSPM4/AyvB/K+ezOSvjwYfga8=",
 			"path": "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault",
 			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
@@ -53,6 +59,12 @@
 		{
 			"checksumSHA1": "QzafocsheoWTC/PDyDI+HzwCjJk=",
 			"path": "github.com/Azure/azure-sdk-for-go/services/keyvault/auth",
+			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
+			"revisionTime": "2019-11-18T06:05:48Z"
+		},
+		{
+			"checksumSHA1": "9nTdBZKx0lTfZehGyN90NMwENpk=",
+			"path": "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-02-01/resources",
 			"revision": "0820c0553d6c410603056869f7b0e52d61ce5bee",
 			"revisionTime": "2019-11-18T06:05:48Z"
 		},

@@ -152,7 +152,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	kubeConfig := kubeconfig.NewKubeConfig()
 	log.WithFields(log.Fields{
 		"kubeconfig": kubeConfig.Path,
-	}).Infoln("KUBECONFIG loaded")
+	}).Infoln("KUBECONFIG selected")
 
 	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
 	for {
@@ -315,7 +315,7 @@ func getCloudProvider() string {
 	if err == nil {
 		return "AWS"
 	}
-	_, err = getAzureResourceGroup()
+	_, err = getAzureSubscriptionID()
 	if err == nil {
 		return "AZURE"
 	}

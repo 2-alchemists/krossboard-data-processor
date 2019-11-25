@@ -18,11 +18,9 @@ Build and make release (include a binany compression step with upx)
 * Ubuntu Server 18.04 64 bits LTS
 
 ## Common requirements
-librrd and Docker
+librrd
 
 ```
-export DOCKER_GROUP=docker
-sudo apt install -y docker.io librrd-dev
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
 ```
@@ -41,20 +39,12 @@ pip3 install --upgrade --user awscli
 sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
 ```
 
-## AKS additional requirements
-Azure CLI
-
-```
-sudo curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-```
-
 # Installing koamc-cluster-manager
 Run installation scripts
 
 ```
-KOAMC_VERSION=1.0.0-beta1
-tar zxf koamc-cluster-manager-${KOAMC_VERSION}-x86_64.tgz
-cd koamc-cluster-manager-${KOAMC_VERSION}-x86_64
+tar zxf koamc-cluster-manager-*-x86_64.tgz
+cd koamc-cluster-manager-*-x86_64/
 sudo ./install.sh
 ```
 
