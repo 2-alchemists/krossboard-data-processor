@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -17,7 +16,7 @@ import (
 func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
-	log.Infoln("starting orchestration")
+	log.Infoln("starting cluster orchestration worker")
 	containerManager := koainstance.NewContainerManager(viper.GetString("koacm_default_image"))
 	if err := containerManager.PullImage(); err != nil {
 		log.WithFields(log.Fields{
@@ -154,19 +153,6 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 			}
 
 			log.Infoln("system status updated with cluster", cluster.Name)
-		}
-
-		currentUsage, err := getAllClustersCurrentUsage()
-		if err != nil {
-			log.WithError(err).Errorln("get getting clusters' current usage")
-		} else {
-			currentUsageFile := viper.GetString("koamc_current_usage_file")
-			currentUsageData, _ := json.Marshal(currentUsage)
-			err = ioutil.WriteFile(currentUsageFile, currentUsageData, 0644)
-			if err != nil {
-				log.WithError(err).Errorln("failed writing current usage file")
-				continue
-			}
 		}
 		time.Sleep(updatePeriod)
 	}

@@ -106,7 +106,7 @@ func main() {
 		log.Infoln(len(containersDeleted), "not running container(s) cleaned")
 	}
 
-	workers.Add(2)
+	workers.Add(3)
 	cloudProvider := getCloudProvider()
 	log.Infoln("cloud provider =>", cloudProvider)
 	switch cloudProvider {
@@ -121,6 +121,7 @@ func main() {
 	}
 
 	go orchestrateInstances(systemStatus)
+	go processConsolidatedUsage()
 
 	log.Infoln("service started")
 

@@ -28,7 +28,6 @@ sudo apt update && apt install -y docker.io librrd-dev
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
 
-
 CLOUD_PROVIDER="UNSET"
 if wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null; then
     CLOUD_PROVIDER="AZURE"
