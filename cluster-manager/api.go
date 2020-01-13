@@ -24,28 +24,36 @@ type KOAAPI struct {
 	Endpoint    string `json:"endpoint,omitempty"`
 }
 
-// DiscoveryResp message returned by the discovery API
+// DiscoveryResp holds the message returned by the discovery API
 type DiscoveryResp struct {
 	Status    string    `json:"status,omitempty"`
 	Message   string    `json:"message,omitempty"`
 	Instances []*KOAAPI `json:"instances,omitempty"`
 }
 
-type CurrentUsageResp struct {
-	Status       string          `json:"status,omitempty"`
-	Message      string          `json:"message,omitempty"`
-	ClusterUsage []*ClusterUsage `json:"clusterUsage,omitempty"`
+// GetAllClustersCurrentUsageResp holds the message return edby the GetAllClustersCurrentUsageHandler API callback
+type GetAllClustersCurrentUsageResp struct {
+	Status       string             `json:"status,omitempty"`
+	Message      string             `json:"message,omitempty"`
+	ClusterUsage []*K8sClusterUsage `json:"clusterUsage,omitempty"`
+}
+
+// GetAllClustersUsageHistoryResp holds the message returned by the GetAllClustersUsageHistoryHandler API callback
+type GetAllClustersUsageHistoryResp struct {
+	Status               string                   `json:"status,omitempty"`
+	Message              string                   `json:"message,omitempty"`
+	ClustersUsageHistory map[string]*UsageHistory `json:"clustersUsageHistory,omitempty"`
 }
 
 func startAPI() {
-
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish")
 	flag.Parse()
 
 	router := mux.NewRouter()
 	router.HandleFunc("/discovery", DiscoveryHandler)
-	router.HandleFunc("/currentstatus", CurrentUsageHandler)
+	router.HandleFunc("/currentusage", GetAllClustersCurrentUsageHandler)
+	router.HandleFunc("/usagehistory", GetAllClustersUsageHistoryHandler)
 
 	srv := &http.Server{
 		Addr:         viper.GetString("koamc_api_addr"),
@@ -105,11 +113,11 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(outRaw)
 }
 
-// CurrentUsageHandler returns current clusters' usage
-func CurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
+// GetAllClustersCurrentUsageHandler returns current usage of all clusters
+func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	currentUsageResp := &CurrentUsageResp{}
+	currentUsageResp := &GetAllClustersCurrentUsageResp{}
 	currentUsageFile := viper.GetString("koamc_current_usage_file")
 	currentUsageData, err := ioutil.ReadFile(currentUsageFile)
 	respHTTPStatus := http.StatusInternalServerError
@@ -118,7 +126,7 @@ func CurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 		currentUsageResp.Status = "error"
 		currentUsageResp.Message = "failed reading current status file"
 	} else {
-		var currentUsage []*ClusterUsage
+		var currentUsage []*K8sClusterUsage
 		err := json.Unmarshal(currentUsageData, &currentUsage)
 		if err != nil {
 			log.WithError(err).Errorln("failed decoding current usage data")
@@ -134,4 +142,93 @@ func CurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respHTTPStatus)
 	outRaw, _ := json.Marshal(currentUsageResp)
 	w.Write(outRaw)
+}
+
+// GetAllClustersUsageHistoryHandler returns all clusters usage history
+func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
+	outHandler.Header().Set("Content-Type", "application/json")
+
+	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
+	if err != nil {
+		log.WithError(err).Errorln("cannot load system status")
+		outHandler.WriteHeader(http.StatusInternalServerError)
+		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+			Status:  "error",
+			Message: "failed loading system status",
+		})
+		outHandler.Write(outRaw)
+		return
+	}
+
+	getInstancesResult, err := systemStatus.GetInstances()
+	if err != nil {
+		log.WithError(err).Errorln("failed retrieving managed instances")
+		outHandler.WriteHeader(http.StatusInternalServerError)
+		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+			Status:  "error",
+			Message: "failed retrieving managed instances",
+		})
+		outHandler.Write(outRaw)
+		return
+	}
+
+	allClustersUsageHistory := &GetAllClustersUsageHistoryResp{
+		Status:               "ok",
+		ClustersUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
+	}
+
+	queryParams := inReq.URL.Query()
+	queryStartDate := queryParams.Get("startDateUTC")
+	queryEndDate := queryParams.Get("endDateUTC")
+
+	invalidParam := false
+	const queryTimeLayout = "2006-01-02T15:04:05"
+	actualEndDateUTC := time.Now().UTC()
+	if queryEndDate != "" {
+		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
+		if err != nil {
+			invalidParam = true
+			log.WithError(err).Errorln("failed parsing query end date ", queryEndDate)
+		} else {
+			actualEndDateUTC = queryParsedEndTime
+		}
+	}
+	const durationMinus24Hours = -1 * 24 * time.Hour
+	actualStartDateUTC := actualEndDateUTC.Add(durationMinus24Hours)
+	if queryStartDate != "" {
+		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
+		if err != nil {
+			invalidParam = true
+			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
+		} else {
+			actualEndDateUTC = queryParsedStartTime
+		}
+	}
+
+	if invalidParam {
+		outHandler.WriteHeader(http.StatusBadRequest)
+		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+			Status:  "error",
+			Message: "invalid query parameters",
+		})
+		outHandler.Write(outRaw)
+		return
+	}
+
+	for _, instance := range getInstancesResult.Instances {
+		rrdUsageHistory := fmt.Sprintf("%s/%s/.usagehistory", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
+		usageDb := NewUsageDb(rrdUsageHistory)
+		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
+		if err != err {
+			log.WithError(err).Errorln("failed retrieving data from rrd file")
+		} else {
+			if usageHistory != nil {
+				allClustersUsageHistory.ClustersUsageHistory[instance.ClusterName] = usageHistory
+			}
+		}
+	}
+
+	outHandler.WriteHeader(http.StatusOK)
+	outData, _ := json.Marshal(allClustersUsageHistory)
+	outHandler.Write(outData)
 }
