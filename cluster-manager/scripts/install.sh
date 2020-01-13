@@ -23,8 +23,11 @@ KOAMC_USER=koamc
 KOAMC_ROOT_DIR=/opt/$KOAMC_USER
 DOCKER_GROUP=docker
 
-echo -e "${RED_COLOR}Installing Docker and librrd-dev...${NO_COLOR}"
-sudo apt update && apt install -y docker.io librrd-dev
+# dev requirements
+# sudo apt install pkg-config
+
+echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
+sudo apt update && apt install -y docker.io rrdtool librrd-dev
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
 sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
 
