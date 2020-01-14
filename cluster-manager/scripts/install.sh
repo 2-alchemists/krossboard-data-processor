@@ -28,42 +28,57 @@ DOCKER_GROUP=docker
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
 sudo apt update && apt install -y docker.io rrdtool librrd-dev
-sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
-sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
 
-CLOUD_PROVIDER="UNSET"
-if wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null; then
-    CLOUD_PROVIDER="AZURE"
-    echo -e "${RED_COLOR}Installing prerequises for $CLOUD_PROVIDER cloud...${NO_COLOR}"
-    sudo curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-fi
-
-
-echo -e "${RED_COLOR}${PROGRAM_NAME} binary to be installed: $KOAMC_BINARY_PATH${NO_COLOR}"
-id -u $KOAMC_USER &> /dev/null || \
-    sudo useradd $KOAMC_USER -G $DOCKER_GROUP -m --home-dir $KOAMC_ROOT_DIR
-
+echo -e "${RED_COLOR}installing ${PROGRAM_NAME} with binary $KOAMC_BINARY_PATH...${NO_COLOR}"
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}
 install -m 755 $KOAMC_BINARY_PATH $KOAMC_ROOT_DIR/bin/
 install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service.env $KOAMC_ROOT_DIR/etc/
 install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service /lib/systemd/system/
 
-KOAMC_GCLOUD_COMMAND=$(which gcloud || echo "")
-if [ "$KOAMC_GCLOUD_COMMAND" != "" ]; then
-    echo -e "${RED_COLOR}gcloud found at $KOAMC_GCLOUD_COMMAND${NO_COLOR}"
-    echo "KOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+echo -e "${RED_COLOR}setting up runtime user ${KOAMC_USER}...${NO_COLOR}"
+id -u $KOAMC_USER &> /dev/null || sudo useradd $KOAMC_USER
+sudo usermod -d $KOAMC_ROOT_DIR -G $DOCKER_GROUP $KOAMC_USER
+
+CLOUD_PROVIDER="UNSET"
+echo -e "${RED_COLOR}checking cloud provider...${NO_COLOR}"
+
+# checking for Azure cloud
+if wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null; then
+    CLOUD_PROVIDER="Azure"
+    echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
+    echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
+    sudo curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+    KOAMC_AZ_COMMAND=$(which az || echo "")
+    if [ "$KOAMC_AZ_COMMAND" != "" ]; then
+        echo "KOAMC_AZ_COMMAND=$KOAMC_AZ_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+        echo -e "${RED_COLOR}command az found at $KOAMC_AZ_COMMAND${NO_COLOR}"
+    fi    
 fi
 
-KOAMC_AWS_COMMAND=$(which aws || echo "")
-if [ "$KOAMC_AWS_COMMAND" != "" ]; then
-    echo -e "${RED_COLOR}aws found at $KOAMC_AWS_COMMAND${NO_COLOR}"
-    echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+# checking for Google cloud
+if wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null; then
+    CLOUD_PROVIDER="Google"
+    echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
+    echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
+    sudo snap remove google-cloud-sdk
+    sudo apt install -y google-cloud-sdk
+    KOAMC_GCLOUD_COMMAND=$(which gcloud || echo "")
+    if [ "$KOAMC_GCLOUD_COMMAND" != "" ]; then
+        echo -e "${RED_COLOR}command gcloud found at $KOAMC_GCLOUD_COMMAND${NO_COLOR}"
+        echo "KOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+    fi  
 fi
 
-KOAMC_AZ_COMMAND=$(which az || echo "")
-if [ "$KOAMC_AZ_COMMAND" != "" ]; then
-    echo -e "${RED_COLOR}az found at $KOAMC_AZ_COMMAND${NO_COLOR}"
-    echo "KOAMC_AZ_COMMAND=$KOAMC_AZ_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+# checking for AWS cloud
+if wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null; then
+    CLOUD_PROVIDER="AWS"
+    echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
+    echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
+    KOAMC_AWS_COMMAND=$(which aws || echo "")
+    if [ "$KOAMC_AWS_COMMAND" != "" ]; then
+        echo -e "${RED_COLOR}command aws found at $KOAMC_AWS_COMMAND${NO_COLOR}"
+        echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_ROOT_DIR/etc/$PROGRAM_NAME.service.env 
+    fi
 fi
 
 chown -R $KOAMC_USER:$KOAMC_USER $KOAMC_ROOT_DIR/
