@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
+    "flag"
+	"path"
 
 	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
 	"bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig"
@@ -12,11 +14,21 @@ import (
 	"github.com/spf13/viper"
 )
 
+const ProgramVersion = "20.03.1"
+
 var workers sync.WaitGroup
 
 func main() {
+	// parse options
+	versionFlag := flag.Bool("version", false, "print the program version")
+	flag.Parse()
+	if *versionFlag {
+		fmt.Printf("%v %v\n", path.Base(os.Args[0]), ProgramVersion)
+		return
+	}
+
+	// handle startup settings
 	viper.AutomaticEnv()
-	// KOAMC default settings
 	viper.SetDefault("koamc_cloud_provider", "")
 	viper.SetDefault("koamc_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("koamc_log_level", "http://metadata.google.internal")

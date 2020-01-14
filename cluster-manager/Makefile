@@ -1,7 +1,7 @@
 PACKAGE_NAME=koamc-cluster-manager
-VERSION=$$(head -1 ./VERSION)
+VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
 ARCH=$$(uname -m)
-DIST_DIR=$(PACKAGE_NAME)-$(VERSION)-$(ARCH)
+DIST_DIR=$(PACKAGE_NAME)-v$(VERSION)-$(ARCH)
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -12,15 +12,15 @@ UPX=upx
 
 all: test build
 build:
-		$(GOBUILD) -o $(PACKAGE_NAME) -v
+	$(GOBUILD) -o $(PACKAGE_NAME) -v
 compress: build
-		$(UPX) $(PACKAGE_NAME)
+	$(UPX) $(PACKAGE_NAME)
 test:
-		$(GOCMD) clean -testcache
-		$(GOTEST) -v ./...
+	$(GOCMD) clean -testcache
+	$(GOTEST) -v ./...
 clean:
-		$(GOCLEAN)
-		rm -f $(PACKAGE_NAME)
+	$(GOCLEAN)
+	rm -f $(PACKAGE_NAME)
 run:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
 	./$(PACKAGE_NAME)
