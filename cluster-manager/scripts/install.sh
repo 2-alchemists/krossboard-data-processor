@@ -27,7 +27,8 @@ DOCKER_GROUP=docker
 # sudo apt install pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-sudo apt update && apt install -y docker.io rrdtool librrd-dev
+sudo apt update && \
+    apt install -y docker.io rrdtool librrd-dev
 
 echo -e "${RED_COLOR}installing ${PROGRAM_NAME} with binary $KOAMC_BINARY_PATH...${NO_COLOR}"
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}
@@ -74,6 +75,10 @@ if wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone"
     CLOUD_PROVIDER="AWS"
     echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
     echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
+    sudo apt-get update && \
+        sudo apt-get -y install python3-pip && \
+        sudo pip3 install --upgrade awscli
+
     KOAMC_AWS_COMMAND=$(which aws || echo "")
     if [ "$KOAMC_AWS_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command aws found at $KOAMC_AWS_COMMAND${NO_COLOR}"

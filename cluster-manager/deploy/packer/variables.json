@@ -1,6 +1,6 @@
 {
     "program_name": "koamc-cluster-manager",
     "program_version": "20.03.1",
-    "image_base_version": "20031-beta1",
+    "image_version": "20031-beta1",
     "google_project_id": "kubernetes-opex-analytics"
 }

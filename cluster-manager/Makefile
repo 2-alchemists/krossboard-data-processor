@@ -9,6 +9,9 @@ GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get -v
 GOVENDOR=govendor
 UPX=upx
+PACKER=packer
+PACKER_VAR_FILE="./deploy/packer/variables.json"
+PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
 build:
@@ -34,6 +37,10 @@ dist: build compress
 	cp scripts/$(PACKAGE_NAME)* $(DIST_DIR)/scripts
 	install -m 755 scripts/install.sh $(DIST_DIR)/
 	tar zcf $(DIST_DIR).tgz $(DIST_DIR)
+cloud-image:
+	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)	
+dist-cloud-image: dist
+	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
 
 # Cross compilation
 docker-build:

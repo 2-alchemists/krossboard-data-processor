@@ -1,33 +1,25 @@
-# Build
+# Requirements
+
+* Ubuntu Server 18.04 64 bits LTS
+
+# Build source
 Simple build without binary optimization
 
   ```
   $ make
   ```
 
-Build and make release (include a binany compression step with upx)
+# Build cloud images
 
-  ```
-  $ make dist
-  ```
-
-# Installation
-
-## Base OS
-
-* Ubuntu Server 18.04 64 bits LTS
-
-## Common requirements
-librrd
+## Google
+Create a distrib archive and generate a cloud image
 
 ```
-sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so
-sudo ln -s /usr/lib/x86_64-linux-gnu/librrd.so /usr/lib/librrd.so.4
+$ make dist
+$ GOOGLE_APPLICATION_CREDENTIALS=/home/ubuntu/.gcp/serviceaccount/credentials-packer_image_builder.json \
+    packer build -var-file=./deploy/packer/variables.json \
+    ./deploy/packer/gcp.json
 ```
-
-> Warning: If you already have a version of Docker installed through snap, please remove it first `snap remove docker`.
-
-Disconnect on the host and reconnect again so that group assignation takes effect.
 
 ## AKS Dev integration
 Connect to Azure Portal:
@@ -55,15 +47,6 @@ Go the the source directory:
 * Your environment is now ready to take over all your AKS clusters.
 * For each cluster, apply the file `./deploy/clusterrolebinding-aks.yml` to enable appropriated RBAC permissions to API needed by Kubernetes Opex Analytics.
 
-## EKS additional requirements
-AWS CLI
-
-```
-sudo apt-get update
-sudo apt-get -y install python3-pip
-pip3 install --upgrade --user awscli
-sudo ln -s $HOME/.local/bin/aws /usr/local/bin/
-```
 
 # Installing koamc-cluster-manager
 Run installation scripts
