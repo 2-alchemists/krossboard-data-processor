@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"time"
@@ -79,7 +78,6 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*Usa
 	}
 	rrdEndTime := time.Unix(int64(int64(endTimeUTC.Unix()/rrdFetchStep)*rrdFetchStep), 0)
 	rrdStartTime := time.Unix(int64(int64(startTimeUTC.Unix()/rrdFetchStep)*rrdFetchStep), 0)
-	fmt.Println(m.RRDFile, rrdFetchStep, rrdStartTime, rrdEndTime)
 	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, time.Duration(rrdFetchStep)*time.Second)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read rrd file")

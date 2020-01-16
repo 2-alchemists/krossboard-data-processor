@@ -172,27 +172,24 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 		return
 	}
 
-	allClustersUsageHistory := &GetAllClustersUsageHistoryResp{
-		Status:               "ok",
-		ClustersUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
-	}
-
 	queryParams := inReq.URL.Query()
 	queryStartDate := queryParams.Get("startDateUTC")
 	queryEndDate := queryParams.Get("endDateUTC")
 
 	invalidParam := false
+	
 	const queryTimeLayout = "2006-01-02T15:04:05"
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
 			invalidParam = true
-			log.WithError(err).Errorln("failed parsing query end date ", queryEndDate)
+			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
 		} else {
 			actualEndDateUTC = queryParsedEndTime
 		}
 	}
+
 	const durationMinus24Hours = -1 * 24 * time.Hour
 	actualStartDateUTC := actualEndDateUTC.Add(durationMinus24Hours)
 	if queryStartDate != "" {
@@ -201,11 +198,12 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 			invalidParam = true
 			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
 		} else {
-			actualEndDateUTC = queryParsedStartTime
+			actualStartDateUTC = queryParsedStartTime
 		}
 	}
 
-	if invalidParam {
+	if invalidParam || actualStartDateUTC.After(actualEndDateUTC) {
+		log.Errorln("invalid query parameters", queryStartDate, queryEndDate)
 		outHandler.WriteHeader(http.StatusBadRequest)
 		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
 			Status:  "error",
@@ -213,6 +211,12 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 		})
 		outHandler.Write(outRaw)
 		return
+	}
+
+
+	allClustersUsageHistory := &GetAllClustersUsageHistoryResp{
+		Status:               "ok",
+		ClustersUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
 	}
 
 	for _, instance := range getInstancesResult.Instances {
