@@ -14,64 +14,72 @@
     "azure_client_secret": "{{env `AZURE_CLIENT_SECRET`}}",
     "azure_resource_group": "{{env `AZURE_RESOURCE_GROUP`}}",
     "azure_storage_account": "koamcvmimages",
-    "azure_build_location": "East US"
+    "azure_build_location": "Central US"
   },
-    "builders": [
-      {
-        "type": "googlecompute",
-        "project_id": "{{user `google_project_id`}}",
-        "source_image": "ubuntu-minimal-1804-bionic-v20200108",
-        "source_image_family": "ubuntu-minimal-1804-lts",
-        "image_name": "{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
-        "disk_size": "10",
-        "machine_type": "n1-standard-1",
-        "ssh_username": "ubuntu",
-        "zone": "{{user `google_build_zone`}}"
-      },
-      {
-        "type": "amazon-ebs",
-        "access_key": "{{user `aws_access_key`}}",
-        "secret_key": "{{user `aws_secret_key`}}",
-        "region": "{{user `aws_build_region`}}",
-        "source_ami": "ami-0cc0a36f626a4fdf5",
-        "instance_type": "t2.micro",
-        "ssh_username": "ubuntu",
-        "ami_name": "ami-{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}"
-      },
-      {
-        "type": "azure-arm",
-        "subscription_id": "{{user `azure_subscription_id`}}",
-        "tenant_id": "{{user `azure_tenant_id`}}",
-        "client_id": "{{user `azure_client_id`}}",
-        "client_secret": "{{user `azure_client_secret`}}",
-        "resource_group_name": "{{user `azure_resource_group`}}",
-        "storage_account": "{{user `azure_storage_account`}}",
-        "capture_container_name": "{{user `program_name`}}",
-        "capture_name_prefix": "{{user `program_name`}}",
-        "os_type": "Linux",
-        "image_publisher": "Canonical",
-        "image_offer": "UbuntuServer",
-        "image_sku": "18.04-LTS",
-        "location": "{{user `azure_build_location`}}",
-        "vm_size": "Standard_B1s"
+  "builders": [
+    {
+      "type": "googlecompute",
+      "project_id": "{{user `google_project_id`}}",
+      "source_image": "ubuntu-minimal-1804-bionic-v20200108",
+      "source_image_family": "ubuntu-minimal-1804-lts",
+      "image_name": "{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "disk_size": "10",
+      "machine_type": "n1-standard-1",
+      "ssh_username": "ubuntu",
+      "zone": "{{user `google_build_zone`}}"
+    },
+    {
+      "type": "amazon-ebs",
+      "access_key": "{{user `aws_access_key`}}",
+      "secret_key": "{{user `aws_secret_key`}}",
+      "region": "{{user `aws_build_region`}}",
+      "source_ami": "ami-0cc0a36f626a4fdf5",
+      "instance_type": "t2.micro",
+      "ssh_username": "ubuntu",
+      "ami_name": "ami-{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}"
+    },
+    {
+      "type": "azure-arm",
+      "subscription_id": "{{user `azure_subscription_id`}}",
+      "tenant_id": "{{user `azure_tenant_id`}}",
+      "client_id": "{{user `azure_client_id`}}",
+      "client_secret": "{{user `azure_client_secret`}}",
+      "resource_group_name": "{{user `azure_resource_group`}}",
+      "storage_account": "{{user `azure_storage_account`}}",
+      "capture_container_name": "{{user `program_name`}}",
+      "capture_name_prefix": "{{user `program_name`}}",
+      "os_type": "Linux",
+      "image_publisher": "Canonical",
+      "image_offer": "UbuntuServer",
+      "image_sku": "18.04-LTS",
+      "location": "{{user `azure_build_location`}}",
+      "vm_size": "Standard_B1s"
+    },
+    {
+      "type": "azure-chroot",
+      "subscription_id": "{{user `azure_subscription_id`}}",
+      "tenant_id": "{{user `azure_tenant_id`}}",
+      "client_id": "{{user `azure_client_id`}}",
+      "client_secret": "{{user `azure_client_secret`}}",
+      "image_resource_id": "/subscriptions/{{user `azure_subscription_id`}}/resourceGroups/{{user `azure_resource_group`}}/providers/Microsoft.Compute/images/{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "source": "Canonical:UbuntuServer:18.04-LTS:latest"
     }
-    ],
-    "provisioners": [
-        {
-          "type": "file",
-          "destination": "/tmp/",
-          "source": "./{{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz"
-        },
-        {
-        "type": "shell",
-        "inline": [
-          "sleep 5",
-          "cd /tmp",
-          "tar zxf {{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz",
-          "cd {{user `program_name`}}-v{{user `program_version`}}-x86_64",
-          "sudo ./install.sh"
-        ]
-      }
-    ]
-
-  }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "destination": "/tmp/",
+      "source": "./{{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sleep 5",
+        "cd /tmp",
+        "tar zxf {{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz",
+        "cd {{user `program_name`}}-v{{user `program_version`}}-x86_64",
+        "sudo ./install.sh"
+      ]
+    }
+  ]
+}
