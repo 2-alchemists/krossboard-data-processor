@@ -41,6 +41,12 @@ cloud-image:
 	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)	
 dist-cloud-image: dist
 	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+dist-cloud-image-aws: dist
+	$(PACKER) build -only=amazon-ebs -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+dist-cloud-image-google: dist
+	$(PACKER) build -only=googlecompute -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+dist-cloud-image-azure: dist
+	$(PACKER) build -only=azure-arm -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
 
 # Cross compilation
 docker-build:

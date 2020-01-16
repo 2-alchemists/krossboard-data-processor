@@ -3,9 +3,18 @@
     "program_name": "koamc-cluster-manager",
     "program_version": "",
     "image_version": "",
-    "google_project_id": "",
+    "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
+    "google_build_zone": "us-central1-a",
     "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
-    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}"
+    "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    "aws_build_region": "eu-central-1",
+    "azure_subscription_id": "{{env `AZURE_SUBSCRIPTION_ID`}}",
+    "azure_tenant_id": "{{env `AZURE_TENANT_ID`}}",
+    "azure_client_id": "{{env `AZURE_CLIENT_ID`}}",
+    "azure_client_secret": "{{env `AZURE_CLIENT_SECRET`}}",
+    "azure_resource_group": "{{env `AZURE_RESOURCE_GROUP`}}",
+    "azure_storage_account": "koamcvmimages",
+    "azure_build_location": "East US"
   },
     "builders": [
       {
@@ -17,32 +26,49 @@
         "disk_size": "10",
         "machine_type": "n1-standard-1",
         "ssh_username": "ubuntu",
-        "zone": "us-central1-a"
+        "zone": "{{user `google_build_zone`}}"
       },
       {
         "type": "amazon-ebs",
         "access_key": "{{user `aws_access_key`}}",
         "secret_key": "{{user `aws_secret_key`}}",
-        "region": "eu-central-1",
+        "region": "{{user `aws_build_region`}}",
         "source_ami": "ami-0cc0a36f626a4fdf5",
         "instance_type": "t2.micro",
         "ssh_username": "ubuntu",
-        "ami_name": "{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}"
-      }
+        "ami_name": "ami-{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}"
+      },
+      {
+        "type": "azure-arm",
+        "subscription_id": "{{user `azure_subscription_id`}}",
+        "tenant_id": "{{user `azure_tenant_id`}}",
+        "client_id": "{{user `azure_client_id`}}",
+        "client_secret": "{{user `azure_client_secret`}}",
+        "resource_group_name": "{{user `azure_resource_group`}}",
+        "storage_account": "{{user `azure_storage_account`}}",
+        "capture_container_name": "{{user `program_name`}}",
+        "capture_name_prefix": "{{user `program_name`}}",
+        "os_type": "Linux",
+        "image_publisher": "Canonical",
+        "image_offer": "UbuntuServer",
+        "image_sku": "18.04-LTS",
+        "location": "{{user `azure_build_location`}}",
+        "vm_size": "Standard_B1s"
+    }
     ],
     "provisioners": [
         {
           "type": "file",
           "destination": "/tmp/",
-          "source": "./koamc-cluster-manager-v20.03.1-x86_64.tgz"
+          "source": "./{{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz"
         },
         {
         "type": "shell",
         "inline": [
           "sleep 5",
           "cd /tmp",
-          "tar zxf koamc-cluster-manager-v{{user `program_version`}}-x86_64.tgz",
-          "cd koamc-cluster-manager-v{{user `program_version`}}-x86_64",
+          "tar zxf {{user `program_name`}}-v{{user `program_version`}}-x86_64.tgz",
+          "cd {{user `program_name`}}-v{{user `program_version`}}-x86_64",
           "sudo ./install.sh"
         ]
       }
