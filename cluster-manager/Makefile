@@ -10,12 +10,17 @@ GOGET=$(GOCMD) get -v
 GOVENDOR=govendor
 UPX=upx
 PACKER=packer
+PACKER_VERSION=1.5.1
 PACKER_VAR_FILE="./deploy/packer/variables.json"
 PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
 build:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v
+build-deps:
+	sudo apt update && sudo apt install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
+	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
+	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
 compress: build
 	$(UPX) $(PACKAGE_NAME)
 test:

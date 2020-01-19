@@ -24,11 +24,10 @@ KOAMC_ROOT_DIR=/opt/$KOAMC_USER
 DOCKER_GROUP=docker
 
 # dev requirements
-# sudo apt install pkg-config
+# sudo apt update && sudo apt install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-sudo apt update && \
-    apt install -y docker.io rrdtool librrd-dev
+sudo apt update && apt install -y docker.io rrdtool librrd-dev
 
 echo -e "${RED_COLOR}installing ${PROGRAM_NAME} with binary $KOAMC_BINARY_PATH...${NO_COLOR}"
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}

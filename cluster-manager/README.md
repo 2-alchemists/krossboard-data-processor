@@ -2,6 +2,10 @@
 
 * Ubuntu Server 18.04 64 bits LTS
 
+```
+sudo apt update && apt install -y rrdtool librrd-dev upx-ucl
+```
+
 # Build source
 Simple build without binary optimization
 
@@ -11,14 +15,20 @@ Simple build without binary optimization
 
 # Build cloud images
 
-## Google
-Create a distrib archive and generate a cloud image
+Build images for GCP, AWS and Azure.
 
 ```
-$ make dist
-$ GOOGLE_APPLICATION_CREDENTIALS=/home/ubuntu/.gcp/serviceaccount/credentials-packer_image_builder.json \
-    packer build -var-file=./deploy/packer/variables.json \
-    ./deploy/packer/gcp.json
+$ export AWS_ACCESS_KEY=...
+$ export AWS_SECRET_ACCESS_KEY=...
+$ export AZURE_SUBSCRIPTION_ID=...
+$ export AZURE_TENANT_ID=...
+$ export AZURE_CLIENT_ID=...
+$ export AZURE_CLIENT_SECRET=...
+$ export AZURE_RESOURCE_GROUP=...
+$ export GOOGLE_PROJECT_ID=...
+$ export GOOGLE_APPLICATION_CREDENTIALS=...
+
+$ make dist-cloud-image
 ```
 
 ## AKS Dev integration

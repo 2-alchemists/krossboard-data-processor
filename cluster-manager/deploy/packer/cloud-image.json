@@ -36,7 +36,10 @@
       "source_ami": "ami-0cc0a36f626a4fdf5",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
-      "ami_name": "ami-{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}"
+      "ami_name": "ami-{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "tags": {
+        "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
+      }
     },
     {
       "type": "azure-arm",
@@ -44,25 +47,17 @@
       "tenant_id": "{{user `azure_tenant_id`}}",
       "client_id": "{{user `azure_client_id`}}",
       "client_secret": "{{user `azure_client_secret`}}",
-      "resource_group_name": "{{user `azure_resource_group`}}",
-      "storage_account": "{{user `azure_storage_account`}}",
-      "capture_container_name": "{{user `program_name`}}",
-      "capture_name_prefix": "{{user `program_name`}}",
+      "managed_image_resource_group_name": "{{user `azure_resource_group`}}",
+      "managed_image_name": "{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
       "os_type": "Linux",
       "image_publisher": "Canonical",
       "image_offer": "UbuntuServer",
       "image_sku": "18.04-LTS",
       "location": "{{user `azure_build_location`}}",
-      "vm_size": "Standard_B1s"
-    },
-    {
-      "type": "azure-chroot",
-      "subscription_id": "{{user `azure_subscription_id`}}",
-      "tenant_id": "{{user `azure_tenant_id`}}",
-      "client_id": "{{user `azure_client_id`}}",
-      "client_secret": "{{user `azure_client_secret`}}",
-      "image_resource_id": "/subscriptions/{{user `azure_subscription_id`}}/resourceGroups/{{user `azure_resource_group`}}/providers/Microsoft.Compute/images/{{user `program_name`}}-v{{user `image_version`}}-{{timestamp}}",
-      "source": "Canonical:UbuntuServer:18.04-LTS:latest"
+      "vm_size": "Standard_B1s",
+      "azure_tags": {
+        "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
+      }
     }
   ],
   "provisioners": [
