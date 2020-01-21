@@ -617,6 +617,12 @@
 			"revisionTime": "2019-05-13T18:38:25Z"
 		},
 		{
+			"checksumSHA1": "X/UTLSAjfUtGscBU0NIsN5wNf5M=",
+			"path": "github.com/gorilla/handlers",
+			"revision": "f08afc1876ad882db8074bcb8a4cc96107d3a5f4",
+			"revisionTime": "2020-01-05T22:28:52Z"
+		},
+		{
 			"checksumSHA1": "Ly2DPGZEU/9uJgLXtlqbJ0rZUAA=",
 			"path": "github.com/gorilla/mux",
 			"revision": "884b5ffcbd3a11b730f0b75f5c86ac408753c34d",
@@ -1779,5 +1785,5 @@
 			"revisionTime": "2019-07-04T18:38:35Z"
 		}
 	],
-	"rootPath": "bitbucket.org/koamc/kube-opex-analytics-mc/cluster-manager"
+	"rootPath": "kube-opex-analytics-mc/cluster-manager"
 }
