@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -60,7 +61,7 @@ func startAPI() {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      router,
+		Handler:      handlers.CORS()(router),
 	}
 
 	// Run our server in a goroutine so that it doesn't block.
@@ -177,7 +178,7 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 	queryEndDate := queryParams.Get("endDateUTC")
 
 	invalidParam := false
-	
+
 	const queryTimeLayout = "2006-01-02T15:04:05"
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
@@ -212,7 +213,6 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 		outHandler.Write(outRaw)
 		return
 	}
-
 
 	allClustersUsageHistory := &GetAllClustersUsageHistoryResp{
 		Status:               "ok",
