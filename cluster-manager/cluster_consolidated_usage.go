@@ -131,7 +131,7 @@ func processConsolidatedUsage() {
 			if clusterUsage.OutToDate {
 				continue
 			}
-			rrdFile := fmt.Sprintf("%s/%s/.usagehistory", viper.GetString("koamc_root_data_dir"), clusterUsage.ClusterName)
+			rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), clusterUsage.ClusterName)
 			usageDb := NewUsageDb(rrdFile)
 			_, err := os.Stat(rrdFile)
 			if os.IsNotExist(err) {

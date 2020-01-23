@@ -220,7 +220,7 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 	}
 
 	for _, instance := range getInstancesResult.Instances {
-		rrdUsageHistory := fmt.Sprintf("%s/%s/.usagehistory", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
+		rrdUsageHistory := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
 		usageDb := NewUsageDb(rrdUsageHistory)
 		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
 		if err != err {

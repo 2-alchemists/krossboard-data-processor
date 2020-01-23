@@ -1,11 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
-	"sync"
-    "flag"
 	"path"
+	"sync"
 
 	"bitbucket.org/koamc/kube-opex-analytics-mc/koainstance"
 	"bitbucket.org/koamc/kube-opex-analytics-mc/kubeconfig"
@@ -61,6 +61,13 @@ func main() {
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 	customFormatter.FullTimestamp = true
 	log.SetFormatter(customFormatter)
+
+	// FIXME: handle unauthorized copies
+	// err := checkLicense()
+	// if err != nil {
+	// 	log.WithError(err).Fatalln("initilization failed")
+	// 	return
+	// }
 
 	logLevel, err := log.ParseLevel(viper.GetString("koamc_log_level"))
 	if err != nil {
