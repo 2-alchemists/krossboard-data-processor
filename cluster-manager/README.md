@@ -61,4 +61,4 @@ Go the the source directory:
 * Run the script `./mock_azure.sh`; it allows to simulate an Azure metadata server
 * Run the script `./run-koamc-azure.sh`.
 * Your environment is now ready to take over all your AKS clusters.
-* For each cluster, apply the file `./deploy/clusterrolebinding-aks.yml` to enable appropriated RBAC permissions to API needed by Kubernetes Opex Analytics.
+* For each cluster, apply the file `./deploy/k8s/clusterrolebinding-aks.yml` to enable appropriated RBAC permissions to API needed by Kubernetes Opex Analytics.

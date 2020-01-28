@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -39,11 +41,11 @@ type GetAllClustersCurrentUsageResp struct {
 	ClusterUsage []*K8sClusterUsage `json:"clusterUsage,omitempty"`
 }
 
-// GetAllClustersUsageHistoryResp holds the message returned by the GetAllClustersUsageHistoryHandler API callback
-type GetAllClustersUsageHistoryResp struct {
-	Status               string                   `json:"status,omitempty"`
-	Message              string                   `json:"message,omitempty"`
-	ClustersUsageHistory map[string]*UsageHistory `json:"clustersUsageHistory,omitempty"`
+// GetClusterUsageHistoryResp holds the message returned by the GetClusterUsageHistoryHandler API callback
+type GetClusterUsageHistoryResp struct {
+	Status             string                   `json:"status,omitempty"`
+	Message            string                   `json:"message,omitempty"`
+	ListOfUsageHistory map[string]*UsageHistory `json:"usageHistory,omitempty"`
 }
 
 func startAPI() {
@@ -54,7 +56,7 @@ func startAPI() {
 	router := mux.NewRouter()
 	router.HandleFunc("/discovery", DiscoveryHandler)
 	router.HandleFunc("/currentusage", GetAllClustersCurrentUsageHandler)
-	router.HandleFunc("/usagehistory", GetAllClustersUsageHistoryHandler)
+	router.HandleFunc("/usagehistory", GetClustersUsageHistoryHandler)
 
 	srv := &http.Server{
 		Addr:         viper.GetString("koamc_api_addr"),
@@ -145,15 +147,15 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(outRaw)
 }
 
-// GetAllClustersUsageHistoryHandler returns all clusters usage history
-func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
+// GetClustersUsageHistoryHandler returns all clusters usage history
+func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
 	outHandler.Header().Set("Content-Type", "application/json")
 
 	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
 		outHandler.WriteHeader(http.StatusInternalServerError)
-		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed loading system status",
 		})
@@ -165,7 +167,7 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 	if err != nil {
 		log.WithError(err).Errorln("failed retrieving managed instances")
 		outHandler.WriteHeader(http.StatusInternalServerError)
-		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed retrieving managed instances",
 		})
@@ -174,6 +176,7 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 	}
 
 	queryParams := inReq.URL.Query()
+	queryCluster := queryParams.Get("cluster")
 	queryStartDate := queryParams.Get("startDateUTC")
 	queryEndDate := queryParams.Get("endDateUTC")
 
@@ -203,10 +206,30 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 		}
 	}
 
+	// check cluster parameters
+	historyDbs := make(map[string]string)
+	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
+		for _, instance := range getInstancesResult.Instances {
+			historyDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
+		}
+	} else {
+		dbdir := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), queryCluster)
+		err, dbfiles := listRegularDbFiles(dbdir)
+		if err != nil {
+			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
+			invalidParam = true
+		} else {
+			for _, dbfile := range dbfiles {
+				historyDbs[dbfile] = fmt.Sprintf("%s/%s", dbdir, dbfile)
+			}
+		}
+	}
+
+	// validate parameters
 	if invalidParam || actualStartDateUTC.After(actualEndDateUTC) {
-		log.Errorln("invalid query parameters", queryStartDate, queryEndDate)
+		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
 		outHandler.WriteHeader(http.StatusBadRequest)
-		outRaw, _ := json.Marshal(&GetAllClustersUsageHistoryResp{
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
@@ -214,25 +237,34 @@ func GetAllClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *ht
 		return
 	}
 
-	allClustersUsageHistory := &GetAllClustersUsageHistoryResp{
-		Status:               "ok",
-		ClustersUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
+	resultUsageHistory := &GetClusterUsageHistoryResp{
+		Status:             "ok",
+		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
 	}
-
-	for _, instance := range getInstancesResult.Instances {
-		rrdUsageHistory := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
-		usageDb := NewUsageDb(rrdUsageHistory)
+	for dbname, dbfile := range historyDbs {
+		usageDb := NewUsageDb(dbfile)
 		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
 		if err != err {
 			log.WithError(err).Errorln("failed retrieving data from rrd file")
 		} else {
 			if usageHistory != nil {
-				allClustersUsageHistory.ClustersUsageHistory[instance.ClusterName] = usageHistory
+				resultUsageHistory.ListOfUsageHistory[dbname] = usageHistory
 			}
 		}
 	}
 
 	outHandler.WriteHeader(http.StatusOK)
-	outData, _ := json.Marshal(allClustersUsageHistory)
+	outData, _ := json.Marshal(resultUsageHistory)
 	outHandler.Write(outData)
+}
+
+func listRegularDbFiles(folder string) (error, []string) {
+	var files []string
+	err := filepath.Walk(folder, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+			files = append(files, info.Name())
+		}
+		return nil
+	})
+	return err, files
 }

@@ -28,5 +28,5 @@ The steps are the following:
 KOAMC_CLUSTER_MANAGER_IID=<objectId of the KOAMC instance>
 az role assignment create --assignee ${KOAMC_CLUSTER_MANAGER_IID} --role "Azure Kubernetes Service Cluster User Role"
 az role assignment create --assignee ${KOAMC_CLUSTER_MANAGER_IID} --role "Managed Applications Reader"
-kubectl apply -f ./deploy/clusterrolebinding-aks.yml
+kubectl apply -f ./deploy/k8s/clusterrolebinding-aks.yml
 ``̀

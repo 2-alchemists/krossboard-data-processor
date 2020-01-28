@@ -77,5 +77,5 @@ That above entry is meant to enable instances holding the given role to act as m
 
 
 ```
-kubectl apply -f ./deploy/clusterrolebinding-eks.yml
+kubectl apply -f ./deploy/k8s/clusterrolebinding-eks.yml
 ```
