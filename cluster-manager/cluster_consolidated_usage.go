@@ -106,6 +106,10 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 			rrdRow++
 		}
 	}
+
+	if usage.MemNonAllocatable <= 0 || usage.CPUNonAllocatable <= 0 {
+		usage.OutToDate = true
+	}
 	return usage, nil
 }
 
