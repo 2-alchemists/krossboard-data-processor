@@ -21,7 +21,7 @@ build-deps:
 	sudo apt update && sudo apt install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
 	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
 	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
-compress: build
+build-compress: build
 	$(UPX) $(PACKAGE_NAME)
 test:
 	$(GOCMD) clean -testcache
@@ -36,7 +36,7 @@ deps:
 	$(GOGET)
 vendor:
 	$(GOVENDOR) add +external
-dist: build compress
+dist: build build-compress
 	mkdir -p $(DIST_DIR)/scripts/
 	cp $(PACKAGE_NAME) $(DIST_DIR)/
 	cp scripts/$(PACKAGE_NAME)* $(DIST_DIR)/scripts

@@ -6,38 +6,61 @@
 sudo apt update && apt install -y rrdtool librrd-dev upx-ucl
 ```
 
-# Build source
+# Build
+
+## Install build dependencies
 Simple build without binary optimization
 
-  ```
-  $ make
-  ```
-
-# Build cloud images
-
-Build images for GCP, AWS and Azure.
-
 ```
-$ export AWS_ACCESS_KEY=...
-$ export AWS_SECRET_ACCESS_KEY=...
-$ export AZURE_SUBSCRIPTION_ID=...
-$ export AZURE_TENANT_ID=...
-$ export AZURE_CLIENT_ID=...
-$ export AZURE_CLIENT_SECRET=...
-$ export AZURE_RESOURCE_GROUP=...
-$ export GOOGLE_PROJECT_ID=...
-$ export GOOGLE_APPLICATION_CREDENTIALS=...
-
-$ make dist-cloud-image
+make build-deps
 ```
 
-## AKS Dev integration
-The development integration requires to:
-* to have/create an Azure service principal to authenticate against Azure
-* to expose the service principal credentials to use with the application
+## Build without binary compression
 
-### Create Azure service principal
-Connect to Azure Portal:
+```
+make
+```
+
+## Build with binary compression
+This makes a build followed by an [UPX](https://upx.github.io/) compression
+
+```
+make build-compress
+```
+
+## Make a distribution archive
+This makes a compressed binary and generates an archive with installation script.
+```
+make dist
+```
+
+## Build cloud images
+This make a  distribution followed by a [Packer](https://www.packer.io/) build to generate cloud image for GCP, AWS and Azure.
+
+```
+make dist-cloud-image
+```
+
+> The following environement variables shall be set to enable the authentication on the different cloud environments needed for Packer builds (Amazon AWS, Microsoft Azure, and Google GCP).  
+  ```
+  export AWS_ACCESS_KEY=...
+  export AWS_SECRET_ACCESS_KEY=...
+  export AZURE_SUBSCRIPTION_ID=...
+  export AZURE_TENANT_ID=...
+  export AZURE_CLIENT_ID=...
+  export AZURE_CLIENT_SECRET=...
+  export AZURE_RESOURCE_GROUP=...
+  export GOOGLE_PROJECT_ID=...
+  export GOOGLE_APPLICATION_CREDENTIALS=...
+  ```
+
+# Development integration
+
+## Microsoft Azure
+To integrate a development environement with Microsoft Azure, you need to the following information to auhenticate to your Azure subscription with appropriate permissions: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_RESOURCE_GROUP`. 
+
+### Create/get authentication information
+Here are steps to create/get this information from your Azure Portal:
 * Select `Home -> Azure Active Directory -> App registrations`, select `New registration` and create a new app.
 * Set a `Name` for the application and leave default settings for other options (e.g. *app-koamc-cluster-manager*).
 * Click `Register` to create the application, then **note** the `Application (client) ID` and `Directory (tenant) ID`; they will be needed later.
@@ -55,7 +78,7 @@ Connect to Azure Portal:
 
 More details, please refer to [Azure documentation related to the service principal subject](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest).
 
-### Expose the service principal credentials to the application
+### Run the development script for Azure
 Go the the source directory:
 * Edit the file `run-koamc-azure.sh` and set the following variables according to the values generated in the previous steps: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
 * Run the script `./mock_azure.sh`; it allows to simulate an Azure metadata server
