@@ -35,7 +35,7 @@ func main() {
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
 	viper.SetDefault("koamc_k8s_verify_ssl", "true")
 	viper.SetDefault("koamc_update_interval", 30)
-	viper.SetDefault("koamc_instance_image", "rchakode/kube-opex-analytics:latest")
+	viper.SetDefault("koamc_koainstance_image", "rchakode/kube-opex-analytics:latest")
 	viper.SetDefault("koamc_cost_model", "CUMULATIVE_RATIO")
 
 	// Docker default settings

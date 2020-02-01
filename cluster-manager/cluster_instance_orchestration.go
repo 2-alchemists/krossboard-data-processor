@@ -17,7 +17,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
 	log.Infoln("starting cluster orchestration worker")
-	containerManager := koainstance.NewContainerManager(viper.GetString("koamc_instance_image"))
+	containerManager := koainstance.NewContainerManager(viper.GetString("koamc_koainstance_image"))
 	if err := containerManager.PullImage(); err != nil {
 		log.WithFields(log.Fields{
 			"image":   containerManager.Image,
