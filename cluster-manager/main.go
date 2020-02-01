@@ -29,13 +29,15 @@ func main() {
 
 	// handle startup settings
 	viper.AutomaticEnv()
+	viper.SetDefault("koamc_log_level", "info")
 	viper.SetDefault("koamc_cloud_provider", "")
 	viper.SetDefault("koamc_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
-	viper.SetDefault("koacm_k8s_verify_ssl", "true")
-	viper.SetDefault("koacm_update_interval", 30)
-	viper.SetDefault("koacm_default_image", "rchakode/kube-opex-analytics")
-	viper.SetDefault("koamc_log_level", "info")
+	viper.SetDefault("koamc_k8s_verify_ssl", "true")
+	viper.SetDefault("koamc_update_interval", 30)
+	viper.SetDefault("koamc_instance_image", "rchakode/kube-opex-analytics:latest")
+	viper.SetDefault("koamc_cost_model", "CUMULATIVE_RATIO")
+
 	// Docker default settings
 	viper.SetDefault("docker_api_version", "1.39")
 	// AWS default settings

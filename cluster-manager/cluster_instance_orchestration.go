@@ -17,7 +17,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
 	log.Infoln("starting cluster orchestration worker")
-	containerManager := koainstance.NewContainerManager(viper.GetString("koacm_default_image"))
+	containerManager := koainstance.NewContainerManager(viper.GetString("koamc_instance_image"))
 	if err := containerManager.PullImage(); err != nil {
 		log.WithFields(log.Fields{
 			"image":   containerManager.Image,
@@ -30,7 +30,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("KUBECONFIG selected")
 
-	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {

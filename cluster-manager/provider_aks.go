@@ -16,7 +16,7 @@ import (
 func updateAKSClusters() {
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
 	for {
 		err := azLogin()
 		if err != nil {

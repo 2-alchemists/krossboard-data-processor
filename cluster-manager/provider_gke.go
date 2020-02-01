@@ -26,7 +26,7 @@ func updateGKEClusters() {
 		return
 	}
 
-	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
 	for {
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {

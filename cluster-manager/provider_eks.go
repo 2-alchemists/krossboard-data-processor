@@ -18,7 +18,7 @@ import (
 func updateEKSClusters() {
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("koacm_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
 	for {
 		awsRegion, err := getAWSRegion()
 		if err != nil {
