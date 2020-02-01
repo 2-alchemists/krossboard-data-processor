@@ -3,10 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "NScqYhxjJ/aosSJitJaqRNJFJCc=",
+			"checksumSHA1": "x7RKtVz8/uCZCW4nmEIKZTpBl5s=",
 			"path": "bitbucket.org/koamc/kube-opex-analytics-mc/koainstance",
-			"revision": "93a87298dbc2155e0eb9a03405276d19e7e6a4f3",
-			"revisionTime": "2019-11-11T17:18:28Z"
+			"revision": "95b6d89f871fb5348524d0c2005af6f24808f780",
+			"revisionTime": "2020-02-01T20:29:39Z"
 		},
 		{
 			"checksumSHA1": "5pQi0W/8f6SkFBmRZ6sRLnHuehc=",
@@ -1777,6 +1777,12 @@
 			"path": "k8s.io/utils/integer",
 			"revision": "6c36bc71fc4aeb1f49801054e71aebdaef1fbeb4",
 			"revisionTime": "2019-08-09T00:07:27Z"
+		},
+		{
+			"checksumSHA1": "jc7bNhBzVuIlNtYNHQS/hBnSfc0=",
+			"path": "kube-opex-analytics-mc/cluster-manager",
+			"revision": "95b6d89f871fb5348524d0c2005af6f24808f780",
+			"revisionTime": "2020-02-01T20:29:39Z"
 		},
 		{
 			"checksumSHA1": "ZExWoMcqJ9WKc9KMJQUtIST3nTc=",
