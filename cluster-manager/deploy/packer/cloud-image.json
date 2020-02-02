@@ -14,7 +14,9 @@
     "azure_client_secret": "{{env `AZURE_CLIENT_SECRET`}}",
     "azure_resource_group": "{{env `AZURE_RESOURCE_GROUP`}}",
     "azure_storage_account": "koamcvmimages",
-    "azure_build_location": "Central US"
+    "azure_build_location": "Central US",
+    "dockerhub_username": "{{env `DOCKER_HUB_USERNAME`}}",
+    "dockerhub_password": "{{env `DOCKER_HUB_PASSWORD`}}"
   },
   "builders": [
     {

@@ -1,0 +1,31 @@
+[Unit]
+Description=Multi-cluster Kubernetes usage analytics tool (Web UI)
+ConditionPathExists=/opt/koamc/etc/koamc-cluster-manager.env
+After=network.target
+After=docker.target
+
+[Service]
+Type=simple
+User=koamc
+Group=koamc
+LimitNOFILE=1024
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60
+WorkingDirectory=/tmp/
+EnvironmentFile=/opt/koamc/etc/koamc-cluster-manager.env
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill koamc-webui
+ExecStartPre=-/usr/bin/docker rm koamc-webui
+ExecStartPre=-/usr/bin/docker login --username ${KOAMC_REGISTRY_USERNAME} --password ${KOAMC_REGISTRY_PASSWORD}
+ExecStartPre=-/usr/bin/docker pull ${KOAMC_WEBUI_IMAGE}
+ExecStart=/usr/bin/docker run -d \
+    --name koamc-webui \
+    -p 80:2015 \
+    -p 443:2015 \
+    -v ${KOAMC_ROOT_DIR}/etc/.caddy:/root/.caddy \
+    ${KOAMC_WEBUI_IMAGE}
+ 
+[Install]
+WantedBy=multi-user.target
