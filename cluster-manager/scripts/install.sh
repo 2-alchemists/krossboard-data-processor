@@ -16,13 +16,15 @@ if [ `id -u` -ne 0 ]; then
     exit 1
 fi
 
-PROGRAM_NAME=koamc-cluster-manager
-INSTALL_DIR=$(dirname $0)
-KOAMC_BINARY_PATH=${1-$INSTALL_DIR/$PROGRAM_NAME}
+DISTRIB_DIR=$(dirname $0)
+KOAMC_BACKEND_PROGRAM=koamc-cluster-manager
+KOAMC_BACKEND_SERVICE=${KOAMC_BACKEND_PROGRAM}.service
+KOAMC_FRONTEND_SERVICE=koamc-webui.service
+KOAMC_BINARY_PATH=${1-$DISTRIB_DIR/$KOAMC_BACKEND_PROGRAM}
 KOAMC_USER=koamc
 KOAMC_ROOT_DIR=/opt/$KOAMC_USER
 KOAMC_CONFIG_DIR=/opt/$KOAMC_USER/etc
-KOAMC_CONFIG_FILE=$KOAMC_CONFIG_DIR/$PROGRAM_NAME.env 
+KOAMC_CONFIG_FILE=$KOAMC_BACKEND_PROGRAM.env 
 
 
 echo -e "${RED_COLOR}updaing apt source list and package versions...${NO_COLOR}"
@@ -34,11 +36,12 @@ apt update && apt -y upgrade
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
 apt install -y docker.io rrdtool librrd-dev
 
-echo -e "${RED_COLOR}installing ${PROGRAM_NAME} with binary $KOAMC_BINARY_PATH...${NO_COLOR}"
+echo -e "${RED_COLOR}installing ${KOAMC_BACKEND_PROGRAM} with binary $KOAMC_BINARY_PATH...${NO_COLOR}"
 install -d $KOAMC_ROOT_DIR/{bin,data,etc}
 install -m 755 $KOAMC_BINARY_PATH $KOAMC_ROOT_DIR/bin/
-install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.env $KOAMC_CONFIG_FILE
-install -m 644 $INSTALL_DIR/scripts/$PROGRAM_NAME.service /lib/systemd/system/
+install -m 644 $DISTRIB_DIR/scripts/$KOAMC_CONFIG_FILE $KOAMC_CONFIG_DIR/
+install -m 644 $DISTRIB_DIR/scripts/$KOAMC_BACKEND_SERVICE /lib/systemd/system/
+install -m 644 $DISTRIB_DIR/scripts/$KOAMC_FRONTEND_SERVICE /lib/systemd/system/
 
 echo -e "${RED_COLOR}setting up runtime user ${KOAMC_USER}...${NO_COLOR}"
 id -u $KOAMC_USER &> /dev/null || useradd $KOAMC_USER
@@ -55,7 +58,7 @@ if wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?a
     curl -sL https://aka.ms/InstallAzureCLIDeb | bash
     KOAMC_AZ_COMMAND=$(which az || echo "")
     if [ "$KOAMC_AZ_COMMAND" != "" ]; then
-        echo "KOAMC_AZ_COMMAND=$KOAMC_AZ_COMMAND" >> $KOAMC_CONFIG_FILE
+        echo "KOAMC_AZ_COMMAND=$KOAMC_AZ_COMMAND" >> $KOAMC_CONFIG_DIR/$KOAMC_CONFIG_FILE
         echo -e "${RED_COLOR}command az found at $KOAMC_AZ_COMMAND${NO_COLOR}"
     fi    
 fi
@@ -70,7 +73,7 @@ if wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/c
     KOAMC_GCLOUD_COMMAND=$(which gcloud || echo "")
     if [ "$KOAMC_GCLOUD_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command gcloud found at $KOAMC_GCLOUD_COMMAND${NO_COLOR}"
-        echo "KOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND" >> $KOAMC_CONFIG_FILE 
+        echo "KOAMC_GCLOUD_COMMAND=$KOAMC_GCLOUD_COMMAND" >> $KOAMC_CONFIG_DIR/$KOAMC_CONFIG_FILE 
     fi  
 fi
 
@@ -84,7 +87,7 @@ if wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone"
     KOAMC_AWS_COMMAND=$(which aws || echo "")
     if [ "$KOAMC_AWS_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command aws found at $KOAMC_AWS_COMMAND${NO_COLOR}"
-        echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_CONFIG_FILE
+        echo "KOAMC_AWS_COMMAND=$KOAMC_AWS_COMMAND" >> $KOAMC_CONFIG_DIR/$KOAMC_CONFIG_FILE
     fi
 fi
 
@@ -95,6 +98,7 @@ stat -c %Z $KOAMC_ROOT_DIR/bin/$KOAMC_BINARY_PATH  | md5sum > /opt/$KOAMC_USER/d
 
 echo -e "${RED_COLOR}setting permissions on files and updating systemd settings{NO_COLOR}"
 chown -R $KOAMC_USER:$KOAMC_USER $KOAMC_ROOT_DIR/
-systemctl enable $PROGRAM_NAME
+systemctl enable $KOAMC_BACKEND_SERVICE
+systemctl enable $KOAMC_FRONTEND_SERVICE
 systemctl daemon-reload
 echo "done"

@@ -1,5 +1,5 @@
 {
-    "program_name": "koamc-cluster-manager",
+    "product_name": "koamc",
     "program_version": "20.03.1",
     "image_version": "20031-beta1"
 }

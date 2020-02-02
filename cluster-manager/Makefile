@@ -1,7 +1,8 @@
-PACKAGE_NAME=koamc-cluster-manager
+PRODUCT_NAME=koamc
+PACKAGE_NAME=$(PRODUCT_NAME)-cluster-manager
 VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
 ARCH=$$(uname -m)
-DIST_DIR=$(PACKAGE_NAME)-v$(VERSION)-$(ARCH)
+DIST_DIR=$(PRODUCT_NAME)-v$(VERSION)-$(ARCH)
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -39,7 +40,7 @@ vendor:
 dist: build build-compress
 	mkdir -p $(DIST_DIR)/scripts/
 	cp $(PACKAGE_NAME) $(DIST_DIR)/
-	cp scripts/$(PACKAGE_NAME)* $(DIST_DIR)/scripts
+	cp scripts/$(PRODUCT_NAME)* $(DIST_DIR)/scripts/
 	install -m 755 scripts/install.sh $(DIST_DIR)/
 	tar zcf $(DIST_DIR).tgz $(DIST_DIR)
 cloud-image:
