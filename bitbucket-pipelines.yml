@@ -1,4 +1,4 @@
-image: golang:1.12
+image: golang:1.13.6
 
 pipelines:
   default:

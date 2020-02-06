@@ -34,6 +34,9 @@ run:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
 	./$(PACKAGE_NAME)
 deps:
+	# cd $GOPATH/src/k8s.io/klog && git checkout v0.4.0 && cd -
+	# rm -rf $GOPATH/src/github.com/docker/docker/vendor
+	# rm -rf  $GOPATH/src/github.com/docker/distribution/vendor/
 	$(GOGET)
 vendor:
 	$(GOVENDOR) add +external

@@ -17,8 +17,6 @@ import (
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
-	"bitbucket.org/koamc/kube-opex-analytics-mc/systemstatus"
 )
 
 // KOAAPI describes an instance Kubernetes Opex Analytics's API
@@ -89,7 +87,7 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	discoveryResp := &DiscoveryResp{}
-	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("krossboard_status_file"))
+	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load system status"
@@ -151,7 +149,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
 	outHandler.Header().Set("Content-Type", "application/json")
 
-	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("krossboard_status_file"))
+	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
 		outHandler.WriteHeader(http.StatusInternalServerError)
