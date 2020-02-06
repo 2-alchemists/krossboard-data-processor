@@ -29,34 +29,34 @@ func main() {
 
 	// handle startup settings
 	viper.AutomaticEnv()
-	viper.SetDefault("koamc_log_level", "info")
-	viper.SetDefault("koamc_cloud_provider", "")
-	viper.SetDefault("koamc_api_addr", "127.0.0.1:1519")
-	viper.SetDefault("koamc_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", kubeconfig.UserHomeDir()))
-	viper.SetDefault("koamc_k8s_verify_ssl", "true")
-	viper.SetDefault("koamc_update_interval", 30)
-	viper.SetDefault("koamc_koainstance_image", "rchakode/kube-opex-analytics:latest")
-	viper.SetDefault("koamc_cost_model", "CUMULATIVE_RATIO")
+	viper.SetDefault("krossboard_log_level", "info")
+	viper.SetDefault("krossboard_cloud_provider", "")
+	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
+	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", kubeconfig.UserHomeDir()))
+	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
+	viper.SetDefault("krossboard_update_interval", 30)
+	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
+	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
 
 	// Docker default settings
 	viper.SetDefault("docker_api_version", "1.39")
 	// AWS default settings
-	viper.SetDefault("koamc_awscli_command", "aws")
-	viper.SetDefault("koamc_aws_metadata_service", "http://169.254.169.254")
+	viper.SetDefault("krossboard_awscli_command", "aws")
+	viper.SetDefault("krossboard_aws_metadata_service", "http://169.254.169.254")
 	// GCP default settings
-	viper.SetDefault("koamc_gcloud_command", "gcloud")
-	viper.SetDefault("koamc_gcp_metadata_service", "http://metadata.google.internal")
+	viper.SetDefault("krossboard_gcloud_command", "gcloud")
+	viper.SetDefault("krossboard_gcp_metadata_service", "http://metadata.google.internal")
 	// AZURE default settings
-	viper.SetDefault("koamc_az_command", "az")
-	viper.SetDefault("koamc_azure_metadata_service", "http://169.254.169.254")
-	viper.SetDefault("koamc_azure_keyvault_aks_password_secret", "koamc-aks-password")
+	viper.SetDefault("krossboard_az_command", "az")
+	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
+	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
 
 	// fixed config variables
-	viper.Set("koamc_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("koamc_root_dir")))
-	viper.Set("koamc_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("koamc_root_dir")))
-	viper.Set("koamc_status_dir", fmt.Sprintf("%s/run", viper.GetString("koamc_root_dir")))
-	viper.Set("koamc_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("koamc_status_dir")))
-	viper.Set("koamc_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("koamc_status_dir")))
+	viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
+	viper.Set("krossboard_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("krossboard_root_dir")))
+	viper.Set("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
+	viper.Set("krossboard_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("krossboard_status_dir")))
+	viper.Set("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_status_dir")))
 
 	// configure logger
 	customFormatter := new(log.TextFormatter)
@@ -71,7 +71,7 @@ func main() {
 	// 	return
 	// }
 
-	logLevel, err := log.ParseLevel(viper.GetString("koamc_log_level"))
+	logLevel, err := log.ParseLevel(viper.GetString("krossboard_log_level"))
 	if err != nil {
 		log.WithError(err).Error("failed parsing log level")
 		logLevel = log.InfoLevel
@@ -79,22 +79,22 @@ func main() {
 	log.SetLevel(logLevel)
 
 	// actual processing
-	err = createDirIfNotExists(viper.GetString("koamc_root_dir"))
+	err = createDirIfNotExists(viper.GetString("krossboard_root_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
 	}
 
-	err = createDirIfNotExists(viper.GetString("koamc_status_dir"))
+	err = createDirIfNotExists(viper.GetString("krossboard_status_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing status directory")
 	}
 
-	err = createDirIfNotExists(viper.GetString("koamc_credentials_dir"))
+	err = createDirIfNotExists(viper.GetString("krossboard_credentials_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Failed initializing credential directory")
 	}
 
-	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
+	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
 	}
@@ -158,7 +158,7 @@ func createDirIfNotExists(path string) error {
 }
 
 func getCloudProvider() string {
-	provider := viper.GetString("KOAMC_CLOUD_PROVIDER")
+	provider := viper.GetString("KROSSBOARD_CLOUD_PROVIDER")
 	if provider != "" {
 		return provider
 	}

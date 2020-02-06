@@ -26,7 +26,7 @@ type K8sClusterUsage struct {
 }
 
 func getAllClustersCurrentUsage() ([]*K8sClusterUsage, error) {
-	baseDataDir := viper.GetString("koamc_root_data_dir")
+	baseDataDir := viper.GetString("krossboard_root_data_dir")
 	entries, err := ioutil.ReadDir(baseDataDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed listing data dir")
@@ -122,7 +122,7 @@ func processConsolidatedUsage() {
 		if err != nil {
 			log.WithError(err).Errorln("get processing all clusters usage")
 		} else {
-			currentUsageFile := viper.GetString("koamc_current_usage_file")
+			currentUsageFile := viper.GetString("krossboard_current_usage_file")
 			serializedData, _ := json.Marshal(allClustersUsage)
 			err = ioutil.WriteFile(currentUsageFile, serializedData, 0644)
 			if err != nil {
@@ -135,7 +135,7 @@ func processConsolidatedUsage() {
 			if clusterUsage.OutToDate {
 				continue
 			}
-			rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), clusterUsage.ClusterName)
+			rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
 			usageDb := NewUsageDb(rrdFile)
 			_, err := os.Stat(rrdFile)
 			if os.IsNotExist(err) {

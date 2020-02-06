@@ -18,7 +18,7 @@ import (
 func updateEKSClusters() {
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
 	for {
 		awsRegion, err := getAWSRegion()
 		if err != nil {
@@ -39,7 +39,7 @@ func updateEKSClusters() {
 			continue
 		}
 		for _, clusterName := range listResult.Clusters {
-			cmdout, err := exec.Command(viper.GetString("koamc_awscli_command"),
+			cmdout, err := exec.Command(viper.GetString("krossboard_awscli_command"),
 				"eks",
 				"update-kubeconfig",
 				"--name",
@@ -65,7 +65,7 @@ func getAWSRegion() (string, error) {
 	}
 
 	req, err := http.NewRequest("GET",
-		viper.GetString("koamc_aws_metadata_service")+"/latest/meta-data/placement/availability-zone",
+		viper.GetString("krossboard_aws_metadata_service")+"/latest/meta-data/placement/availability-zone",
 		nil)
 	resp, err := client.Do(req)
 	if err != nil {

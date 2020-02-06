@@ -1780,7 +1780,7 @@
 		},
 		{
 			"checksumSHA1": "jc7bNhBzVuIlNtYNHQS/hBnSfc0=",
-			"path": "kube-opex-analytics-mc/cluster-manager",
+			"path": "kube-opex-analytics-mc/data-processor",
 			"revision": "95b6d89f871fb5348524d0c2005af6f24808f780",
 			"revisionTime": "2020-02-01T20:29:39Z"
 		},
@@ -1791,5 +1791,5 @@
 			"revisionTime": "2019-07-04T18:38:35Z"
 		}
 	],
-	"rootPath": "kube-opex-analytics-mc/cluster-manager"
+	"rootPath": "kroassboard-data-processor/cluster-manager"
 }

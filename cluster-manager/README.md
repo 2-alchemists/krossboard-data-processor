@@ -62,7 +62,7 @@ To integrate a development environement with Microsoft Azure, you need to the fo
 ### Create/get authentication information
 Here are steps to create/get this information from your Azure Portal:
 * Select `Home -> Azure Active Directory -> App registrations`, select `New registration` and create a new app.
-* Set a `Name` for the application and leave default settings for other options (e.g. *app-koamc-cluster-manager*).
+* Set a `Name` for the application and leave default settings for other options (e.g. *app-krossboard-data-processor*).
 * Click `Register` to create the application, then **note** the `Application (client) ID` and `Directory (tenant) ID`; they will be needed later.
 * Select `Certificates & secrets -> New client secret` 
 * Type a description if applicable and select a validity period.
@@ -70,18 +70,18 @@ Here are steps to create/get this information from your Azure Portal:
 * Select `Home -> Subcriptions` and then select the subscription you're using.
 * Select `Access control (IAM) -> Add -> Add role assignment`.
 * In the field `Role`, select the role `Azure Kubernetes Service Cluster User Role`.
-* In the field `Select`, type the name of the application created (e.g. *app-koamc-cluster-manager* as above) to select the application your application.
+* In the field `Select`, type the name of the application created (e.g. *app-krossboard-data-processor* as above) to select the application your application.
 * Click on `Save` to validate the assignement.
 * Again in the field `Role`, select the role `Managed Applications Reader`.
-* In the field `Select`, type the name of the application created (e.g. *app-koamc-cluster-manager* as above).
+* In the field `Select`, type the name of the application created (e.g. *app-krossboard-data-processor* as above).
 * Select the application and click on `Save` to validate the assignement.
 
 More details, please refer to [Azure documentation related to the service principal subject](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest).
 
 ### Run the development script for Azure
 Go the the source directory:
-* Edit the file `run-koamc-azure.sh` and set the following variables according to the values generated in the previous steps: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
+* Edit the file `run-data-processor-azure.sh` and set the following variables according to the values generated in the previous steps: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
 * Run the script `./mock_azure.sh`; it allows to simulate an Azure metadata server
-* Run the script `./run-koamc-azure.sh`.
+* Run the script `./run-data-processor-azure.sh`.
 * Your environment is now ready to take over all your AKS clusters.
 * For each cluster, apply the file `./deploy/k8s/clusterrolebinding-aks.yml` to enable appropriated RBAC permissions to API needed by Kubernetes Opex Analytics.

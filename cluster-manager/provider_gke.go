@@ -26,7 +26,7 @@ func updateGKEClusters() {
 		return
 	}
 
-	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
 	for {
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {
@@ -45,7 +45,7 @@ func updateGKEClusters() {
 		}
 
 		for _, cluster := range listResp.Clusters {
-			cmdout, err := exec.Command(viper.GetString("koamc_gcloud_command"),
+			cmdout, err := exec.Command(viper.GetString("krossboard_gcloud_command"),
 				"container",
 				"clusters",
 				"get-credentials",
@@ -70,7 +70,7 @@ func getGCPProjectID() (int64, error) {
 	}
 
 	req, err := http.NewRequest("GET",
-		viper.GetString("koamc_gcp_metadata_service")+"/computeMetadata/v1/project/numeric-project-id",
+		viper.GetString("krossboard_gcp_metadata_service")+"/computeMetadata/v1/project/numeric-project-id",
 		nil)
 	req.Header.Add("Metadata-Flavor", "Google")
 

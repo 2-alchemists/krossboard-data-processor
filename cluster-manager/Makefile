@@ -1,5 +1,5 @@
-PRODUCT_NAME=koamc
-PACKAGE_NAME=$(PRODUCT_NAME)-cluster-manager
+PRODUCT_NAME=krossboard
+PACKAGE_NAME=$(PRODUCT_NAME)-data-processor
 VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
 ARCH=$$(uname -m)
 DIST_DIR=$(PRODUCT_NAME)-v$(VERSION)-$(ARCH)

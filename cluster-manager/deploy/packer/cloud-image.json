@@ -1,6 +1,6 @@
 {
   "variables": {
-    "product_name": "koamc-cluster-manager",
+    "product_name": "krossboard",
     "program_version": "",
     "image_version": "",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
@@ -13,7 +13,7 @@
     "azure_client_id": "{{env `AZURE_CLIENT_ID`}}",
     "azure_client_secret": "{{env `AZURE_CLIENT_SECRET`}}",
     "azure_resource_group": "{{env `AZURE_RESOURCE_GROUP`}}",
-    "azure_storage_account": "koamcvmimages",
+    "azure_storage_account": "krossboardvmimages",
     "azure_build_location": "Central US",
     "dockerhub_username": "{{env `DOCKER_HUB_USERNAME`}}",
     "dockerhub_password": "{{env `DOCKER_HUB_PASSWORD`}}"

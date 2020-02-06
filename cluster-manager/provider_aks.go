@@ -16,7 +16,7 @@ import (
 func updateAKSClusters() {
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
 	for {
 		err := azLogin()
 		if err != nil {
@@ -33,7 +33,7 @@ func updateAKSClusters() {
 		}
 
 		for _, group := range groups {
-			cmdout, err := exec.Command(viper.GetString("koamc_az_command"),
+			cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
 				"aks",
 				"list",
 				"--resource-group",
@@ -51,7 +51,7 @@ func updateAKSClusters() {
 			})
 
 			for _, cluster := range clusters {
-				cmdout, err := exec.Command(viper.GetString("koamc_az_command"),
+				cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
 					"aks",
 					"get-credentials",
 					"--resource-group",
@@ -76,7 +76,7 @@ func getAzureSubscriptionID() (string, error) {
 	}
 
 	req, err := http.NewRequest("GET",
-		viper.GetString("koamc_azure_metadata_service")+"/metadata/instance?api-version=2019-06-04",
+		viper.GetString("krossboard_azure_metadata_service")+"/metadata/instance?api-version=2019-06-04",
 		nil)
 	req.Header.Add("Metadata", "true")
 
@@ -103,7 +103,7 @@ func getAzureSubscriptionID() (string, error) {
 }
 
 func listGroups() ([]string, error) {
-	cmdout, err := exec.Command(viper.GetString("koamc_az_command"),
+	cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
 		"group",
 		"list",
 		"-o",
@@ -135,7 +135,7 @@ func azLogin() error {
 	var cmdOut []byte
 	if tenant != "" && appID != "" && appSecret != "" {
 		cmdOut, errOut = exec.Command(
-			viper.GetString("koamc_az_command"),
+			viper.GetString("krossboard_az_command"),
 			"login",
 			"--service-principal",
 			"--username",
@@ -147,7 +147,7 @@ func azLogin() error {
 		).CombinedOutput()
 	} else {
 		cmdOut, errOut = exec.Command(
-			viper.GetString("koamc_az_command"),
+			viper.GetString("krossboard_az_command"),
 			"login",
 			"--identity",
 		).CombinedOutput()

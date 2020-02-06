@@ -59,7 +59,7 @@ func startAPI() {
 	router.HandleFunc("/usagehistory", GetClustersUsageHistoryHandler)
 
 	srv := &http.Server{
-		Addr:         viper.GetString("koamc_api_addr"),
+		Addr:         viper.GetString("krossboard_api_addr"),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
@@ -89,7 +89,7 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	discoveryResp := &DiscoveryResp{}
-	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
+	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load system status"
@@ -121,7 +121,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	currentUsageResp := &GetAllClustersCurrentUsageResp{}
-	currentUsageFile := viper.GetString("koamc_current_usage_file")
+	currentUsageFile := viper.GetString("krossboard_current_usage_file")
 	currentUsageData, err := ioutil.ReadFile(currentUsageFile)
 	respHTTPStatus := http.StatusInternalServerError
 	if err != nil {
@@ -151,7 +151,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
 	outHandler.Header().Set("Content-Type", "application/json")
 
-	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("koamc_status_file"))
+	systemStatus, err := systemstatus.LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
 		outHandler.WriteHeader(http.StatusInternalServerError)
@@ -210,10 +210,10 @@ func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.
 	historyDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, instance := range getInstancesResult.Instances {
-			historyDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("koamc_root_data_dir"), instance.ClusterName)
+			historyDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), instance.ClusterName)
 		}
 	} else {
-		dbdir := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), queryCluster)
+		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
 		err, dbfiles := listRegularDbFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)

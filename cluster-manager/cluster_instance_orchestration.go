@@ -17,7 +17,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 	defer workers.Done()
 
 	log.Infoln("starting cluster orchestration worker")
-	containerManager := koainstance.NewContainerManager(viper.GetString("koamc_koainstance_image"))
+	containerManager := koainstance.NewContainerManager(viper.GetString("krossboard_koainstance_image"))
 	if err := containerManager.PullImage(); err != nil {
 		log.WithFields(log.Fields{
 			"image":   containerManager.Image,
@@ -30,7 +30,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 		"kubeconfig": kubeConfig.Path,
 	}).Infoln("KUBECONFIG selected")
 
-	updatePeriod := time.Duration(viper.GetInt64("koamc_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
 	for {
 		managedClusters, err := kubeConfig.ListClusters()
 		if err != nil {
@@ -58,7 +58,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 				continue
 			}
 
-			dataVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_root_data_dir"), cluster.Name)
+			dataVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), cluster.Name)
 			err = createDirIfNotExists(dataVol)
 			if err != nil {
 				log.WithFields(log.Fields{
@@ -69,7 +69,7 @@ func orchestrateInstances(systemStatus *systemstatus.SystemStatus) {
 				break
 			}
 
-			tokenVol := fmt.Sprintf("%s/%s", viper.GetString("koamc_credentials_dir"), cluster.Name)
+			tokenVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_credentials_dir"), cluster.Name)
 			err = createDirIfNotExists(tokenVol)
 			if err != nil {
 				log.WithFields(log.Fields{
