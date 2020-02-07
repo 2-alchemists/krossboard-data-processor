@@ -146,65 +146,79 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetClustersUsageHistoryHandler returns all clusters usage history
-func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.Request) {
-	outHandler.Header().Set("Content-Type", "application/json")
+func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
 	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
-		outHandler.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed loading system status",
 		})
-		outHandler.Write(outRaw)
+		w.Write(outRaw)
 		return
 	}
 
 	getInstancesResult, err := systemStatus.GetInstances()
 	if err != nil {
 		log.WithError(err).Errorln("failed retrieving managed instances")
-		outHandler.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
 		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed retrieving managed instances",
 		})
-		outHandler.Write(outRaw)
+		w.Write(outRaw)
 		return
 	}
 
-	queryParams := inReq.URL.Query()
+	queryParams := r.URL.Query()
 	queryCluster := queryParams.Get("cluster")
 	queryStartDate := queryParams.Get("startDateUTC")
 	queryEndDate := queryParams.Get("endDateUTC")
+	queryFormat := strings.ToLower(queryParams.Get("format"))
 
-	invalidParam := false
+	// process format
+	if queryFormat != "" && queryFormat != "json" && queryFormat != "csv" {
+		log.Errorln("invalid format", queryFormat)
+		w.WriteHeader(http.StatusBadRequest)
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "invalid format",
+		})
+		w.Write(outRaw)
+		return
+	}
 
+	// process  end date parameter
+	areValidParameters := false
 	const queryTimeLayout = "2006-01-02T15:04:05"
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
-			invalidParam = true
+			areValidParameters = true
 			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
 		} else {
 			actualEndDateUTC = queryParsedEndTime
 		}
 	}
 
+	// process start date parameter
 	const durationMinus24Hours = -1 * 24 * time.Hour
 	actualStartDateUTC := actualEndDateUTC.Add(durationMinus24Hours)
 	if queryStartDate != "" {
 		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
 		if err != nil {
-			invalidParam = true
+			areValidParameters = true
 			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
 		} else {
 			actualStartDateUTC = queryParsedStartTime
 		}
 	}
 
-	// check cluster parameters
+	// process cluster parameter
 	historyDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, instance := range getInstancesResult.Instances {
@@ -215,7 +229,7 @@ func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.
 		err, dbfiles := listRegularDbFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
-			invalidParam = true
+			areValidParameters = true
 		} else {
 			for _, dbfile := range dbfiles {
 				historyDbs[dbfile] = fmt.Sprintf("%s/%s", dbdir, dbfile)
@@ -223,15 +237,15 @@ func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.
 		}
 	}
 
-	// validate parameters
-	if invalidParam || actualStartDateUTC.After(actualEndDateUTC) {
+	// finalize parameters validation before actually processing the request
+	if areValidParameters || actualStartDateUTC.After(actualEndDateUTC) {
 		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
-		outHandler.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
 		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
-		outHandler.Write(outRaw)
+		w.Write(outRaw)
 		return
 	}
 
@@ -251,9 +265,33 @@ func GetClustersUsageHistoryHandler(outHandler http.ResponseWriter, inReq *http.
 		}
 	}
 
-	outHandler.WriteHeader(http.StatusOK)
-	outData, _ := json.Marshal(resultUsageHistory)
-	outHandler.Write(outData)
+	var respPayload []byte
+	if queryFormat != "csv" {
+		respPayload, _ = json.Marshal(resultUsageHistory)
+	} else {
+		var csvBuf strings.Builder
+		for itemName, itemUsage := range resultUsageHistory.ListOfUsageHistory {
+			countUsageEntries := len(itemUsage.CPUUsage)
+			if countUsageEntries != len(itemUsage.MEMUsage) {
+				log.Errorf("usage entries for CPU and memory for entry %v don't match (%v != %v)\n",
+					itemUsage, countUsageEntries, len(itemUsage.MEMUsage))
+				continue
+			}
+			fmt.Fprintf(&csvBuf, "Name,Date UTC,CPU,Memory\n")
+			for i := 0; i < countUsageEntries; i++ {
+				fmt.Fprintf(&csvBuf, "%v,%v,%v,%v\n",
+					itemName,
+					itemUsage.CPUUsage[i].DateUTC,
+					itemUsage.CPUUsage[i].Value,
+					itemUsage.MEMUsage[i].Value)
+			}
+		}
+		respPayload = []byte(csvBuf.String())
+		w.Header().Set("Content-Type", "text/csv")
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(respPayload)
 }
 
 func listRegularDbFiles(folder string) (error, []string) {
