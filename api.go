@@ -289,10 +289,10 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		respPayload = []byte(csvBuf.String())
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition",
-			fmt.Sprintf("attachment; filename=\"usagehistory_%v_%v-%v.csv\"",
+			fmt.Sprintf("attachment; filename=\"usagehistory_%v_FROM_%v_TO_%v.csv\"",
 				queryCluster,
-				actualStartDateUTC.Format("2006-01-02T15:04:05"),
-				actualEndDateUTC.Format("2006-01-02T15:04:05"),
+				actualStartDateUTC.Format(queryTimeLayout),
+				actualEndDateUTC.Format(queryTimeLayout),
 			),
 		)
 	}
