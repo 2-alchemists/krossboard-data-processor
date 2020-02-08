@@ -277,7 +277,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 					itemUsage, countUsageEntries, len(itemUsage.MEMUsage))
 				continue
 			}
-			fmt.Fprintf(&csvBuf, "Name,Date UTC,CPU,Memory\n")
+			fmt.Fprintf(&csvBuf, "Name,Date UTC,CPU Usage used,Memory used\n")
 			for i := 0; i < countUsageEntries; i++ {
 				fmt.Fprintf(&csvBuf, "%v,%v,%v,%v\n",
 					itemName,
@@ -288,6 +288,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		respPayload = []byte(csvBuf.String())
 		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition",
+			fmt.Sprintf("attachment; filename=\"usagehistory_%v_%v-%v.csv\"",
+				queryCluster,
+				actualStartDateUTC.Format("2006-01-02T15:04:05"),
+				actualEndDateUTC.Format("2006-01-02T15:04:05"),
+			),
+		)
 	}
 
 	w.WriteHeader(http.StatusOK)
