@@ -1,5 +1,5 @@
 [Unit]
-Description=Multi-cluster Kubernetes usage analytics tool (Web UI)
+Description=Krossboard UI - Multi-cluster Kubernetes usage analytics tool
 ConditionPathExists=/opt/krossboard/etc/krossboard-data-processor.env
 After=network.target
 After=docker.target
@@ -16,12 +16,12 @@ WorkingDirectory=/tmp/
 EnvironmentFile=/opt/krossboard/etc/krossboard-data-processor.env
 [Service]
 TimeoutStartSec=0
-ExecStartPre=-/usr/bin/docker kill krossboard-webui
-ExecStartPre=-/usr/bin/docker rm krossboard-webui
+ExecStartPre=-/usr/bin/docker kill krossboard-ui
+ExecStartPre=-/usr/bin/docker rm krossboard-ui
 ExecStartPre=-/usr/bin/docker login --username ${KROSSBOARD_REGISTRY_USERNAME} --password ${KROSSBOARD_REGISTRY_PASSWORD}
 ExecStartPre=-/usr/bin/docker pull ${KROSSBOARD_WEBUI_IMAGE}
 ExecStart=/usr/bin/docker run -d \
-    --name krossboard-webui \
+    --name krossboard-ui \
     -p 80:2015 \
     -p 443:2015 \
     -v ${KROSSBOARD_ROOT_DIR}/etc/.caddy:/root/.caddy \

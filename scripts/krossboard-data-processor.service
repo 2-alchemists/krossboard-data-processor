@@ -1,5 +1,5 @@
 [Unit]
-Description=Multi-cluster Kubernetes usage analytics tool (Cluster Manager)
+Description=Krossboard Data Processor - Multi-cluster Kubernetes usage analytics tool
 ConditionPathExists=/opt/krossboard/bin/krossboard-data-processor
 After=network.target
 After=docker.target
