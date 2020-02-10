@@ -25,7 +25,7 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 	kubeConfig := NewKubeConfig()
 	log.WithFields(log.Fields{
 		"kubeconfig": kubeConfig.Path,
-	}).Infoln("KUBECONFIG selected")
+	}).Debugln("KUBECONFIG selected")
 
 	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
 	for {
