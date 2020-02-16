@@ -97,6 +97,9 @@ fi
 echo -e "${RED_COLOR}signing the installation${NO_COLOR}"
 stat -c %Z $PROGRAM_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PROGRAM_USER/data/.sign
 
+# set default update interval
+echo "KROSSBOARD_UPDATE_INTERVAL=30" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE
+
 echo -e "${RED_COLOR}setting permissions on files and updating systemd settings{NO_COLOR}"
 chown -R $PROGRAM_USER:$PROGRAM_USER $PROGRAM_HOME_DIR/
 systemctl enable $PROGRAM_BACKEND_SERVICE
