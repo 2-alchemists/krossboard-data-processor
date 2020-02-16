@@ -1,6 +1,6 @@
 [Unit]
 Description=Krossboard UI - Multi-cluster Kubernetes usage analytics tool
-ConditionPathExists=/opt/krossboard/etc/krossboard-data-processor.env
+ConditionPathExists=/opt/krossboard/etc/krossboard.env
 After=network.target
 After=docker.target
 
@@ -13,7 +13,7 @@ Restart=on-failure
 RestartSec=10
 StartLimitInterval=60
 WorkingDirectory=/tmp/
-EnvironmentFile=/opt/krossboard/etc/krossboard-data-processor.env
+EnvironmentFile=/opt/krossboard/etc/krossboard.env
 [Service]
 TimeoutStartSec=0
 ExecStartPre=-/usr/bin/docker kill krossboard-ui
