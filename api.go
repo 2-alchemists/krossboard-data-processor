@@ -126,8 +126,6 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Println(apiUrl)
-
 	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(proxyReq)
