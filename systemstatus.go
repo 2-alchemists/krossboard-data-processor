@@ -43,6 +43,25 @@ func (m *SystemStatus) GetInstances() (*InstanceSet, error) {
 	return instances, nil
 }
 
+// GetInstance returns the info of an instance given its name or error otherwise
+func (m *SystemStatus) GetInstance(clusterName string) (*Instance, error) {
+	runningConfig, err := m.GetInstances()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed fetching running configuration")
+	}
+	var resultInstance *Instance = nil
+	for _, instance := range runningConfig.Instances {
+		if instance.ClusterName == clusterName {
+			resultInstance = instance
+			break
+		}
+	}
+	if resultInstance == nil {
+		return nil, errors.New("cluster not found " + clusterName)
+	}
+	return resultInstance, nil
+}
+
 // InitializeStatusIfEmpty initializes the status file with empty instance list
 func (m *SystemStatus) InitializeStatusIfEmpty() error {
 	_, err := os.Stat(m.StatusFile)

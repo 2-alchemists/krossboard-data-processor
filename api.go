@@ -25,6 +25,12 @@ type KOAAPI struct {
 	Endpoint    string `json:"endpoint,omitempty"`
 }
 
+// ErrorResp holds an error response
+type ErrorResp struct {
+	Status  string `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // DiscoveryResp holds the message returned by the discovery API
 type DiscoveryResp struct {
 	Status    string    `json:"status,omitempty"`
@@ -46,15 +52,22 @@ type GetClusterUsageHistoryResp struct {
 	ListOfUsageHistory map[string]*UsageHistory `json:"usageHistory,omitempty"`
 }
 
+var routes = map[string]interface{}{
+	"/api/dataset/{filename}": GetDatasetHandler,
+	"/api/discovery":          DiscoveryHandler,
+	"/api/currentusage":       GetAllClustersCurrentUsageHandler,
+	"/api/usagehistory":       GetClustersUsageHistoryHandler,
+}
+
 func startAPI() {
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second*15, "the duration for which the server gracefully wait for existing connections to finish")
 	flag.Parse()
 
 	router := mux.NewRouter()
-	router.HandleFunc("/discovery", DiscoveryHandler)
-	router.HandleFunc("/currentusage", GetAllClustersCurrentUsageHandler)
-	router.HandleFunc("/usagehistory", GetClustersUsageHistoryHandler)
+	for r, h := range routes {
+		router.HandleFunc(r, h.(func(http.ResponseWriter, *http.Request)))
+	}
 
 	srv := &http.Server{
 		Addr:         viper.GetString("krossboard_api_addr"),
@@ -67,7 +80,7 @@ func startAPI() {
 	// Run our server in a goroutine so that it doesn't block.
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
-			log.Infoln(err)
+			log.Errorln(err)
 		}
 	}()
 
@@ -82,6 +95,66 @@ func startAPI() {
 	os.Exit(0)
 }
 
+// GetDatasetHandler provides reverse proxy to download dataset from KOA instances
+func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
+
+	params := mux.Vars(req)
+	datafile := params["filename"]
+	clusterName := req.Header.Get("X-Krossboard-Cluster")
+
+	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
+	if err != nil {
+		log.WithError(err).Errorln("cannot load system status")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "cannot load system status"})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
+	instance, err := systemStatus.GetInstance(clusterName)
+	if err != nil {
+		log.WithError(err).Errorln("requested resource not found", clusterName)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "requested resource not found"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+	apiUrl := fmt.Sprintf("http://127.0.0.1:%v/dataset/%v", instance.HostPort, datafile)
+
+	if req.RequestURI == "/" {
+		log.Errorln("no API context")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "no API context"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(apiUrl)
+
+	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(proxyReq)
+	if err != nil {
+		log.WithError(err).Errorln("failed calling target API", apiUrl)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.WithError(err).Errorln("failed reading response body")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed reading response body"})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
+	for hk, hvalues := range req.Header {
+		for _, hval := range hvalues {
+			w.Header().Add(hk, hval)
+		}
+	}
+	w.Write(respBody)
+}
+
 // DiscoveryHandler returns current system status along with Kubernetes Opex Analytics instances' endpoints
 func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -91,14 +164,14 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load system status"
-		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
+		log.WithField("message", err.Error()).Errorln("Cannot load system status")
 	}
 
 	runningConfig, err := systemStatus.GetInstances()
 	if err != nil {
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load running configuration"
-		log.WithField("message", err.Error()).Fatalln("Cannot load system status")
+		log.WithField("message", err.Error()).Errorln("Cannot load system status")
 	} else {
 		discoveryResp.Status = "ok"
 		for _, instance := range runningConfig.Instances {
