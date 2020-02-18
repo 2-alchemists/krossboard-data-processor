@@ -97,10 +97,19 @@ fi
 echo -e "${RED_COLOR}signing the installation${NO_COLOR}"
 stat -c %Z $PROGRAM_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PROGRAM_USER/data/.sign
 
-# set default update interval
+echo -e "${RED_COLOR}setting KROSSBOARD_UPDATE_INTERVAL default value ${NO_COLOR}"
 echo "KROSSBOARD_UPDATE_INTERVAL=30" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE
 
-echo -e "${RED_COLOR}setting permissions on files and updating systemd settings{NO_COLOR}"
+echo -e "${RED_COLOR}create Caddy configuration file ${PROGRAM_CONFIG_DIR}/etc/Caddyfile ${NO_COLOR}"
+cat <<EOF >> ${PROGRAM_CONFIG_DIR}/etc/Caddyfile
+0.0.0.0
+browse
+log stdout
+errors stdout
+proxy /api 127.0.0.1:1519
+EOF
+
+echo -e "${RED_COLOR}setting permissions on files and updating systemd settings ${NO_COLOR}"
 chown -R $PROGRAM_USER:$PROGRAM_USER $PROGRAM_HOME_DIR/
 systemctl enable $PROGRAM_BACKEND_SERVICE
 systemctl enable $PROGRAM_FRONTEND_SERVICE

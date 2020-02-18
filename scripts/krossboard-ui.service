@@ -22,8 +22,8 @@ ExecStartPre=-/usr/bin/docker login --username ${KROSSBOARD_REGISTRY_USERNAME} -
 ExecStartPre=-/usr/bin/docker pull ${KROSSBOARD_WEBUI_IMAGE}
 ExecStart=/usr/bin/docker run -d \
     --name krossboard-ui \
-    -p 80:2015 \
-    -p 443:2015 \
+    --net=host \
+    -v ${KROSSBOARD_ROOT_DIR}/etc/Caddyfile:/etc/Caddyfile \
     -v ${KROSSBOARD_ROOT_DIR}/etc/.caddy:/root/.caddy \
     ${KROSSBOARD_WEBUI_IMAGE}
  
