@@ -1,8 +1,8 @@
 PRODUCT_NAME=krossboard
 PACKAGE_NAME=$(PRODUCT_NAME)-data-processor
-VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
+PRODUCT_VERSION=$$(date +%s)
 ARCH=$$(uname -m)
-DIST_DIR=$(PRODUCT_NAME)-v$(VERSION)-$(ARCH)
+DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean

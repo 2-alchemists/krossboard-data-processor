@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ProgramVersion = "20.03.1"
+const ProgramVersion = "0.1.0"
 
 var workers sync.WaitGroup
 
