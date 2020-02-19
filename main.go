@@ -34,6 +34,7 @@ func main() {
 	viper.SetDefault("krossboard_update_interval", 30)
 	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
+	viper.SetDefault("krossboard_cors_origins", "*")
 
 	// Docker default settings
 	viper.SetDefault("docker_api_version", "1.39")

@@ -658,6 +658,12 @@
 			"revisionTime": "2020-01-14T19:47:44Z"
 		},
 		{
+			"checksumSHA1": "wCmuwgRJhne2FryKr/1SxitUsMw=",
+			"path": "github.com/rs/cors",
+			"revision": "fdcf4f9773b8d459d3ec085a8c91b34fcd17803d",
+			"revisionTime": "2019-12-12T21:08:12Z"
+		},
+		{
 			"checksumSHA1": "0qmFlAIqFrOE5bqyJckkgiLuZqE=",
 			"path": "github.com/sirupsen/logrus",
 			"revision": "947831125f318c2fb34bfc6205ee5d74994deb88",

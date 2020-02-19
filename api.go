@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -66,15 +66,20 @@ func startAPI() {
 
 	router := mux.NewRouter()
 	for r, h := range routes {
-		router.HandleFunc(r, h.(func(http.ResponseWriter, *http.Request)))
+		router.HandleFunc(r, h.(func(http.ResponseWriter, *http.Request))).Methods("GET", "OPTIONS")
 	}
 
+	appCors := cors.New(cors.Options{
+		AllowedOrigins:   []string{viper.GetString("krossboard_cors_origins")},
+		AllowedHeaders:   []string{"Authorization", "X-Krossboard-Cluster"},
+		AllowCredentials: true,
+	})
 	srv := &http.Server{
 		Addr:         viper.GetString("krossboard_api_addr"),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      handlers.CORS()(router),
+		Handler:      appCors.Handler(router),
 	}
 
 	// Run our server in a goroutine so that it doesn't block.
@@ -97,7 +102,6 @@ func startAPI() {
 
 // GetDatasetHandler provides reverse proxy to download dataset from KOA instances
 func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
-
 	params := mux.Vars(req)
 	datafile := params["filename"]
 	clusterName := req.Header.Get("X-Krossboard-Cluster")
