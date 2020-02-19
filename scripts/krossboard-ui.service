@@ -19,13 +19,13 @@ TimeoutStartSec=0
 ExecStartPre=-/usr/bin/docker kill krossboard-ui
 ExecStartPre=-/usr/bin/docker rm krossboard-ui
 ExecStartPre=-/usr/bin/docker login --username ${KROSSBOARD_REGISTRY_USERNAME} --password ${KROSSBOARD_REGISTRY_PASSWORD}
-ExecStartPre=-/usr/bin/docker pull ${KROSSBOARD_WEBUI_IMAGE}
+ExecStartPre=-/usr/bin/docker pull ${KROSSBOARD_UI_IMAGE}
 ExecStart=/usr/bin/docker run -d \
     --name krossboard-ui \
-    --net=host \
+    --net host \
     -v ${KROSSBOARD_ROOT_DIR}/etc/Caddyfile:/etc/Caddyfile \
     -v ${KROSSBOARD_ROOT_DIR}/etc/.caddy:/root/.caddy \
-    ${KROSSBOARD_WEBUI_IMAGE}
+    ${KROSSBOARD_UI_IMAGE}
  
 [Install]
 WantedBy=multi-user.target

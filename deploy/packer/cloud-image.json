@@ -1,8 +1,8 @@
 {
   "variables": {
     "product_name": "krossboard",
-    "program_version": "",
-    "image_version": "",
+    "tarball_version": "",
+    "product_image_version": "",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
     "google_build_zone": "us-central1-a",
     "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
@@ -24,7 +24,7 @@
       "project_id": "{{user `google_project_id`}}",
       "source_image": "ubuntu-minimal-1804-bionic-v20200108",
       "source_image_family": "ubuntu-minimal-1804-lts",
-      "image_name": "{{user `product_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "image_name": "{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
       "disk_size": "10",
       "machine_type": "n1-standard-1",
       "ssh_username": "ubuntu",
@@ -38,7 +38,7 @@
       "source_ami": "ami-0cc0a36f626a4fdf5",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
-      "ami_name": "ami-{{user `product_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "ami_name": "ami-{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
       "tags": {
         "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
       }
@@ -50,7 +50,7 @@
       "client_id": "{{user `azure_client_id`}}",
       "client_secret": "{{user `azure_client_secret`}}",
       "managed_image_resource_group_name": "{{user `azure_resource_group`}}",
-      "managed_image_name": "{{user `product_name`}}-v{{user `image_version`}}-{{timestamp}}",
+      "managed_image_name": "{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
       "os_type": "Linux",
       "image_publisher": "Canonical",
       "image_offer": "UbuntuServer",
@@ -66,15 +66,15 @@
     {
       "type": "file",
       "destination": "/tmp/",
-      "source": "./{{user `product_name`}}-v{{user `program_version`}}-x86_64.tgz"
+      "source": "./{{user `product_name`}}-v{{user `tarball_version`}}-x86_64.tgz"
     },
     {
       "type": "shell",
       "inline": [
         "sleep 5",
         "cd /tmp",
-        "tar zxf {{user `product_name`}}-v{{user `program_version`}}-x86_64.tgz",
-        "cd {{user `product_name`}}-v{{user `program_version`}}-x86_64",
+        "tar zxf {{user `product_name`}}-v{{user `tarball_version`}}-x86_64.tgz",
+        "cd {{user `product_name`}}-v{{user `tarball_version`}}-x86_64",
         "sudo ./install.sh"
       ]
     }

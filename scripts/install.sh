@@ -17,15 +17,15 @@ if [ `id -u` -ne 0 ]; then
 fi
 
 DISTRIB_DIR=$(dirname $0)
-PROGRAM_NAME=krossboard
-PROGRAM_BACKEND=krossboard-data-processor
-PROGRAM_BACKEND_SERVICE=${PROGRAM_BACKEND}.service
-PROGRAM_FRONTEND_SERVICE=krossboard-ui.service
-DISTRIB_BINARY_PATH=${1-$DISTRIB_DIR/$PROGRAM_BACKEND}
-PROGRAM_USER=krossboard
-PROGRAM_HOME_DIR=/opt/$PROGRAM_USER
-PROGRAM_CONFIG_DIR=/opt/$PROGRAM_USER/etc
-PROGRAM_CONFIG_FILE=$PROGRAM_NAME.env 
+PRODUCT_NAME=krossboard
+PRODUCT_BACKEND=krossboard-data-processor
+PRODUCT_BACKEND_SERVICE=${PRODUCT_BACKEND}.service
+PRODUCT_FRONTEND_SERVICE=krossboard-ui.service
+DISTRIB_BINARY_PATH=${1-$DISTRIB_DIR/$PRODUCT_BACKEND}
+PRODUCT_USER=krossboard
+PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
+PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
+PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env 
 
 
 echo -e "${RED_COLOR}updaing apt source list and package versions...${NO_COLOR}"
@@ -35,18 +35,18 @@ apt update && apt -y upgrade
 # apt install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-apt install -y docker.io rrdtool librrd-dev
+apt install -y docker.io rrdtool librrd-dev vim
 
-echo -e "${RED_COLOR}installing ${PROGRAM_BACKEND} with binary $DISTRIB_BINARY_PATH...${NO_COLOR}"
-install -d $PROGRAM_HOME_DIR/{bin,data,etc}
-install -m 755 $DISTRIB_BINARY_PATH $PROGRAM_HOME_DIR/bin/
-install -m 644 $DISTRIB_DIR/scripts/$PROGRAM_CONFIG_FILE $PROGRAM_CONFIG_DIR/
-install -m 644 $DISTRIB_DIR/scripts/$PROGRAM_BACKEND_SERVICE /lib/systemd/system/
-install -m 644 $DISTRIB_DIR/scripts/$PROGRAM_FRONTEND_SERVICE /lib/systemd/system/
+echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} with binary $DISTRIB_BINARY_PATH...${NO_COLOR}"
+install -d $PRODUCT_HOME_DIR/{bin,data,etc}
+install -m 755 $DISTRIB_BINARY_PATH $PRODUCT_HOME_DIR/bin/
+install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_CONFIG_FILE $PRODUCT_CONFIG_DIR/
+install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_BACKEND_SERVICE /lib/systemd/system/
+install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_FRONTEND_SERVICE /lib/systemd/system/
 
-echo -e "${RED_COLOR}setting up runtime user ${PROGRAM_USER}...${NO_COLOR}"
-id -u $PROGRAM_USER &> /dev/null || useradd $PROGRAM_USER
-usermod -d $PROGRAM_HOME_DIR -G docker $PROGRAM_USER
+echo -e "${RED_COLOR}setting up runtime user ${PRODUCT_USER}...${NO_COLOR}"
+id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
+usermod -d $PRODUCT_HOME_DIR -G docker $PRODUCT_USER
 
 CLOUD_PROVIDER="UNSET"
 echo -e "${RED_COLOR}checking cloud provider...${NO_COLOR}"
@@ -59,7 +59,7 @@ if wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?a
     curl -sL https://aka.ms/InstallAzureCLIDeb | bash
     DIST_AZ_COMMAND=$(which az || echo "")
     if [ "$DIST_AZ_COMMAND" != "" ]; then
-        echo "DIST_AZ_COMMAND=$DIST_AZ_COMMAND" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE
+        echo "DIST_AZ_COMMAND=$DIST_AZ_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
         echo -e "${RED_COLOR}command az found at $DIST_AZ_COMMAND${NO_COLOR}"
     fi    
 fi
@@ -74,7 +74,7 @@ if wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/c
     DIST_GCLOUD_COMMAND=$(which gcloud || echo "")
     if [ "$DIST_GCLOUD_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command gcloud found at $DIST_GCLOUD_COMMAND${NO_COLOR}"
-        echo "DIST_GCLOUD_COMMAND=$DIST_GCLOUD_COMMAND" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE 
+        echo "DIST_GCLOUD_COMMAND=$DIST_GCLOUD_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE 
     fi  
 fi
 
@@ -88,21 +88,24 @@ if wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone"
     DIST_AWS_COMMAND=$(which aws || echo "")
     if [ "$DIST_AWS_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command aws found at $DIST_AWS_COMMAND${NO_COLOR}"
-        echo "DIST_AWS_COMMAND=$DIST_AWS_COMMAND" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE
+        echo "DIST_AWS_COMMAND=$DIST_AWS_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
     fi
 fi
 
 
 # signing the installation
 echo -e "${RED_COLOR}signing the installation${NO_COLOR}"
-stat -c %Z $PROGRAM_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PROGRAM_USER/data/.sign
+stat -c %Z $PRODUCT_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PRODUCT_USER/data/.sign
 
-echo -e "${RED_COLOR}setting KROSSBOARD_UPDATE_INTERVAL default value ${NO_COLOR}"
-echo "KROSSBOARD_UPDATE_INTERVAL=30" >> $PROGRAM_CONFIG_DIR/$PROGRAM_CONFIG_FILE
+echo -e "${RED_COLOR}update configuration file ${NO_COLOR}"
+echo "KROSSBOARD_UPDATE_INTERVAL=30" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
-echo -e "${RED_COLOR}create Caddy configuration file ${PROGRAM_CONFIG_DIR}/etc/Caddyfile ${NO_COLOR}"
-cat <<EOF >> ${PROGRAM_CONFIG_DIR}/etc/Caddyfile
-0.0.0.0
+echo -e "${RED_COLOR}dumping configuration file ${NO_COLOR}"
+cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
+
+echo -e "${RED_COLOR}create Caddy configuration file ${PRODUCT_CONFIG_DIR}/etc/Caddyfile ${NO_COLOR}"
+cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
+0.0.0.0:80
 browse
 log stdout
 errors stdout
@@ -110,8 +113,8 @@ proxy /api 127.0.0.1:1519
 EOF
 
 echo -e "${RED_COLOR}setting permissions on files and updating systemd settings ${NO_COLOR}"
-chown -R $PROGRAM_USER:$PROGRAM_USER $PROGRAM_HOME_DIR/
-systemctl enable $PROGRAM_BACKEND_SERVICE
-systemctl enable $PROGRAM_FRONTEND_SERVICE
+chown -R $PRODUCT_USER:$PRODUCT_USER $PRODUCT_HOME_DIR/
+systemctl enable $PRODUCT_BACKEND_SERVICE
+systemctl enable $PRODUCT_FRONTEND_SERVICE
 systemctl daemon-reload
 echo "done"
