@@ -1,6 +1,7 @@
 PRODUCT_NAME=krossboard
 PACKAGE_NAME=$(PRODUCT_NAME)-data-processor
-PRODUCT_VERSION=$$(date +%s)
+PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
+PRODUCT_CLOUD_IMAGE_VERSION=$$(echo $(PRODUCT_VERSION) | sed 's/\.//g' -)
 ARCH=$$(uname -m)
 DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
 GOCMD=go
@@ -45,21 +46,34 @@ dist: build build-compress
 	cp scripts/$(PRODUCT_NAME)* $(DIST_DIR)/scripts/
 	install -m 755 scripts/install.sh $(DIST_DIR)/
 	tar zcf $(DIST_DIR).tgz $(DIST_DIR)
-cloud-image:
-	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)	
+	
 dist-cloud-image: dist
-	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+	$(PACKER) build \
+		-var="product_name=$(PRODUCT_NAME)" \
+		-var="tarball_version=$(PRODUCT_VERSION)" \
+		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		$(PACKER_CONF_FILE)
+
 dist-cloud-image-aws: dist
 	$(PACKER) build -only=amazon-ebs \
 		-var="product_name=$(PRODUCT_NAME)" \
 		-var="tarball_version=$(PRODUCT_VERSION)" \
-		-var="product_image_version=$(PRODUCT_VERSION)" \
+		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
 		$(PACKER_CONF_FILE)
+
 dist-cloud-image-google: dist
-	$(PACKER) build -only=googlecompute -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+	$(PACKER) build -only=googlecompute \
+		-var="product_name=$(PRODUCT_NAME)" \
+		-var="tarball_version=$(PRODUCT_VERSION)" \
+		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		$(PACKER_CONF_FILE)
+
 dist-cloud-image-azure: dist
 	$(PACKER) build -only=azure-arm \
-		-var="product_name=$(PRODUCT_NAME)" $(PACKER_CONF_FILE)
+		-var="product_name=$(PRODUCT_NAME)" \
+		-var="tarball_version=$(PRODUCT_VERSION)" \
+		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		$(PACKER_CONF_FILE)
 
 # Cross compilation
 docker-build:
