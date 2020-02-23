@@ -16,9 +16,10 @@ import (
 )
 
 func updateEKSClusters() {
+	workers.Add(1)
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	for {
 		awsRegion, err := getAWSRegion()
 		if err != nil {

@@ -17,6 +17,7 @@ import (
 )
 
 func updateGKEClusters() {
+	workers.Add(1)
 	defer workers.Done()
 
 	ctx := context.Background()
@@ -26,7 +27,7 @@ func updateGKEClusters() {
 		return
 	}
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
+	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	for {
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {

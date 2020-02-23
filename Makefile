@@ -12,7 +12,6 @@ GOVENDOR=govendor
 UPX=upx
 PACKER=packer
 PACKER_VERSION=1.5.1
-PACKER_VAR_FILE="./deploy/packer/variables.json"
 PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
@@ -51,11 +50,16 @@ cloud-image:
 dist-cloud-image: dist
 	$(PACKER) build -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
 dist-cloud-image-aws: dist
-	$(PACKER) build -only=amazon-ebs -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+	$(PACKER) build -only=amazon-ebs \
+		-var="product_name=$(PRODUCT_NAME)" \
+		-var="tarball_version=$(PRODUCT_VERSION)" \
+		-var="product_image_version=$(PRODUCT_VERSION)" \
+		$(PACKER_CONF_FILE)
 dist-cloud-image-google: dist
 	$(PACKER) build -only=googlecompute -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
 dist-cloud-image-azure: dist
-	$(PACKER) build -only=azure-arm -var-file=$(PACKER_VAR_FILE) $(PACKER_CONF_FILE)
+	$(PACKER) build -only=azure-arm \
+		-var="product_name=$(PRODUCT_NAME)" $(PACKER_CONF_FILE)
 
 # Cross compilation
 docker-build:

@@ -11,9 +11,9 @@ import (
 )
 
 func orchestrateInstances(systemStatus *SystemStatus) {
+	workers.Add(1)
 	defer workers.Done()
 
-	log.Infoln("starting cluster orchestration worker")
 	containerManager := NewContainerManager(viper.GetString("krossboard_koainstance_image"))
 	if err := containerManager.PullImage(); err != nil {
 		log.WithFields(log.Fields{
@@ -22,29 +22,32 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 		}).Fatalln("failed pulling base container image")
 	}
 
-	kubeConfig := NewKubeConfig()
+	kubeconfig := NewKubeConfig()
 	log.WithFields(log.Fields{
-		"kubeconfig": kubeConfig.Path,
+		"kubeconfig": kubeconfig.Path,
 	}).Debugln("KUBECONFIG selected")
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval")) * time.Minute
+	updatePeriodMin := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
+	orchestrationRoundErrors := int64(0)
 	for {
-		managedClusters, err := kubeConfig.ListClusters()
+		discoveredClusters, err := kubeconfig.ListClusters()
 		if err != nil {
-			log.WithError(err).Errorln("Failed reading KUBECONFIG")
-			time.Sleep(updatePeriod)
+			log.WithError(err).Errorln("Failed reading discovered clusters")
+			orchestrationRoundErrors += 1
+			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 			continue
 		}
 
 		runningConfig, err := systemStatus.GetInstances()
 		if err != nil {
 			log.WithField("message", err.Error()).Errorln("cannot load running configuration")
-			time.Sleep(updatePeriod)
+			orchestrationRoundErrors += 1
+			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 			continue
 		}
 
 		// Manage an instance for each cluster
-		for _, cluster := range managedClusters {
+		for _, cluster := range discoveredClusters {
 			log.WithFields(log.Fields{
 				"cluster":  cluster.Name,
 				"endpoint": cluster.APIEndpoint,
@@ -58,22 +61,18 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 			dataVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), cluster.Name)
 			err = createDirIfNotExists(dataVol)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"path":    dataVol,
-					"message": err.Error(),
-				}).Errorln("failed creating data volume")
-				time.Sleep(updatePeriod)
+				log.WithFields(log.Fields{"path": dataVol, "message": err.Error()}).Errorln("failed creating data volume")
+				orchestrationRoundErrors += 1
+				time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 				break
 			}
 
 			tokenVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_credentials_dir"), cluster.Name)
 			err = createDirIfNotExists(tokenVol)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"path":    tokenVol,
-					"message": err.Error(),
-				}).Errorln("failed creating token volume")
-				time.Sleep(updatePeriod)
+				log.WithFields(log.Fields{"path": tokenVol, "message": err.Error()}).Errorln("failed creating token volume")
+				orchestrationRoundErrors += 1
+				time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 				continue
 			}
 
@@ -84,7 +83,7 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 				continue
 			}
 
-			accessToken, err := kubeConfig.GetAccessToken(cluster.AuthInfo)
+			accessToken, err := kubeconfig.GetAccessToken(cluster.AuthInfo)
 			if err != nil {
 				log.WithField("cluster", cluster.Name).Error("failed getting access token from credentials plugin: ", err.Error())
 				continue
@@ -98,15 +97,9 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 
 			if ii, err := systemStatus.FindInstance(cluster.Name); err != nil || ii >= 0 {
 				if err != nil {
-					log.WithFields(log.Fields{
-						"cluster": cluster.Name,
-						"message": err.Error(),
-					}).Errorln("failed finding instance")
+					log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("failed finding instance")
 				} else {
-					log.WithFields(log.Fields{
-						"cluster":     cluster.Name,
-						"containerId": runningConfig.Instances[ii].ID,
-					}).Debugln("instance found")
+					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": runningConfig.Instances[ii].ID}).Debugln("instance found")
 				}
 				continue
 			}
@@ -125,32 +118,33 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 
 			err = containerManager.CreateContainer(instance)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"image":   instance.Image,
-					"message": err.Error(),
-				}).Errorln("Failed creating container")
-				time.Sleep(updatePeriod)
+				log.WithFields(log.Fields{"image": instance.Image, "message": err.Error()}).Errorln("Failed creating container")
+				orchestrationRoundErrors += 1
+				time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 				break
 			}
-			log.WithFields(log.Fields{
-				"cluster":     cluster.Name,
-				"containerId": instance.ID,
-			}).Infoln("new instance created")
+			log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": instance.ID}).Infoln("new instance created")
 
 			runningConfig.Instances = append(runningConfig.Instances, instance)
 			runningConfig.NextHostPort++
 			err = systemStatus.UpdateRunningConfig(runningConfig)
 			if err != nil {
-				log.WithFields(log.Fields{
-					"cluster": cluster.Name,
-					"message": err.Error(),
-				}).Errorln("failed to update system status")
-				time.Sleep(updatePeriod)
+				log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("failed to update system status")
+				orchestrationRoundErrors += 1
+				time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 				break // or exit ?
 			}
 
 			log.Infoln("system status updated with cluster", cluster.Name)
 		}
-		time.Sleep(updatePeriod)
+		orchestrationRoundErrors = 0
+		time.Sleep(updatePeriodMin)
 	}
+}
+
+func fibonacci(n int64) int64 {
+	if n <= 1 {
+		return n
+	}
+	return fibonacci(n-1) + fibonacci(n-2)
 }

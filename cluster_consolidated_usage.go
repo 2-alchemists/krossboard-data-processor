@@ -114,9 +114,9 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 }
 
 func processConsolidatedUsage() {
+	workers.Add(1)
 	defer workers.Done()
 
-	log.Infoln("starting usage consolidation worker")
 	for {
 		allClustersUsage, err := getAllClustersCurrentUsage()
 		if err != nil {

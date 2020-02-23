@@ -31,7 +31,7 @@ func main() {
 	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
 	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
-	viper.SetDefault("krossboard_update_interval", 30)
+	viper.SetDefault("krossboard_update_interval_min", 30)
 	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
 	viper.SetDefault("krossboard_cors_origins", "*")
@@ -124,7 +124,6 @@ func main() {
 		log.Infoln(len(containersDeleted), "not running container(s) cleaned")
 	}
 
-	workers.Add(3)
 	cloudProvider := getCloudProvider()
 	log.Infoln("cloud provider =>", cloudProvider)
 	switch cloudProvider {
@@ -137,11 +136,13 @@ func main() {
 	default:
 		log.Fatalln("unauthorized execution environment:", cloudProvider)
 	}
+	log.Infoln("discover started")
 
 	go orchestrateInstances(systemStatus)
-	go processConsolidatedUsage()
+	log.Infoln("orchestrator started")
 
-	log.Infoln("service started")
+	go processConsolidatedUsage()
+	log.Infoln("consolidator started")
 
 	startAPI()
 
