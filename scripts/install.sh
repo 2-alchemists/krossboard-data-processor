@@ -98,7 +98,7 @@ echo -e "${RED_COLOR}signing the installation${NO_COLOR}"
 stat -c %Z $PRODUCT_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PRODUCT_USER/data/.sign
 
 echo -e "${RED_COLOR}update configuration file ${NO_COLOR}"
-echo "KROSSBOARD_UPDATE_INTERVAL_MIN=30" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
+echo "KROSSBOARD_UPDATE_INTERVAL_MIN=5" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
 echo -e "${RED_COLOR}dumping configuration file ${NO_COLOR}"
 cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
