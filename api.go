@@ -294,10 +294,10 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process cluster parameter
-	historyDbs := make(map[string]string)
+	usageHistoryDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, instance := range getInstancesResult.Instances {
-			historyDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), instance.ClusterName)
+			usageHistoryDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), instance.ClusterName)
 		}
 	} else {
 		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
@@ -307,7 +307,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			areValidParameters = true
 		} else {
 			for _, dbfile := range dbfiles {
-				historyDbs[dbfile] = fmt.Sprintf("%s/%s", dbdir, dbfile)
+				usageHistoryDbs[dbfile] = fmt.Sprintf("%s/%s", dbdir, dbfile)
 			}
 		}
 	}
@@ -328,7 +328,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		Status:             "ok",
 		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
 	}
-	for dbname, dbfile := range historyDbs {
+	for dbname, dbfile := range usageHistoryDbs {
 		usageDb := NewUsageDb(dbfile)
 		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
 		if err != err {
