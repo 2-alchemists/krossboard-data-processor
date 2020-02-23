@@ -62,13 +62,6 @@ func main() {
 	customFormatter.FullTimestamp = true
 	log.SetFormatter(customFormatter)
 
-	// FIXME: handle unauthorized copies
-	// err := checkLicense()
-	// if err != nil {
-	// 	log.WithError(err).Fatalln("initilization failed")
-	// 	return
-	// }
-
 	logLevel, err := log.ParseLevel(viper.GetString("krossboard_log_level"))
 	if err != nil {
 		log.WithError(err).Error("failed parsing log level")
@@ -126,6 +119,7 @@ func main() {
 
 	cloudProvider := getCloudProvider()
 	log.Infoln("cloud provider =>", cloudProvider)
+
 	switch cloudProvider {
 	case "AWS":
 		go updateEKSClusters()
@@ -138,10 +132,11 @@ func main() {
 	}
 	log.Infoln("discover started")
 
-	go orchestrateInstances(systemStatus)
+	kubeconfig := NewKubeConfig()
+	go orchestrateInstances(systemStatus, kubeconfig)
 	log.Infoln("orchestrator started")
 
-	go processConsolidatedUsage()
+	go processConsolidatedUsage(kubeconfig)
 	log.Infoln("consolidator started")
 
 	startAPI()

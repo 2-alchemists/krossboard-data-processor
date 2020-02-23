@@ -25,22 +25,20 @@ type K8sClusterUsage struct {
 	OutToDate         bool    `json:"outToDate"`
 }
 
-func getAllClustersCurrentUsage() ([]*K8sClusterUsage, error) {
-	baseDataDir := viper.GetString("krossboard_root_data_dir")
-	entries, err := ioutil.ReadDir(baseDataDir)
+func getAllClustersCurrentUsage(kubeconfig *KubeConfig) ([]*K8sClusterUsage, error) {
+	clusters, err := kubeconfig.ListClusters()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed listing data dir")
+		return nil, errors.Wrap(err, "failed reading clusters")
 	}
 
 	var allUsage []*K8sClusterUsage
-	for _, entry := range entries {
-		if entry.IsDir() {
-			usage, err := getClusterCurrentUsage(baseDataDir, entry.Name())
-			if err != nil {
-				log.WithError(err).Warnln("error getting current cluster usage for entry:", entry.Name())
-			} else {
-				allUsage = append(allUsage, usage)
-			}
+	baseDataDir := viper.GetString("krossboard_root_data_dir")
+	for clusterName, _ := range clusters {
+		usage, err := getClusterCurrentUsage(baseDataDir, clusterName)
+		if err != nil {
+			log.WithError(err).Warnln("error getting current cluster usage for entry:", clusterName)
+		} else {
+			allUsage = append(allUsage, usage)
 		}
 	}
 	return allUsage, nil
@@ -113,12 +111,12 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 	return usage, nil
 }
 
-func processConsolidatedUsage() {
+func processConsolidatedUsage(kubeconfig *KubeConfig) {
 	workers.Add(1)
 	defer workers.Done()
 
 	for {
-		allClustersUsage, err := getAllClustersCurrentUsage()
+		allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
 		if err != nil {
 			log.WithError(err).Errorln("get processing all clusters usage")
 		} else {

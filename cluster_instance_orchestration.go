@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func orchestrateInstances(systemStatus *SystemStatus) {
+func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 	workers.Add(1)
 	defer workers.Done()
 
@@ -22,17 +22,12 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 		}).Fatalln("failed pulling base container image")
 	}
 
-	kubeconfig := NewKubeConfig()
-	log.WithFields(log.Fields{
-		"kubeconfig": kubeconfig.Path,
-	}).Debugln("KUBECONFIG selected")
-
 	updatePeriodMin := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	orchestrationRoundErrors := int64(0)
 	for {
 		discoveredClusters, err := kubeconfig.ListClusters()
 		if err != nil {
-			log.WithError(err).Errorln("Failed reading discovered clusters")
+			log.WithError(err).Errorln("Failed reading clusters")
 			orchestrationRoundErrors += 1
 			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 			continue
@@ -48,10 +43,7 @@ func orchestrateInstances(systemStatus *SystemStatus) {
 
 		// Manage an instance for each cluster
 		for _, cluster := range discoveredClusters {
-			log.WithFields(log.Fields{
-				"cluster":  cluster.Name,
-				"endpoint": cluster.APIEndpoint,
-			}).Debugln("processing new cluster")
+			log.WithFields(log.Fields{"cluster": cluster.Name, "endpoint": cluster.APIEndpoint}).Debugln("processing new cluster")
 
 			if cluster.AuthInfo == nil {
 				log.WithField("cluster", cluster.Name).Warn("ignoring cluster with no AuthInfo")
