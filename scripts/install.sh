@@ -103,7 +103,7 @@ echo "KROSSBOARD_UPDATE_INTERVAL_MIN=5" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_F
 echo -e "${RED_COLOR}dumping configuration file ${NO_COLOR}"
 cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
-echo -e "${RED_COLOR}create Caddy configuration file ${PRODUCT_CONFIG_DIR}/etc/Caddyfile ${NO_COLOR}"
+echo -e "${RED_COLOR}creating Caddy configuration file ${PRODUCT_CONFIG_DIR}/Caddyfile ${NO_COLOR}"
 cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
 0.0.0.0:80
 browse
