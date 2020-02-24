@@ -87,12 +87,13 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 		}
 		defer fetchRes.FreeValues()
 
-		usage.OutToDate = false
+		usage.OutToDate = true
 		rrdRow := 0
 		for ti := fetchRes.Start.Add(fetchRes.Step); ti.Before(rrdEnd) || ti.Equal(rrdEnd); ti = ti.Add(fetchRes.Step) {
 			cpu := fetchRes.ValueAt(0, rrdRow)
 			mem := fetchRes.ValueAt(1, rrdRow)
 			if !math.IsNaN(cpu) && !math.IsNaN(mem) {
+				usage.OutToDate = false
 				if dbfile.Name() == "non-allocatable" {
 					usage.CPUNonAllocatable = cpu
 					usage.MemNonAllocatable = mem
@@ -105,9 +106,6 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 		}
 	}
 
-	if usage.MemNonAllocatable <= 0 || usage.CPUNonAllocatable <= 0 {
-		usage.OutToDate = true
-	}
 	return usage, nil
 }
 
