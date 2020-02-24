@@ -41,6 +41,13 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			continue
 		}
 
+		if err != nil {
+			log.WithError(err).Fatalln("cannot get current containers")
+			orchestrationRoundErrors += 1
+			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
+			continue
+		}
+
 		// Manage an instance for each cluster
 		for _, cluster := range discoveredClusters {
 			log.WithFields(log.Fields{"cluster": cluster.Name, "endpoint": cluster.APIEndpoint}).Debugln("processing new cluster")
@@ -87,13 +94,26 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 				continue
 			}
 
-			if ii, err := systemStatus.FindInstance(cluster.Name); err != nil || ii >= 0 {
+			if instanceID, err := systemStatus.FindInstance(cluster.Name); err != nil || instanceID >= 0 {
 				if err != nil {
-					log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("failed finding instance")
-				} else {
-					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": runningConfig.Instances[ii].ID}).Debugln("instance found")
+					log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("instance's container not found")
+					continue
 				}
-				continue
+
+				containerID := runningConfig.Instances[instanceID].ID
+
+				currentContainers, err := containerManager.GetAllContainersStates()
+				if _, cfound := currentContainers[containerID]; cfound {
+					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": containerID}).Debugln("instance found")
+					continue
+				}
+
+				err = systemStatus.RemoveInstanceByContainerID(containerID)
+				if err != nil {
+					log.WithError(err).Errorln("failed cleaning from status database:", containerID)
+				} else {
+					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": containerID}).Infoln("instance cleaned")
+				}
 			}
 
 			rawName := fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700"))

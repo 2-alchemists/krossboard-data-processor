@@ -91,21 +91,21 @@ func main() {
 	}
 
 	containerManager := NewContainerManager("")
-	cStates, err := containerManager.GetAllContainersStates()
+	currentContainers, err := containerManager.GetAllContainersStates()
 	if err != nil {
-		log.WithError(err).Fatalln("cannot list containers")
+		log.WithError(err).Fatalln("cannot get current containers")
 	}
-	containerNotRunningStatus := map[string]bool{
+	containerNotRunningStates := map[string]bool{
 		"exited": true,
 		"dead":   true,
 	}
-	for cID, cState := range cStates {
-		if _, statusFound := containerNotRunningStatus[cState]; statusFound {
-			err := systemStatus.RemoveInstanceByContainerID(cID)
+	for cid, cstate := range currentContainers {
+		if _, sfound := containerNotRunningStates[cstate]; sfound {
+			err := systemStatus.RemoveInstanceByContainerID(cid)
 			if err != nil {
-				log.WithError(err).Errorln("failed cleaning from status database:", cID)
+				log.WithError(err).Errorln("failed cleaning from status database:", cid)
 			} else {
-				log.Infoln("instance cleaned from status database:", cID)
+				log.Infoln("instance cleaned", cid)
 			}
 		}
 	}
