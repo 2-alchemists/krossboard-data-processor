@@ -87,21 +87,21 @@ func (m *SystemStatus) UpdateRunningConfig(instanceSet *InstanceSet) error {
 	return nil
 }
 
-// FindInstance finds if there is an instance for a given K8s name
-func (m *SystemStatus) FindInstance(clusterName string) (int, error) {
+// FindInstance finds if there is an instance for a given K8s name and return its ID
+func (m *SystemStatus) FindInstance(clusterName string) (instanceID string, err error) {
+	instanceID = ""
 	runningConfig, err := m.GetInstances()
 	if err != nil {
-		return -1, errors.Wrap(err, "failed fetching running configuration")
+		return "", errors.Wrap(err, "failed fetching running configuration")
 	}
 
-	foundItemIndex := int(-1)
-	for index, instance := range runningConfig.Instances {
+	for _, instance := range runningConfig.Instances {
 		if instance.ClusterName == clusterName {
-			foundItemIndex = index
+			instanceID = instance.ID
 			break
 		}
 	}
-	return foundItemIndex, nil
+	return instanceID, nil
 }
 
 // RemoveInstanceByContainerID removes an instance mathing a container's ID

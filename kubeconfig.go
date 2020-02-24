@@ -54,20 +54,20 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 		authInfos[user] = authInfo.Token
 	}
 
-	managedClusters := map[string]*ManagedCluster{}
+	discoveredClusters := map[string]*ManagedCluster{}
 	for clusterName, clusterInfo := range config.Clusters {
-		managedClusters[clusterName] = &ManagedCluster{
-			Name:        clusterName,
+		discoveredClusters[clusterName] = &ManagedCluster{
+			Name:        strings.ReplaceAll(clusterName, "/", "@"),
 			APIEndpoint: clusterInfo.Server,
 			CaData:      clusterInfo.CertificateAuthorityData,
 		}
 	}
 	for _, context := range config.Contexts {
-		if cluster, found := managedClusters[context.Cluster]; found {
+		if cluster, found := discoveredClusters[context.Cluster]; found {
 			cluster.AuthInfo = config.AuthInfos[context.AuthInfo]
 		}
 	}
-	return managedClusters, nil
+	return discoveredClusters, nil
 }
 
 // GetAccessToken retrieves access token from AuthInfo

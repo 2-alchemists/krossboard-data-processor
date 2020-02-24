@@ -94,32 +94,31 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 				continue
 			}
 
-			if instanceID, err := systemStatus.FindInstance(cluster.Name); err != nil || instanceID >= 0 {
+			instanceID, err := systemStatus.FindInstance(cluster.Name)
+			if instanceID != "" {
 				if err != nil {
-					log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("instance's container not found")
-					continue
+					log.WithError(err).WithFields(log.Fields{"cluster": cluster.Name}).Debugln("failed querying instance info")
 				}
-
-				containerID := runningConfig.Instances[instanceID].ID
 
 				currentContainers, err := containerManager.GetAllContainersStates()
-				if _, cfound := currentContainers[containerID]; cfound {
-					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": containerID}).Debugln("instance found")
+				if _, cfound := currentContainers[instanceID]; cfound {
+					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": instanceID}).Debugln("instance found")
 					continue
 				}
 
-				err = systemStatus.RemoveInstanceByContainerID(containerID)
+				// cleanup container in unexpected state and move forward
+				err = systemStatus.RemoveInstanceByContainerID(instanceID)
 				if err != nil {
-					log.WithError(err).Errorln("failed cleaning from status database:", containerID)
+					log.WithError(err).Errorln("failed cleaning from status database:", instanceID)
 				} else {
-					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": containerID}).Infoln("instance cleaned")
+					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": instanceID}).Infoln("instance cleaned")
 				}
 			}
 
 			rawName := fmt.Sprintf("%s-%v", cluster.Name, time.Now().Format("20060102T1504050700"))
 			instance := &Instance{
 				Image:           containerManager.Image,
-				Name:            strings.Replace(strings.Replace(rawName, ":", "_", -1), "/", "_", -1),
+				Name:            strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(rawName, "@", "_"), ":", "_"), "/", "_"),
 				HostPort:        int64(runningConfig.NextHostPort),
 				ContainerPort:   int64(5483),
 				ClusterName:     cluster.Name,
