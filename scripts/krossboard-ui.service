@@ -19,6 +19,7 @@ TimeoutStartSec=0
 ExecStartPre=-/usr/bin/docker kill krossboard-ui
 ExecStartPre=-/usr/bin/docker rm krossboard-ui
 ExecStartPre=-/usr/bin/docker login --username ${KROSSBOARD_REGISTRY_USERNAME} --password ${KROSSBOARD_REGISTRY_PASSWORD}
+ExecStartPre=-/bin/sleep 2
 ExecStartPre=-/usr/bin/docker pull ${KROSSBOARD_UI_IMAGE}
 ExecStart=/usr/bin/docker run -d \
     --name krossboard-ui \
