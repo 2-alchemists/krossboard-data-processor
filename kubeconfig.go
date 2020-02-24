@@ -56,14 +56,16 @@ func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 
 	discoveredClusters := map[string]*ManagedCluster{}
 	for clusterName, clusterInfo := range config.Clusters {
-		discoveredClusters[clusterName] = &ManagedCluster{
-			Name:        strings.ReplaceAll(clusterName, "/", "@"),
+		clusterNameEscaped := strings.ReplaceAll(clusterName, "/", "@")
+		discoveredClusters[clusterNameEscaped] = &ManagedCluster{
+			Name:        clusterNameEscaped,
 			APIEndpoint: clusterInfo.Server,
 			CaData:      clusterInfo.CertificateAuthorityData,
 		}
 	}
 	for _, context := range config.Contexts {
-		if cluster, found := discoveredClusters[context.Cluster]; found {
+		clusterNameEscaped := strings.ReplaceAll(context.Cluster, "/", "@")
+		if cluster, found := discoveredClusters[clusterNameEscaped]; found {
 			cluster.AuthInfo = config.AuthInfos[context.AuthInfo]
 		}
 	}
