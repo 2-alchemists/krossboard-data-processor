@@ -1,6 +1,6 @@
 PRODUCT_NAME=krossboard
 PACKAGE_NAME=$(PRODUCT_NAME)-data-processor
-PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)
+PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)-$$(git rev-parse --short HEAD)
 PRODUCT_CLOUD_IMAGE_VERSION=$$(echo $(PRODUCT_VERSION) | sed 's/\.//g' -)
 ARCH=$$(uname -m)
 DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
