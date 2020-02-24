@@ -92,7 +92,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 		for ti := fetchRes.Start.Add(fetchRes.Step); ti.Before(rrdEnd) || ti.Equal(rrdEnd); ti = ti.Add(fetchRes.Step) {
 			cpu := fetchRes.ValueAt(0, rrdRow)
 			mem := fetchRes.ValueAt(1, rrdRow)
-			if !math.IsNaN(cpu) && !math.IsNaN(mem) {
+			if !math.IsNaN(cpu) && !math.IsNaN(mem) && cpu >= 0 && mem >= 0 {
 				usage.OutToDate = false
 				if dbfile.Name() == "non-allocatable" {
 					usage.CPUNonAllocatable = cpu
@@ -142,9 +142,9 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 				}
 				time.Sleep(time.Second) // otherwise update will fail with 'illegal attempt to update' error
 			}
-			err = usageDb.UpdateRRD(time.Now(),
-				clusterUsage.CPUUsed+clusterUsage.CPUNonAllocatable,
-				clusterUsage.MemUsed+clusterUsage.MemNonAllocatable)
+			cpuUsage := clusterUsage.CPUUsed + clusterUsage.CPUNonAllocatable
+			memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
+			err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
 			if err != nil {
 				log.WithError(err).Errorln("failed to udpate RRD file", rrdFile)
 			}
