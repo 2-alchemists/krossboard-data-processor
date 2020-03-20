@@ -51,7 +51,7 @@ func main() {
 
 	// fixed config variables
 	viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
-	viper.Set("krossboard_credentials_dir", fmt.Sprintf("%s/cred", viper.GetString("krossboard_root_dir")))
+	viper.Set("krossboard_credentials_dir", fmt.Sprintf("%s/.cred", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("krossboard_status_dir")))
 	viper.Set("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_status_dir")))
