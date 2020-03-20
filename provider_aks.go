@@ -13,23 +13,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-func updateAKSClusters() {
+func updateAKSClusters(updateIntervalMin time.Duration) {
 	workers.Add(1)
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	for {
 		err := azLogin()
 		if err != nil {
 			log.WithError(err).Errorln("Azure login failed")
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 
 		groups, err := listGroups()
 		if err != nil {
 			log.WithError(err).Errorln("failed to list resource groups")
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 
@@ -66,7 +65,7 @@ func updateAKSClusters() {
 				}
 			}
 		}
-		time.Sleep(updatePeriod)
+		time.Sleep(updateIntervalMin)
 	}
 }
 

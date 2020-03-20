@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -120,20 +121,27 @@ func main() {
 	cloudProvider := getCloudProvider()
 	log.Infoln("cloud provider =>", cloudProvider)
 
+	orchestrationUpdateInterval := viper.GetInt64("krossboard_update_interval_min")
+	orchestrationUpdateIntervalMin := 5 * time.Minute
+	if orchestrationUpdateInterval > 5 {
+		orchestrationUpdateIntervalMin = time.Duration((orchestrationUpdateInterval/5)*5) * time.Minute
+	}
+	log.Infoln("orchestration update interval =>", orchestrationUpdateIntervalMin)
+
 	switch cloudProvider {
 	case "AWS":
-		go updateEKSClusters()
+		go updateEKSClusters(orchestrationUpdateIntervalMin)
 	case "AZURE":
-		go updateAKSClusters()
+		go updateAKSClusters(orchestrationUpdateIntervalMin)
 	case "GCP":
-		go updateGKEClusters()
+		go updateGKEClusters(orchestrationUpdateIntervalMin)
 	default:
 		log.Fatalln("unauthorized execution environment:", cloudProvider)
 	}
 	log.Infoln("discover started")
 
 	kubeconfig := NewKubeConfig()
-	go orchestrateInstances(systemStatus, kubeconfig)
+	go orchestrateInstances(systemStatus, kubeconfig, orchestrationUpdateIntervalMin)
 	log.Infoln("orchestrator started")
 
 	go processConsolidatedUsage(kubeconfig)

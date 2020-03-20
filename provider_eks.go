@@ -15,16 +15,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-func updateEKSClusters() {
+func updateEKSClusters(updateIntervalMin time.Duration) {
 	workers.Add(1)
 	defer workers.Done()
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	for {
 		awsRegion, err := getAWSRegion()
 		if err != nil {
 			log.WithError(err).Error("cannot retrieve AWS region")
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 		svc := eks.New(session.New(), aws.NewConfig().WithRegion(awsRegion))
@@ -36,7 +35,7 @@ func updateEKSClusters() {
 			} else {
 				log.WithError(err).Error("failed listing EKS clusters")
 			}
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 		for _, clusterName := range listResult.Clusters {
@@ -55,7 +54,7 @@ func updateEKSClusters() {
 			}
 		}
 
-		time.Sleep(updatePeriod)
+		time.Sleep(updateIntervalMin)
 	}
 }
 

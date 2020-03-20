@@ -16,7 +16,7 @@ import (
 	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
 )
 
-func updateGKEClusters() {
+func updateGKEClusters(updateIntervalMin time.Duration) {
 	workers.Add(1)
 	defer workers.Done()
 
@@ -27,12 +27,11 @@ func updateGKEClusters() {
 		return
 	}
 
-	updatePeriod := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	for {
 		projectID, err := getGCPProjectID()
 		if projectID <= int64(0) {
 			log.WithError(err).Errorln("unable to retrieve GCP project ID")
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 		listReq := &gcontainerpbv1.ListClustersRequest{
@@ -41,7 +40,7 @@ func updateGKEClusters() {
 		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
 		if err != nil {
 			log.WithError(err).Errorln("Failed to list GKE clusters")
-			time.Sleep(updatePeriod)
+			time.Sleep(updateIntervalMin)
 			continue
 		}
 
@@ -60,7 +59,7 @@ func updateGKEClusters() {
 				log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
 			}
 		}
-		time.Sleep(updatePeriod)
+		time.Sleep(updateIntervalMin)
 	}
 }
 

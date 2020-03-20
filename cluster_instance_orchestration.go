@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
+func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig, updateIntervalMin time.Duration) {
 	workers.Add(1)
 	defer workers.Done()
 
@@ -22,7 +22,6 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 		}).Fatalln("failed pulling base container image")
 	}
 
-	updatePeriodMin := time.Duration(viper.GetInt64("krossboard_update_interval_min")) * time.Minute
 	orchestrationRoundErrors := int64(0)
 	for {
 		discoveredClusters, err := kubeconfig.ListClusters()
@@ -149,7 +148,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			log.Infoln("system status updated with cluster", cluster.Name)
 		}
 		orchestrationRoundErrors = 0
-		time.Sleep(updatePeriodMin)
+		time.Sleep(updateIntervalMin)
 	}
 }
 
