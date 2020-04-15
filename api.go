@@ -352,7 +352,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 					itemUsage, countUsageEntries, len(itemUsage.MEMUsage))
 				continue
 			}
-			fmt.Fprintf(&csvBuf, "Name,Date UTC,CPU Usage used,Memory used\n")
+			fmt.Fprintf(&csvBuf, "Name,Date UTC,CPU Usage,Memory usage\n")
 			for i := 0; i < countUsageEntries; i++ {
 				fmt.Fprintf(&csvBuf, "%v,%v,%v,%v\n",
 					itemName,
