@@ -4,7 +4,7 @@ PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)-$$(git re
 PRODUCT_CLOUD_IMAGE_VERSION=$$(echo $(PRODUCT_VERSION) | sed 's/\.//g' -)
 ARCH=$$(uname -m)
 DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
-GOCMD=go
+GOCMD=GO111MODULE=off GOCACHE=/tmp/gocache go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
