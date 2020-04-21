@@ -670,6 +670,12 @@
 			"revisionTime": "2020-02-04T22:46:15Z"
 		},
 		{
+			"checksumSHA1": "tzcUwQrH1EMR+RPvTE1Ico6kqT4=",
+			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
 			"checksumSHA1": "2d0rR/VhqllUdrcH6kwHHrhqJ2E=",
 			"path": "github.com/spf13/afero",
 			"revision": "588a75ec4f32903aa5e39a2619ba6a4631e28424",
