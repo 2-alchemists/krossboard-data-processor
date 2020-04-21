@@ -604,6 +604,12 @@
 			"revisionTime": "2020-02-06T01:56:04Z"
 		},
 		{
+			"checksumSHA1": "cIiyvAduLLFvu+tg1Qr5Jw3jeWo=",
+			"path": "github.com/jtolds/gls",
+			"revision": "b4936e06046bbecbb94cae9c18127ebe510a2cb9",
+			"revisionTime": "2018-11-10T20:28:10Z"
+		},
+		{
 			"checksumSHA1": "rmPrVPSxkWI5TXpzYWb2LZW03UU=",
 			"path": "github.com/magiconair/properties",
 			"revision": "a586bb8b7deaae2a0eb4c6c8b63a539425628137",
@@ -670,8 +676,44 @@
 			"revisionTime": "2020-02-04T22:46:15Z"
 		},
 		{
+			"checksumSHA1": "ic+c1+9aBbyFOZ5HD0jwUCu3E4U=",
+			"path": "github.com/smartystreets/assertions",
+			"revision": "f44b269b51f6f75a2452c14c4ee76c114ad92528",
+			"revisionTime": "2020-03-12T12:45:00Z"
+		},
+		{
+			"checksumSHA1": "a0CRqejGZH1LxO4G/DZsux7ULWA=",
+			"path": "github.com/smartystreets/assertions/internal/go-diff/diffmatchpatch",
+			"revision": "f44b269b51f6f75a2452c14c4ee76c114ad92528",
+			"revisionTime": "2020-03-12T12:45:00Z"
+		},
+		{
+			"checksumSHA1": "v6W3GIQMzr3QSXB2NtBa9X7SwiI=",
+			"path": "github.com/smartystreets/assertions/internal/go-render/render",
+			"revision": "f44b269b51f6f75a2452c14c4ee76c114ad92528",
+			"revisionTime": "2020-03-12T12:45:00Z"
+		},
+		{
+			"checksumSHA1": "r6FauVdOTFnwYQgrKGFuWUbIAJE=",
+			"path": "github.com/smartystreets/assertions/internal/oglematchers",
+			"revision": "f44b269b51f6f75a2452c14c4ee76c114ad92528",
+			"revisionTime": "2020-03-12T12:45:00Z"
+		},
+		{
 			"checksumSHA1": "tzcUwQrH1EMR+RPvTE1Ico6kqT4=",
 			"path": "github.com/smartystreets/goconvey/convey",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
+			"checksumSHA1": "6Mgn4H/4vpqYGlaIKZ0UwOmJN0E=",
+			"path": "github.com/smartystreets/goconvey/convey/gotest",
+			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
+			"revisionTime": "2019-07-31T23:36:26Z"
+		},
+		{
+			"checksumSHA1": "zUFddnpn7/A+gjwhShq642PM40I=",
+			"path": "github.com/smartystreets/goconvey/convey/reporting",
 			"revision": "505e419363375c0dc132d3ac02632a4ee32199ca",
 			"revisionTime": "2019-07-31T23:36:26Z"
 		},
