@@ -1,3 +1,5 @@
+![build](https://github.com/2-alchemists/krossboard-data-processor/workflows/build/badge.svg)
+
 # Requirements
 
 * Ubuntu Server 18.04 64 bits LTS
