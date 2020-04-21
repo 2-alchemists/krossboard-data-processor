@@ -1,4 +1,4 @@
-![build](https://github.com/2-alchemists/krossboard-data-processor/workflows/build/badge.svg)
+![build](https://github.com/2-alchemists/krossboard-data-processor/workflows/Go/badge.svg)
 
 # Requirements
 
