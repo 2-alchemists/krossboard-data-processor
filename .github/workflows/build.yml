@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       GOPATH: ${{ github.workspace }}
+      GOCACHE:  /tmp/gocache 
 
     steps:
     - name: Set up Go 1.13
@@ -25,8 +26,10 @@ jobs:
       with:
         path: ./src/github.com/${{ github.repository }}
 
-    - name: Get dependencies   
+    - name: Setup build environment   
       run: |
+        mkdir -p $GOCACHE
+        cd ./src/github.com/${{ github.repository }}
         make build-deps
         go version
 
