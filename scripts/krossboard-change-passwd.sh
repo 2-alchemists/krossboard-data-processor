@@ -43,6 +43,6 @@ if [ "$in_new_pass" != "$in_confirm_pass" ]; then
     exit 1
 fi
 
-sed -i -E 's/(basicauth\s[[:alnum:]]+\s)[[:print:]]+(\s)/\1'$in_new_pass'\2/' ${CADDYFILE}
+sed -i -E 's/(basicauth\s[[:alnum:]]+\s)[[:graph:]]+(\s)/\1'$in_new_pass'\2/' ${CADDYFILE}
 
 echo 'password changed'
