@@ -25,7 +25,7 @@ DISTRIB_BINARY_PATH=${1-$DISTRIB_DIR/$PRODUCT_BACKEND}
 PRODUCT_USER=krossboard
 PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
 PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
-PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env 
+PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env
 
 
 echo -e "${RED_COLOR}updaing apt source list and package versions...${NO_COLOR}"
@@ -37,7 +37,7 @@ apt update && apt -y upgrade
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
 apt install -y docker.io rrdtool librrd-dev vim
 
-echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} with binary $DISTRIB_BINARY_PATH...${NO_COLOR}"
+echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} binary from $DISTRIB_BINARY_PATH...${NO_COLOR}"
 install -d $PRODUCT_HOME_DIR/{bin,data,etc}
 install -m 755 $DISTRIB_BINARY_PATH $PRODUCT_HOME_DIR/bin/
 install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_CONFIG_FILE $PRODUCT_CONFIG_DIR/
@@ -110,7 +110,15 @@ browse
 log stdout
 errors stdout
 proxy /api 127.0.0.1:1519
+
+basicauth krossboard Kr0sSB8qrdAdm {
+  realm "krossboard"
+  /
+}
 EOF
+
+echo -e "${RED_COLOR}installing script to change basicauth password ${NO_COLOR}"
+install -m 755 $DISTRIB_DIR/scripts/krossboard-change-passwd.sh $PRODUCT_HOME_DIR/bin/krossboard-change-passwd
 
 echo -e "${RED_COLOR}setting permissions on files and updating systemd settings ${NO_COLOR}"
 chown -R $PRODUCT_USER:$PRODUCT_USER $PRODUCT_HOME_DIR/
