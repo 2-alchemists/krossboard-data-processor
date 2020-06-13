@@ -38,6 +38,11 @@ deps:
 	# rm -rf $GOPATH/src/github.com/docker/docker/vendor
 	# rm -rf  $GOPATH/src/github.com/docker/distribution/vendor/
 	$(GOGET)
+tools:
+	@if [ ! -f ./bin/golangci-lint ]; then \
+		echo "installing golangci-lint..."; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0; \
+    fi
 vendor:
 	$(GOVENDOR) add +external
 dist: build build-compress
