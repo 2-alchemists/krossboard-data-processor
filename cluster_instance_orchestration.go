@@ -100,6 +100,9 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig, up
 				}
 
 				currentContainers, err := containerManager.GetAllContainersStates()
+				if err != nil {
+					log.WithError(err).WithFields(log.Fields{"cluster": cluster.Name, "containerId": instanceID}).Errorln("failed to get all containers states")
+				}
 				if _, cfound := currentContainers[instanceID]; cfound {
 					log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": instanceID}).Debugln("instance found")
 					continue

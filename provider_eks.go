@@ -26,7 +26,9 @@ func updateEKSClusters(updateIntervalMin time.Duration) {
 			time.Sleep(updateIntervalMin)
 			continue
 		}
-		svc := eks.New(session.New(), aws.NewConfig().WithRegion(awsRegion))
+		svc := eks.New(
+			session.New(),  // nolint: staticcheck // as New() is deprecated we should use NewSession() but behaviour seems different...
+			aws.NewConfig().WithRegion(awsRegion))
 		listInput := &eks.ListClustersInput{}
 		listResult, err := svc.ListClusters(listInput)
 		if err != nil {
@@ -67,6 +69,9 @@ func getAWSRegion() (string, error) {
 	req, err := http.NewRequest("GET",
 		viper.GetString("krossboard_aws_metadata_service")+"/latest/meta-data/placement/availability-zone",
 		nil)
+	if err != nil {
+		return "", errors.Wrap(err, "failed calling AWS metadata service")
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "failed calling AWS metadata service")

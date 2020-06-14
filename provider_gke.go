@@ -72,6 +72,9 @@ func getGCPProjectID() (int64, error) {
 	req, err := http.NewRequest("GET",
 		viper.GetString("krossboard_gcp_metadata_service")+"/computeMetadata/v1/project/numeric-project-id",
 		nil)
+	if err != nil {
+		return -1, errors.Wrap(err, "failed calling GCP metadata service")
+	}
 	req.Header.Add("Metadata-Flavor", "Google")
 
 	resp, err := client.Do(req)
