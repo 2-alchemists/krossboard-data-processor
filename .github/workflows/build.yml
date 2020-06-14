@@ -33,8 +33,14 @@ jobs:
         make build-deps
         go version
 
+    - name: Check project
+      run: |
+        cd ./src/github.com/${{ github.repository }}
+        make check
+
     - name: Test and build package
       run: |
         cd ./src/github.com/${{ github.repository }}
         make test
         make build
+
