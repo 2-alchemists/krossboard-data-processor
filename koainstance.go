@@ -61,7 +61,7 @@ func (m *ContainerManager) PullImage() error {
 	}
 
 	if log.GetLevel() == log.DebugLevel {
-		io.Copy(os.Stdout, reader)
+		io.Copy(os.Stdout, reader) //nolint:errcheck
 	}
 
 	return nil
@@ -96,7 +96,7 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 		fmt.Sprintf("KOA_DB_LOCATION=%s", instance.DataVol),
 		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", instance.ClusterEndpoint),
 		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("krossboard_k8s_verify_ssl")),
-		fmt.Sprintf("KOA_K8S_CACERT=/var/run/secrets/kubernetes.io/serviceaccount/cacert.pem"),
+		"KOA_K8S_CACERT=/var/run/secrets/kubernetes.io/serviceaccount/cacert.pem",
 	}
 
 	mounts := []dkrMount.Mount{

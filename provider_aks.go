@@ -49,6 +49,10 @@ func updateAKSClusters(updateIntervalMin time.Duration) {
 				cn, _ := jsonparser.GetString(value, "name")
 				clusters = append(clusters, cn)
 			})
+			if err != nil {
+				log.WithError(err).WithFields(log.Fields{"group": group, "output": cmdout}).Errorln("failed extracting cluster names from output")
+				continue
+			}
 
 			for _, cluster := range clusters {
 				cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
@@ -78,6 +82,9 @@ func getAzureSubscriptionID() (string, error) {
 	req, err := http.NewRequest("GET",
 		viper.GetString("krossboard_azure_metadata_service")+"/metadata/instance?api-version=2019-06-04",
 		nil)
+	if err != nil {
+		return "", errors.Wrap(err, "failed calling Azure metadata service")
+	}
 	req.Header.Add("Metadata", "true")
 
 	resp, err := client.Do(req)
@@ -131,7 +138,7 @@ func azLogin() error {
 	appID := os.Getenv("AZURE_CLIENT_ID")
 	appSecret := os.Getenv("AZURE_CLIENT_SECRET")
 
-	errOut := error(nil)
+	var errOut error
 	var cmdOut []byte
 	if tenant != "" && appID != "" && appSecret != "" {
 		cmdOut, errOut = exec.Command(

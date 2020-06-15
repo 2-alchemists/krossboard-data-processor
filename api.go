@@ -95,7 +95,7 @@ func startAPI() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), wait)
 	defer cancel()
-	srv.Shutdown(ctx)
+	srv.Shutdown(ctx) //nolint:errcheck
 	log.Infoln("shutting down")
 	os.Exit(0)
 }
@@ -131,6 +131,13 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
+	if err != nil {
+		log.WithError(err).Errorln("failed calling target API", apiUrl)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(proxyReq)
 	if err != nil {
@@ -154,7 +161,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 			w.Header().Add(hk, hval)
 		}
 	}
-	w.Write(respBody)
+	w.Write(respBody) //nolint:errcheck
 }
 
 // DiscoveryHandler returns current system status along with Kubernetes Opex Analytics instances' endpoints
@@ -186,7 +193,7 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	outRaw, _ := json.Marshal(discoveryResp)
-	w.Write(outRaw)
+	w.Write(outRaw) //nolint:errcheck
 }
 
 // GetAllClustersCurrentUsageHandler returns current usage of all clusters
@@ -217,7 +224,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(respHTTPStatus)
 	outRaw, _ := json.Marshal(currentUsageResp)
-	w.Write(outRaw)
+	w.Write(outRaw) //nolint:errcheck
 }
 
 // GetClustersUsageHistoryHandler returns all clusters usage history
@@ -232,7 +239,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "failed loading system status",
 		})
-		w.Write(outRaw)
+		w.Write(outRaw) //nolint:errcheck
 		return
 	}
 
@@ -244,7 +251,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "failed retrieving managed instances",
 		})
-		w.Write(outRaw)
+		w.Write(outRaw) //nolint:errcheck
 		return
 	}
 
@@ -262,7 +269,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "invalid format",
 		})
-		w.Write(outRaw)
+		w.Write(outRaw) //nolint:errcheck
 		return
 	}
 
@@ -320,7 +327,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
-		w.Write(outRaw)
+		w.Write(outRaw) //nolint:errcheck
 		return
 	}
 
@@ -331,7 +338,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	for dbname, dbfile := range usageHistoryDbs {
 		usageDb := NewUsageDb(dbfile)
 		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
-		if err != err {
+		if err != nil {
 			log.WithError(err).Errorln("failed retrieving data from rrd file")
 		} else {
 			if usageHistory != nil {
@@ -373,7 +380,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(respPayload)
+	w.Write(respPayload) //nolint:errcheck
 }
 
 func listRegularDbFiles(folder string) (error, []string) {

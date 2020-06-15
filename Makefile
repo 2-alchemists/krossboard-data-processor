@@ -10,6 +10,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get -v
 GOVENDOR=govendor
+GOLANGCI=GO111MODULE=off ./bin/golangci-lint
 UPX=upx
 PACKER=packer
 PACKER_VERSION=1.5.1
@@ -38,6 +39,13 @@ deps:
 	# rm -rf $GOPATH/src/github.com/docker/docker/vendor
 	# rm -rf  $GOPATH/src/github.com/docker/distribution/vendor/
 	$(GOGET)
+tools:
+	@if [ ! -f ./bin/golangci-lint ]; then \
+		echo "installing golangci-lint..."; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0; \
+	fi
+check: tools
+	$(GOLANGCI) run .
 vendor:
 	$(GOVENDOR) add +external
 dist: build build-compress

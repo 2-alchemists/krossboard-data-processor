@@ -33,7 +33,7 @@ func getAllClustersCurrentUsage(kubeconfig *KubeConfig) ([]*K8sClusterUsage, err
 
 	var allUsage []*K8sClusterUsage
 	baseDataDir := viper.GetString("krossboard_root_data_dir")
-	for clusterName, _ := range clusters {
+	for clusterName := range clusters {
 		usage, err := getClusterCurrentUsage(baseDataDir, clusterName)
 		if err != nil {
 			log.WithError(err).Warnln("error getting current cluster usage for entry:", clusterName)

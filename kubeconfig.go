@@ -111,6 +111,7 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	return token, nil
 }
 
+// nolint:unused // TODO: to remove?
 func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, error) {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: m.Path},
