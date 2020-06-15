@@ -24,6 +24,12 @@ build-deps:
 	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
 build-compress: build
 	$(UPX) $(PACKAGE_NAME)
+docker-build:
+	docker run --rm \
+		-it -v "$(GOPATH)":/go \
+		-w /go/src/bitbucket.org/rsohlich/makepost \
+		golang:latest \
+		go build -o "$(BINARY_UNIX)" -v	
 test:
 	$(GOCMD) clean -testcache
 	$(GOTEST) -v ./...
@@ -77,7 +83,3 @@ dist-cloud-image-azure: dist
 		-var="tarball_version=$(PRODUCT_VERSION)" \
 		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
 		$(PACKER_CONF_FILE)
-
-# Cross compilation
-docker-build:
-	docker run --rm -it -v "$(GOPATH)":/go -w /go/src/bitbucket.org/rsohlich/makepost golang:latest go build -o "$(BINARY_UNIX)" -v
