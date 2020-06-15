@@ -175,6 +175,7 @@ type Info struct {
 	SystemTime         string
 	LoggingDriver      string
 	CgroupDriver       string
+	CgroupVersion      string `json:",omitempty"`
 	NEventsListener    int
 	KernelVersion      string
 	OperatingSystem    string
@@ -194,8 +195,8 @@ type Info struct {
 	Labels             []string
 	ExperimentalBuild  bool
 	ServerVersion      string
-	ClusterStore       string
-	ClusterAdvertise   string
+	ClusterStore       string `json:",omitempty"` // Deprecated: host-discovery and overlay networks with external k/v stores are deprecated
+	ClusterAdvertise   string `json:",omitempty"` // Deprecated: host-discovery and overlay networks with external k/v stores are deprecated
 	Runtimes           map[string]Runtime
 	DefaultRuntime     string
 	Swarm              swarm.Info

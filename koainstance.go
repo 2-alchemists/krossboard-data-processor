@@ -129,6 +129,7 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 			Mounts:       mounts,
 		},
 		nil,
+		nil,
 		instance.Name)
 
 	if err != nil {

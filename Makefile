@@ -4,13 +4,12 @@ PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)-$$(git re
 PRODUCT_CLOUD_IMAGE_VERSION=$$(echo $(PRODUCT_VERSION) | sed 's/\.//g' -)
 ARCH=$$(uname -m)
 DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
-GOCMD=GO111MODULE=off go
+GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get -v
 GOVENDOR=govendor
-GOLANGCI=GO111MODULE=off ./bin/golangci-lint
+GOLANGCI=GO111MODULE=on ./bin/golangci-lint
 UPX=upx
 PACKER=packer
 PACKER_VERSION=1.5.1
@@ -35,10 +34,8 @@ run:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
 	./$(PACKAGE_NAME)
 deps:
-	# cd $GOPATH/src/k8s.io/klog && git checkout v0.4.0 && cd -
-	# rm -rf $GOPATH/src/github.com/docker/docker/vendor
-	# rm -rf  $GOPATH/src/github.com/docker/distribution/vendor/
-	$(GOGET)
+	$(GOCMD) mod vendor
+vendor: deps
 tools:
 	@if [ ! -f ./bin/golangci-lint ]; then \
 		echo "installing golangci-lint..."; \
@@ -46,8 +43,6 @@ tools:
 	fi
 check: tools
 	$(GOLANGCI) run .
-vendor:
-	$(GOVENDOR) add +external
 dist: build build-compress
 	mkdir -p $(DIST_DIR)/scripts/
 	cp $(PACKAGE_NAME) $(DIST_DIR)/
