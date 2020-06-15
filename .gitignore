@@ -12,6 +12,7 @@
 
 # Idea
 .idea/
+.vscode
 
 # Folder for tools installed locally
 bin/
