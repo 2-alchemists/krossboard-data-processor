@@ -19,3 +19,5 @@ bin/
 
 # Generated executable
 krossboard-data-processor
+# ignore vendor dir
+vendor

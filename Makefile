@@ -40,8 +40,7 @@ run:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
 	./$(PACKAGE_NAME)
 deps:
-	$(GOCMD) mod vendor
-vendor: deps
+	$(GOCMD) get .
 tools:
 	@if [ ! -f ./bin/golangci-lint ]; then \
 		echo "installing golangci-lint..."; \
