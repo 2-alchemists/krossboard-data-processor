@@ -1,4 +1,4 @@
-module krossboard-data-processor
+module github.com/2-alchemists/krossboard-data-processor
 
 go 1.13
 
