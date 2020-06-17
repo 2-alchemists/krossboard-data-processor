@@ -20,8 +20,6 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v2
-      with:
-        path: ./src/github.com/${{ github.repository }}
 
     - uses: actions/cache@v2
       with:
@@ -32,14 +30,10 @@ jobs:
 
     - name: Setup build environment   
       run: |
-        mkdir -p $GOCACHE
-        cd ./src/github.com/${{ github.repository }}
         make build-deps
-        go version
 
     - name: Test and build package
       run: |
-        cd ./src/github.com/${{ github.repository }}
         make test
         make build
 
