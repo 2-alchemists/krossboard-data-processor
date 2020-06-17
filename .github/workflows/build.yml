@@ -11,9 +11,6 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-18.04
-    env:
-      GOPATH: ${{ github.workspace }}
-      GOCACHE:  /tmp/gocache 
 
     steps:
     - name: Set up Go 1.13
@@ -40,14 +37,13 @@ jobs:
         make build-deps
         go version
 
-    - name: Check project
-      run: |
-        cd ./src/github.com/${{ github.repository }}
-        make check
-
     - name: Test and build package
       run: |
         cd ./src/github.com/${{ github.repository }}
         make test
         make build
 
+    - name: Check project
+      uses: golangci/golangci-lint-action@v1
+      with:
+        version: v1.27
