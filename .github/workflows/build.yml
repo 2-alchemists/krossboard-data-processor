@@ -26,6 +26,13 @@ jobs:
       with:
         path: ./src/github.com/${{ github.repository }}
 
+    - uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
     - name: Setup build environment   
       run: |
         mkdir -p $GOCACHE
