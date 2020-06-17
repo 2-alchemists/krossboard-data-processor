@@ -12,9 +12,12 @@
 
 # Idea
 .idea/
+.vscode
 
 # Folder for tools installed locally
 bin/
 
 # Generated executable
 krossboard-data-processor
+# ignore vendor dir
+vendor

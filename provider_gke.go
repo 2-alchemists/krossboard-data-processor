@@ -51,7 +51,7 @@ func updateGKEClusters(updateIntervalMin time.Duration) {
 				"get-credentials",
 				cluster.Name,
 				"--zone",
-				cluster.Zone).CombinedOutput()
+				cluster.Location).CombinedOutput()
 
 			if err != nil {
 				log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(cmdout))
