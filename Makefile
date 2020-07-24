@@ -55,12 +55,7 @@ dist: build build-compress
 	install -m 755 scripts/install.sh $(DIST_DIR)/
 	tar zcf $(DIST_DIR).tgz $(DIST_DIR)
 	
-dist-cloud-image: dist
-	$(PACKER) build \
-		-var="product_name=$(PRODUCT_NAME)" \
-		-var="tarball_version=$(PRODUCT_VERSION)" \
-		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
-		$(PACKER_CONF_FILE)
+dist-cloud-image: dist-cloud-image-aws dist-cloud-image-gcp dist-cloud-image-azure
 
 dist-cloud-image-aws: dist
 	$(PACKER) build -only=amazon-ebs \
@@ -69,7 +64,7 @@ dist-cloud-image-aws: dist
 		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
 		$(PACKER_CONF_FILE)
 
-dist-cloud-image-google: dist
+dist-cloud-image-gcp: dist
 	$(PACKER) build -only=googlecompute \
 		-var="product_name=$(PRODUCT_NAME)" \
 		-var="tarball_version=$(PRODUCT_VERSION)" \

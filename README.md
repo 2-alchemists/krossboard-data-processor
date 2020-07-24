@@ -43,6 +43,8 @@ This make a  distribution followed by a [Packer](https://www.packer.io/) build t
 make dist-cloud-image
 ```
 
+The following flavors are also available for specific build: `dist-cloud-image-gcp`,  `dist-cloud-image-aws`,  `dist-cloud-image-azure`.
+
 > The following environement variables shall be set to enable the authentication on the different cloud environments needed for Packer builds (Amazon AWS, Microsoft Azure, and Google GCP).
 
 ```
@@ -62,6 +64,18 @@ export KROSSBOARD_REGISTRY_PASSWORD="..."
 ```
 
 # Development integration
+
+## Enable GCP API
+ * Compute Engine API
+ * 
+## Credentials for Packer
+
+* Log into the Google Developers Console and select a project.
+* Under the "API Manager" section, click "Credentials."
+* Click the "Create credentials" button, select "Service account key"
+* Create a new service account that at least has `Compute Engine Instance Admin (v1)` and `Service Account User` roles.
+* Choose JSON as the Key type and click "Create". A JSON file will be downloaded automatically. This is your account file.
+
 
 ## Microsoft Azure
 To integrate a development environement with Microsoft Azure, you need to the following information to auhenticate to your Azure subscription with appropriate permissions: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_RESOURCE_GROUP`. 
