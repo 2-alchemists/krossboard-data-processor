@@ -35,7 +35,7 @@ apt update && apt -y upgrade
 # apt install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-apt install -y docker.io rrdtool librrd-dev vim
+apt install -y docker.io rrdtool librrd-dev vim curl
 
 echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} binary from $DISTRIB_BINARY_PATH...${NO_COLOR}"
 install -d $PRODUCT_HOME_DIR/{bin,data,etc}
@@ -105,15 +105,21 @@ cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
 echo -e "${RED_COLOR}creating Caddy configuration file ${PRODUCT_CONFIG_DIR}/Caddyfile ${NO_COLOR}"
 cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
-0.0.0.0:80
-browse
-log stdout
-errors stdout
-proxy /api 127.0.0.1:1519
+# domain name.
+:80
 
-basicauth krossboard Kr0sSB8qrdAdm {
-  realm "krossboard"
-  /
+# Set this path to your site's directory.
+root * /usr/share/caddy
+
+# Enable the static file server.
+file_server
+
+# Add reverse proxy for the API
+reverse_proxy /api/* 127.0.0.1:1519
+
+# Enable basic auth
+basicauth / {
+    krossboard JDJhJDEwJGxGMmN2ZDJ4NjgycjVTbi5pRThSNGVnaWViSGpiNWpKVVpPLjRkRGNCVmV4VGtOUnBiSjRL
 }
 EOF
 

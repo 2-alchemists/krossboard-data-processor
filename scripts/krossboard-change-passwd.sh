@@ -11,6 +11,7 @@ set -u
 set -e
 
 CADDYFILE=/opt/krossboard/etc/Caddyfile
+CADDYFILE=/tmp/Caddyfile
 
 MIN_PASSWORD_LENGTH=6
 
@@ -26,14 +27,13 @@ echo -n "Confirm new password:"
 read -s in_confirm_pass
 echo
 
-old_pass=$(grep -r 'basicauth' ${CADDYFILE} | cut -d' ' -f3)
-if [ "$old_pass" != "$in_old_pass" ]; then
-    echo "old password does not match"
+old_pass_matched=$(curl -o /dev/null -sSf -ukrossboard:$in_old_pass http://127.0.0.1/ || echo $?)
+if [ "$old_pass_matched" != "" ]; then
+    echo "could not validate the old password"
     exit 1
 fi
 
 if [ ${#in_new_pass} -lt ${MIN_PASSWORD_LENGTH} ]; then
-    echo "${#in_new_pass} ${in_new_pass}"
     echo "the password must have at least ${MIN_PASSWORD_LENGTH} characters"
     exit 1
 fi
@@ -43,6 +43,9 @@ if [ "$in_new_pass" != "$in_confirm_pass" ]; then
     exit 1
 fi
 
-sed -i -E 's/(basicauth\s[[:alnum:]]+\s)[[:graph:]]+(\s)/\1'$in_new_pass'\2/' ${CADDYFILE}
+new_password_hashed=$(docker run --rm caddy:2.0.0 caddy hash-password --plaintext "$in_new_pass")
+echo "$new_password_hashed"
+
+sed -i -E 's/(krossboard\s)[[:alnum:]]+/\1'$new_password_hashed'/' ${CADDYFILE}
 
 echo 'password changed'
