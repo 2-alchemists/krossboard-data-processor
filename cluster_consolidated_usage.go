@@ -116,7 +116,7 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 	for {
 		allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
 		if err != nil {
-			log.WithError(err).Errorln("get processing all clusters usage")
+			log.WithError(err).Errorln("failed getting all clusters usage")
 		} else {
 			currentUsageFile := viper.GetString("krossboard_current_usage_file")
 			serializedData, _ := json.Marshal(allClustersUsage)

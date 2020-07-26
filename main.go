@@ -73,17 +73,17 @@ func main() {
 	// actual processing
 	err = createDirIfNotExists(viper.GetString("krossboard_root_dir"))
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("Failed initializing config directory")
+		log.WithField("message", err.Error()).Fatalln("failed initializing config directory")
 	}
 
 	err = createDirIfNotExists(viper.GetString("krossboard_status_dir"))
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("Failed initializing status directory")
+		log.WithField("message", err.Error()).Fatalln("failed initializing status directory")
 	}
 
 	err = createDirIfNotExists(viper.GetString("krossboard_credentials_dir"))
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("Failed initializing credential directory")
+		log.WithField("message", err.Error()).Fatalln("failed initializing credential directory")
 	}
 
 	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))

@@ -26,7 +26,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig, up
 	for {
 		discoveredClusters, err := kubeconfig.ListClusters()
 		if err != nil {
-			log.WithError(err).Errorln("Failed reading clusters")
+			log.WithError(err).Errorln("failed reading clusters")
 			orchestrationRoundErrors += 1
 			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 			continue
@@ -131,7 +131,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig, up
 
 			err = containerManager.CreateContainer(instance)
 			if err != nil {
-				log.WithFields(log.Fields{"image": instance.Image, "message": err.Error()}).Errorln("Failed creating container")
+				log.WithFields(log.Fields{"image": instance.Image, "message": err.Error()}).Errorln("failed creating container")
 				orchestrationRoundErrors += 1
 				time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 				break

@@ -39,7 +39,7 @@ func updateGKEClusters(updateIntervalMin time.Duration) {
 		}
 		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
 		if err != nil {
-			log.WithError(err).Errorln("Failed to list GKE clusters")
+			log.WithError(err).Errorln("failed to list GKE clusters")
 			time.Sleep(updateIntervalMin)
 			continue
 		}
