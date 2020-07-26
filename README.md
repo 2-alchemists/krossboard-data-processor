@@ -70,7 +70,7 @@ The following flavors are also available for cloud-specific build: `dist-cloud-i
 
 ```
 PROJECT_ID=krossboard-factory
-IMAGE_NAME=krossboard-release-20200726t1595766485-ubuntux8664	us
+IMAGE_NAME=krossboard-beta-v20200726t1595786717
 gcloud compute images add-iam-policy-binding $IMAGE_NAME \
     --member='allAuthenticatedUsers' \
     --role='roles/compute.imageUser' \
@@ -80,11 +80,11 @@ gcloud compute images add-iam-policy-binding $IMAGE_NAME \
 ## Deploy from a public image
 
 ```
-GCP_PROJECT=krossboard-test
+GCP_PROJECT=krossboard-demo
 GCP_ZONE=us-central1-a
 GCP_INSTANCE_TYPE=g1-small
 KROSSBOARD_IMAGE=krossboard-v010-50e8488-1595589351
-KROSSBOARD_SERVICE_ACCOUNT=krossboard@krossboard-test.iam.gserviceaccount.com
+KROSSBOARD_SERVICE_ACCOUNT=krossboard@krossboard-demo.iam.gserviceaccount.com
 
 gcloud compute instances create krossboard-demo-1 \
         --scopes=https://www.googleapis.com/auth/cloud-platform \
@@ -93,9 +93,22 @@ gcloud compute instances create krossboard-demo-1 \
         --machine-type=$GCP_INSTANCE_TYPE \
         --service-account=$KROSSBOARD_SERVICE_ACCOUNT \
         --image=$KROSSBOARD_IMAGE \
-        --image-project=krossboard-factory
+        --image-project=krossboard-factory \
+        --tags=krossboard-server
 ```
 
+## Enable access to the Krossboard UI
+
+```
+gcloud compute firewall-rules create default-allow-http \
+    --project=$PROJECT_ID \
+    --direction=INGRESS \
+    --priority=1000 --network=default \
+    --action=ALLOW \
+    --rules=tcp:80 \
+    --source-ranges=0.0.0.0/0 \
+    --target-tags=krossboard-server
+```
 
 ## Microsoft Azure
 To integrate a development environement with Microsoft Azure, you need to the following information to auhenticate to your Azure subscription with appropriate permissions: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_RESOURCE_GROUP`. 
