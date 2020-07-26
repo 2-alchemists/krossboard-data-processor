@@ -23,7 +23,7 @@ ExecStartPre=-/bin/sleep 2
 ExecStart=/usr/bin/docker run -d \
     --name krossboard-ui \
     --net host \
-    -v ${KROSSBOARD_ROOT_DIR}/etc/Caddyfile:/etc/Caddyfile \
+    -v ${KROSSBOARD_ROOT_DIR}/etc/Caddyfile:/etc/caddy/Caddyfile \
     -v ${KROSSBOARD_ROOT_DIR}/etc/.caddy:/root/.caddy \
     ${KROSSBOARD_UI_IMAGE}
  
