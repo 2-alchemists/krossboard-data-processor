@@ -109,7 +109,7 @@ cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
 :80
 
 # Set this path to your site's directory.
-root * /usr/share/caddy
+root * /var/www/html
 
 # Enable the static file server.
 file_server
