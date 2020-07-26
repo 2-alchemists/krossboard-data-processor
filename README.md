@@ -87,12 +87,13 @@ KROSSBOARD_IMAGE=krossboard-v010-50e8488-1595589351
 KROSSBOARD_SERVICE_ACCOUNT=krossboard@krossboard-test.iam.gserviceaccount.com
 
 gcloud compute instances create krossboard-demo-1 \
-    --project=$GCP_PROJECT \
-    --zone=$GCP_ZONE \
-    --machine-type=$GCP_INSTANCE_TYPE \
-    --service-account=$KROSSBOARD_SERVICE_ACCOUNT \
-    --image=$KROSSBOARD_IMAGE \
-    --image-project=krossboard-factory
+        --scopes=https://www.googleapis.com/auth/cloud-platform \
+        --project=$GCP_PROJECT \
+        --zone=$GCP_ZONE \
+        --machine-type=$GCP_INSTANCE_TYPE \
+        --service-account=$KROSSBOARD_SERVICE_ACCOUNT \
+        --image=$KROSSBOARD_IMAGE \
+        --image-project=krossboard-factory
 ```
 
 
