@@ -1,18 +1,19 @@
-name: Lint, test and build
+name: Build cloud images
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
 jobs:
-
   build:
-    name: Build
+    name: Build cloud images
     runs-on: ubuntu-18.04
 
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: gcp_packer_builder_sa_creds.json    
+
     steps:
+      
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -28,16 +29,25 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
 
-    - name: Setup build environment   
+    - name: Install build dependencies   
       run: |
         make build-deps
 
-    - name: Test and build package
+    - name: Test package
       run: |
         make test
-        make build
 
     - name: Check code quality
       uses: golangci/golangci-lint-action@v1
       with:
         version: v1.27
+
+    - name: Build GCP image
+      uses: actions/checkout@v2
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+          version: '270.0.0'
+          service_account_key: ${{ secrets.GCP_PACKER_BUILDER_SA_KEY }}
+      run: |
+        echo -n ${{ secrets.GCP_PACKER_BUILDER_SA_KEY }} > $GOOGLE_APPLICATION_CREDENTIALS
+        make dist-cloud-image-gcp    

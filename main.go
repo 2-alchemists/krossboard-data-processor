@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const ProgramVersion = "0.1.0"
+const ProgramVersion = "1.0.0"
 
 var workers sync.WaitGroup
 
