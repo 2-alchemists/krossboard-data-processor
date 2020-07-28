@@ -115,7 +115,14 @@ root * /var/www/html
 file_server
 
 # Add reverse proxy for the API
-reverse_proxy /api/* 127.0.0.1:1519
+route /api/* {
+  reverse_proxy 127.0.0.1:1519
+}
+
+# Rewrites other URI to index.html
+route /* {
+  try_files {path} {path}/ /index.html
+}
 
 # Enable basic auth
 basicauth / {
