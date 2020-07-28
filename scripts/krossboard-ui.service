@@ -17,8 +17,8 @@ EnvironmentFile=/opt/krossboard/etc/krossboard.env
 [Service]
 TimeoutStartSec=0
 ExecStartPre=/usr/bin/docker pull ${KROSSBOARD_UI_IMAGE}
-ExecStartPre=/usr/bin/docker kill krossboard-ui
-ExecStartPre=/usr/bin/docker rm krossboard-ui
+ExecStartPre=-/usr/bin/docker kill krossboard-ui
+ExecStartPre=-/usr/bin/docker rm krossboard-ui
 ExecStartPre=/bin/sleep 2
 ExecStart=/usr/bin/docker run -d \
     --name krossboard-ui \
