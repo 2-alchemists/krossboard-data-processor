@@ -27,7 +27,7 @@ func updateEKSClusters(updateIntervalMin time.Duration) {
 			continue
 		}
 		svc := eks.New(
-			session.New(),  // nolint: staticcheck // as New() is deprecated we should use NewSession() but behaviour seems different...
+			session.New(), // nolint: staticcheck // as New() is deprecated we should use NewSession() but behaviour seems different...
 			aws.NewConfig().WithRegion(awsRegion))
 		listInput := &eks.ListClustersInput{}
 		listResult, err := svc.ListClusters(listInput)
@@ -41,16 +41,17 @@ func updateEKSClusters(updateIntervalMin time.Duration) {
 			continue
 		}
 		for _, clusterName := range listResult.Clusters {
-			cmdout, err := exec.Command(viper.GetString("krossboard_awscli_command"),
+			cmd := exec.Command(viper.GetString("krossboard_awscli_command"),
 				"eks",
 				"update-kubeconfig",
 				"--name",
 				*clusterName,
 				"--region",
-				awsRegion).CombinedOutput()
+				awsRegion)
 
+			out, err := cmd.CombinedOutput()
 			if err != nil {
-				log.WithField("cluster", clusterName).Errorf("failed getting EKS cluster credentials: %v", string(cmdout))
+				log.WithField("cluster", clusterName).Errorf("failed getting EKS cluster credentials: %v", string(out))
 			} else {
 				log.WithField("cluster", clusterName).Debugln("added/updated  EKS cluster credentials")
 			}

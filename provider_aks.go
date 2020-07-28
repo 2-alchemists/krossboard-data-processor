@@ -33,38 +33,43 @@ func updateAKSClusters(updateIntervalMin time.Duration) {
 		}
 
 		for _, group := range groups {
-			cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
+			cmd := exec.Command(viper.GetString("krossboard_az_command"),
 				"aks",
 				"list",
 				"--resource-group",
 				group,
 				"-o",
-				"json").CombinedOutput()
+				"json")
+
+			out, err := cmd.CombinedOutput()
 			if err != nil {
-				log.WithError(err).Errorln("failed listing AKS clusters for resource group" + group + ": " + string(cmdout))
+				log.WithError(err).Errorln("failed listing AKS clusters for resource group" + group + ": " + string(out))
 				continue
 			}
+
 			var clusters []string
-			_, err = jsonparser.ArrayEach(cmdout, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+			_, err = jsonparser.ArrayEach(out, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 				cn, _ := jsonparser.GetString(value, "name")
 				clusters = append(clusters, cn)
 			})
 			if err != nil {
-				log.WithError(err).WithFields(log.Fields{"group": group, "output": cmdout}).Errorln("failed extracting cluster names from output")
+				log.WithError(err).WithFields(log.Fields{"group": group, "output": out}).Errorln("failed extracting cluster names from output")
 				continue
 			}
 
 			for _, cluster := range clusters {
-				cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
+				cmd := exec.Command(viper.GetString("krossboard_az_command"),
 					"aks",
 					"get-credentials",
 					"--resource-group",
 					group,
 					"--name",
 					cluster,
-					"--overwrite-existing").CombinedOutput()
+					"--overwrite-existing")
+
+				out, err := cmd.CombinedOutput()
 				if err != nil {
-					log.WithError(err).Errorln("failed getting AKS cluster credentials" + cluster + ": " + string(cmdout))
+					log.WithError(err).Errorln("failed getting AKS cluster credentials" + cluster + ": " + string(out))
 					continue
 				}
 			}
@@ -110,24 +115,25 @@ func getAzureSubscriptionID() (string, error) {
 }
 
 func listGroups() ([]string, error) {
-	cmdout, err := exec.Command(viper.GetString("krossboard_az_command"),
+	cmd := exec.Command(viper.GetString("krossboard_az_command"),
 		"group",
 		"list",
 		"-o",
-		"json").CombinedOutput()
+		"json")
 
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed listing Azure resource groups:"+string(cmdout))
+		return nil, errors.Wrap(err, "failed listing Azure resource groups:"+string(out))
 	}
 
 	var groups []string
-	_, err = jsonparser.ArrayEach(cmdout, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+	_, err = jsonparser.ArrayEach(out, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
 		rg, _ := jsonparser.GetString(value, "name")
 		groups = append(groups, rg)
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed decoding output of Azure list resource groups: "+string(cmdout))
+		return nil, errors.Wrap(err, "failed decoding output of Azure list resource groups: "+string(out))
 	}
 
 	return groups, nil
@@ -139,9 +145,9 @@ func azLogin() error {
 	appSecret := os.Getenv("AZURE_CLIENT_SECRET")
 
 	var errOut error
-	var cmdOut []byte
+	var out []byte
 	if tenant != "" && appID != "" && appSecret != "" {
-		cmdOut, errOut = exec.Command(
+		cmd := exec.Command(
 			viper.GetString("krossboard_az_command"),
 			"login",
 			"--service-principal",
@@ -151,17 +157,19 @@ func azLogin() error {
 			appSecret,
 			"--tenant",
 			tenant,
-		).CombinedOutput()
+		)
+		out, errOut = cmd.CombinedOutput()
 	} else {
-		cmdOut, errOut = exec.Command(
+		cmd := exec.Command(
 			viper.GetString("krossboard_az_command"),
 			"login",
 			"--identity",
-		).CombinedOutput()
+		)
+		out, errOut = cmd.CombinedOutput()
 	}
 
 	if errOut != nil {
-		return errors.Wrap(errOut, string(cmdOut))
+		return errors.Wrap(errOut, string(out))
 	}
 
 	return nil

@@ -45,16 +45,17 @@ func updateGKEClusters(updateIntervalMin time.Duration) {
 		}
 
 		for _, cluster := range listResp.Clusters {
-			cmdout, err := exec.Command(viper.GetString("krossboard_gcloud_command"),
+			cmd := exec.Command(viper.GetString("krossboard_gcloud_command"),
 				"container",
 				"clusters",
 				"get-credentials",
 				cluster.Name,
 				"--zone",
-				cluster.Location).CombinedOutput()
+				cluster.Location)
 
+			out, err := cmd.CombinedOutput()
 			if err != nil {
-				log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(cmdout))
+				log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(out))
 			} else {
 				log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
 			}

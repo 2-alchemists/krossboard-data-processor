@@ -94,7 +94,8 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		return "", errors.New("no AuthInfo command provided")
 	}
 
-	out, err := exec.Command(authHookCmd, args...).CombinedOutput()
+	cmd := exec.Command(authHookCmd, args...)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.Wrap(err, string(out))
 	}
