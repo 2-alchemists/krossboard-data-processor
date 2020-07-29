@@ -1,0 +1,9 @@
+[Unit]
+Description=Run Krossboard clusters data collector periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target

@@ -26,16 +26,15 @@ docker-build:
 		-it -v "$(GOPATH)":/go \
 		-w /go/src/bitbucket.org/rsohlich/makepost \
 		golang:latest \
-		go build -o "$(BINARY_UNIX)" -v	
+		go build -o "$(BINARY_UNIX)" -v
 test:
 	$(GOCMD) clean -testcache
 	$(GOTEST) -v ./...
 clean:
 	$(GOCLEAN)
 	rm -f $(PACKAGE_NAME)
-run:
-	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
-	./$(PACKAGE_NAME)
+run: build
+	./$(PACKAGE_NAME) collector
 deps:
 	$(GOCMD) get .
 tools:

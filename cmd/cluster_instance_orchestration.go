@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"fmt"
@@ -57,7 +57,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			log.WithFields(log.Fields{"path": dataVol, "message": err.Error()}).Errorln("failed creating data volume")
 			orchestrationRoundErrors += 1
 			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
-			break
+			continue
 		}
 
 		tokenVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_credentials_dir"), cluster.Name)
@@ -129,7 +129,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			log.WithFields(log.Fields{"image": instance.Image, "message": err.Error()}).Errorln("failed creating container")
 			orchestrationRoundErrors += 1
 			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
-			break
+			continue
 		}
 		log.WithFields(log.Fields{"cluster": cluster.Name, "containerId": instance.ID}).Infoln("new instance created")
 
@@ -140,7 +140,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			log.WithFields(log.Fields{"cluster": cluster.Name, "message": err.Error()}).Errorln("failed to update system status")
 			orchestrationRoundErrors += 1
 			time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
-			break // or exit ?
+			continue
 		}
 
 		log.Infoln("system status updated with cluster", cluster.Name)

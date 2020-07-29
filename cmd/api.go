@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -82,8 +82,9 @@ func startAPI() {
 		Handler:      appCors.Handler(router),
 	}
 
-	// Run our server in a goroutine so that it doesn't block.
+	// Run the server in a goroutine so that it doesn't block.
 	go func() {
+		log.Infoln("API service started")
 		if err := srv.ListenAndServe(); err != nil {
 			log.Errorln(err)
 		}
