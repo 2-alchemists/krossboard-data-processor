@@ -110,9 +110,6 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 }
 
 func processConsolidatedUsage(kubeconfig *KubeConfig) {
-	workers.Add(1)
-	defer workers.Done()
-
 	for {
 		allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
 		if err != nil {

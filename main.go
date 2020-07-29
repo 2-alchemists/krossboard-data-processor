@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -13,8 +12,6 @@ import (
 )
 
 const ProgramVersion = "1.0.0"
-
-var workers sync.WaitGroup
 
 func main() {
 	// parse options
@@ -128,28 +125,25 @@ func main() {
 	}
 	log.Infoln("orchestration update interval =>", orchestrationUpdateIntervalMin)
 
-	switch cloudProvider {
-	case "AWS":
-		go updateEKSClusters(orchestrationUpdateIntervalMin)
-	case "AZURE":
-		go updateAKSClusters(orchestrationUpdateIntervalMin)
-	case "GCP":
-		go updateGKEClusters(orchestrationUpdateIntervalMin)
-	default:
-		log.Fatalln("unauthorized execution environment:", cloudProvider)
-	}
-	log.Infoln("discover started")
-
+	go startAPI()
 	kubeconfig := NewKubeConfig()
-	go orchestrateInstances(systemStatus, kubeconfig, orchestrationUpdateIntervalMin)
-	log.Infoln("orchestrator started")
-
 	go processConsolidatedUsage(kubeconfig)
-	log.Infoln("consolidator started")
 
-	startAPI()
-
-	workers.Wait()
+	for {
+		log.Infoln("starting a new update round")
+		orchestrateInstances(systemStatus, kubeconfig)
+		switch cloudProvider {
+		case "AWS":
+			updateEKSClusters()
+		case "AZURE":
+			updateAKSClusters()
+		case "GCP":
+			updateGKEClusters()
+		default:
+			log.Fatalln("unauthorized cloud environment:", cloudProvider)
+		}
+		time.Sleep(orchestrationUpdateIntervalMin)
+	}
 }
 
 func createDirIfNotExists(path string) error {

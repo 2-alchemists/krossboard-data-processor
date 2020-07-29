@@ -16,10 +16,7 @@ import (
 	gcontainerpbv1 "google.golang.org/genproto/googleapis/container/v1"
 )
 
-func updateGKEClusters(updateIntervalMin time.Duration) {
-	workers.Add(1)
-	defer workers.Done()
-
+func updateGKEClusters() {
 	ctx := context.Background()
 	clusterManagerClient, err := gcontainerv1.NewClusterManagerClient(ctx)
 	if err != nil {
@@ -27,40 +24,36 @@ func updateGKEClusters(updateIntervalMin time.Duration) {
 		return
 	}
 
-	for {
-		projectID, err := getGCPProjectID()
-		if projectID <= int64(0) {
-			log.WithError(err).Errorln("unable to retrieve GCP project ID")
-			time.Sleep(updateIntervalMin)
-			continue
-		}
-		listReq := &gcontainerpbv1.ListClustersRequest{
-			Parent: fmt.Sprintf("projects/%v/locations/-", projectID),
-		}
-		listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
+	projectID, err := getGCPProjectID()
+	if projectID <= int64(0) {
+		log.WithError(err).Errorln("unable to retrieve GCP project ID")
+		return
+	}
+	listReq := &gcontainerpbv1.ListClustersRequest{
+		Parent: fmt.Sprintf("projects/%v/locations/-", projectID),
+	}
+	listResp, err := clusterManagerClient.ListClusters(ctx, listReq)
+	if err != nil {
+		log.WithError(err).Errorln("failed to list GKE clusters")
+		return
+	}
+
+	for _, cluster := range listResp.Clusters {
+		cmd := exec.Command(viper.GetString("krossboard_gcloud_command"),
+			"container",
+			"clusters",
+			"get-credentials",
+			cluster.Name,
+			"--zone",
+			cluster.Location)
+
+		out, err := cmd.CombinedOutput()
 		if err != nil {
-			log.WithError(err).Errorln("failed to list GKE clusters")
-			time.Sleep(updateIntervalMin)
-			continue
+			log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(out))
+		} else {
+			log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
 		}
-
-		for _, cluster := range listResp.Clusters {
-			cmd := exec.Command(viper.GetString("krossboard_gcloud_command"),
-				"container",
-				"clusters",
-				"get-credentials",
-				cluster.Name,
-				"--zone",
-				cluster.Location)
-
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				log.WithField("cluster", cluster.Name).Errorln("failed getting GKE cluster credentials:", string(out))
-			} else {
-				log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
-			}
-		}
-		time.Sleep(updateIntervalMin)
+		cmd.Wait()
 	}
 }
 

@@ -15,50 +15,42 @@ import (
 	"github.com/spf13/viper"
 )
 
-func updateEKSClusters(updateIntervalMin time.Duration) {
-	workers.Add(1)
-	defer workers.Done()
-
-	for {
-		awsRegion, err := getAWSRegion()
-		if err != nil {
-			log.WithError(err).Error("cannot retrieve AWS region")
-			time.Sleep(updateIntervalMin)
-			continue
-		}
-		svc := eks.New(
-			session.New(), // nolint: staticcheck // as New() is deprecated we should use NewSession() but behaviour seems different...
-			aws.NewConfig().WithRegion(awsRegion))
-		listInput := &eks.ListClustersInput{}
-		listResult, err := svc.ListClusters(listInput)
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				log.WithError(err).Errorf("failed listing EKS clusters (%v)", aerr.Code())
-			} else {
-				log.WithError(err).Error("failed listing EKS clusters")
-			}
-			time.Sleep(updateIntervalMin)
-			continue
-		}
-		for _, clusterName := range listResult.Clusters {
-			cmd := exec.Command(viper.GetString("krossboard_awscli_command"),
-				"eks",
-				"update-kubeconfig",
-				"--name",
-				*clusterName,
-				"--region",
-				awsRegion)
-
-			out, err := cmd.CombinedOutput()
-			if err != nil {
-				log.WithField("cluster", clusterName).Errorf("failed getting EKS cluster credentials: %v", string(out))
-			} else {
-				log.WithField("cluster", clusterName).Debugln("added/updated  EKS cluster credentials")
-			}
-		}
-
-		time.Sleep(updateIntervalMin)
+func updateEKSClusters() {
+	awsRegion, err := getAWSRegion()
+	if err != nil {
+		log.WithError(err).Error("cannot retrieve AWS region")
+		return
 	}
+	svc := eks.New(
+		session.New(), // nolint: staticcheck // as New() is deprecated we should use NewSession() but behaviour seems different...
+		aws.NewConfig().WithRegion(awsRegion))
+	listInput := &eks.ListClustersInput{}
+	listResult, err := svc.ListClusters(listInput)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			log.WithError(err).Errorf("failed listing EKS clusters (%v)", aerr.Code())
+		} else {
+			log.WithError(err).Error("failed listing EKS clusters")
+		}
+		return
+	}
+	for _, clusterName := range listResult.Clusters {
+		cmd := exec.Command(viper.GetString("krossboard_awscli_command"),
+			"eks",
+			"update-kubeconfig",
+			"--name",
+			*clusterName,
+			"--region",
+			awsRegion)
+
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			log.WithField("cluster", clusterName).Errorf("failed getting EKS cluster credentials: %v", string(out))
+		} else {
+			log.WithField("cluster", clusterName).Debugln("added/updated  EKS cluster credentials")
+		}
+	}
+
 }
 
 func getAWSRegion() (string, error) {

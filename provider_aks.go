@@ -13,68 +13,60 @@ import (
 	"github.com/spf13/viper"
 )
 
-func updateAKSClusters(updateIntervalMin time.Duration) {
-	workers.Add(1)
-	defer workers.Done()
+func updateAKSClusters() {
+	err := azLogin()
+	if err != nil {
+		log.WithError(err).Errorln("Azure login failed")
+		return
+	}
 
-	for {
-		err := azLogin()
+	groups, err := listGroups()
+	if err != nil {
+		log.WithError(err).Errorln("failed to list resource groups")
+		return
+	}
+
+	for _, group := range groups {
+		cmd := exec.Command(viper.GetString("krossboard_az_command"),
+			"aks",
+			"list",
+			"--resource-group",
+			group,
+			"-o",
+			"json")
+
+		out, err := cmd.CombinedOutput()
 		if err != nil {
-			log.WithError(err).Errorln("Azure login failed")
-			time.Sleep(updateIntervalMin)
+			log.WithError(err).Errorln("failed listing AKS clusters for resource group" + group + ": " + string(out))
 			continue
 		}
 
-		groups, err := listGroups()
+		var clusters []string
+		_, err = jsonparser.ArrayEach(out, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+			cn, _ := jsonparser.GetString(value, "name")
+			clusters = append(clusters, cn)
+		})
 		if err != nil {
-			log.WithError(err).Errorln("failed to list resource groups")
-			time.Sleep(updateIntervalMin)
+			log.WithError(err).WithFields(log.Fields{"group": group, "output": out}).Errorln("failed extracting cluster names from output")
 			continue
 		}
 
-		for _, group := range groups {
+		for _, cluster := range clusters {
 			cmd := exec.Command(viper.GetString("krossboard_az_command"),
 				"aks",
-				"list",
+				"get-credentials",
 				"--resource-group",
 				group,
-				"-o",
-				"json")
+				"--name",
+				cluster,
+				"--overwrite-existing")
 
 			out, err := cmd.CombinedOutput()
 			if err != nil {
-				log.WithError(err).Errorln("failed listing AKS clusters for resource group" + group + ": " + string(out))
+				log.WithError(err).Errorln("failed getting AKS cluster credentials" + cluster + ": " + string(out))
 				continue
-			}
-
-			var clusters []string
-			_, err = jsonparser.ArrayEach(out, func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-				cn, _ := jsonparser.GetString(value, "name")
-				clusters = append(clusters, cn)
-			})
-			if err != nil {
-				log.WithError(err).WithFields(log.Fields{"group": group, "output": out}).Errorln("failed extracting cluster names from output")
-				continue
-			}
-
-			for _, cluster := range clusters {
-				cmd := exec.Command(viper.GetString("krossboard_az_command"),
-					"aks",
-					"get-credentials",
-					"--resource-group",
-					group,
-					"--name",
-					cluster,
-					"--overwrite-existing")
-
-				out, err := cmd.CombinedOutput()
-				if err != nil {
-					log.WithError(err).Errorln("failed getting AKS cluster credentials" + cluster + ": " + string(out))
-					continue
-				}
 			}
 		}
-		time.Sleep(updateIntervalMin)
 	}
 }
 
