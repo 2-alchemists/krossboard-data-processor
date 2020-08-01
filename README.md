@@ -111,26 +111,41 @@ gcloud compute firewall-rules create default-allow-http \
 ```
 
 ## Microsoft Azure
-To integrate a development environement with Microsoft Azure, you need to the following information to auhenticate to your Azure subscription with appropriate permissions: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_RESOURCE_GROUP`. 
+For a development environement the following information are required to auhenticate to your Azure subscription:
 
-### Create/get authentication information
+* `AZURE_TENANT_ID`
+* `AZURE_CLIENT_ID`
+* `AZURE_CLIENT_SECRET`
+* `AZURE_RESOURCE_GROUP`
+
+### Runtime credentials for Krossboard (Azure registered app)
 Here are steps to create/get this information from your Azure Portal:
-* Select `Home -> Azure Active Directory -> App registrations`, select `New registration` and create a new app.
-* Set a `Name` for the application and leave default settings for other options (e.g. *app-krossboard-data-processor*).
-* Click `Register` to create the application, then **note** the `Application (client) ID` and `Directory (tenant) ID`; they will be needed later.
-* Select `Certificates & secrets -> New client secret` 
-* Type a description if applicable and select a validity period.
-* Click on `Add` to create a secret, then **note** the value of the secret, it will also be needed later.
-* Select `Home -> Subcriptions` and then select the subscription you're using.
-* Select `Access control (IAM) -> Add -> Add role assignment`.
-* In the field `Role`, select the role `Azure Kubernetes Service Cluster User Role`.
-* In the field `Select`, type the name of the application created (e.g. *app-krossboard-data-processor* as above) to select the application your application.
-* Click on `Save` to validate the assignement.
-* Again in the field `Role`, select the role `Managed Applications Reader`.
-* In the field `Select`, type the name of the application created (e.g. *app-krossboard-data-processor* as above).
-* Select the application and click on `Save` to validate the assignement.
+* In the search field, type and select **App registrations**.
+* Click **New registration** and create a new app.
+* Set a **Name** for the application (e.g. *krossboard-app*) and leave the other settings as is.
+* Click **Register** to create the application.
+* Note the following information that will be used later
+  * **Application (client) ID**, it's defined as `AZURE_CLIENT_ID` variable.
+  * **Directory (tenant) ID**,it's defined as `AZURE_TENANT_ID` variable.
+* Click **Certificates & secrets**.
+* Click **New client secret**.
+* Set a **Description** and an appropriate **Expires** period.
+* Click on **Add**.
+* Note the value of the secret, it's defined as `AZURE_CLIENT_SECRET`) variable.
+* In the search field, type and select **Subcriptions**.
+* In the subscriptions list, select the target subscription.
+* Click **Access control (IAM)**.
+* Select **Add -> Add role assignment**.
+* In the **Role** field, search and select the role of `Azure Kubernetes Service Cluster User Role`.
+* In the **Select** field, search and select the name of the application created (e.g. *krossboard-app* as defined above).
+* Click on **Save**.
+* Repeat the last three steps above to assign the role of `Managed Applications Reader` to the application.
 
-More details, please refer to [Azure documentation related to the service principal subject](https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest).
+
+### Image builde (Packer)
+
+ * Create credentials for Packer following the same steps as for a runtime application registration above, while making sure to assign the role of `Contributor` to the app.
+ * Create an Azure resource group and export it via the environment variable `AZURE_RESOURCE_GROUP`.
 
 ### Run the development script for Azure
 Go the the source directory:

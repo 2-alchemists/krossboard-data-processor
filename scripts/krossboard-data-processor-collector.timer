@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Krossboard clusters data collector periodically
+Description=Krossboard Data Collector Trigger
 
 [Timer]
 OnBootSec=2min

@@ -84,7 +84,6 @@ func startAPI() {
 
 	// Run the server in a goroutine so that it doesn't block.
 	go func() {
-		log.Infoln("API service started")
 		if err := srv.ListenAndServe(); err != nil {
 			log.Errorln(err)
 		}

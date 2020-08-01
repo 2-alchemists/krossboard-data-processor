@@ -23,6 +23,7 @@ var apiCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the REST API service",
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Infoln("API service started")
 		startAPI()
 	},
 }

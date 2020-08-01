@@ -1,9 +1,8 @@
 [Unit]
-Description=Run Krossboard clusters data collector periodically
+Description=Krossboard Analytics Consolidator Trigger
 
 [Timer]
-OnBootSec=5min
-OnUnitActiveSec=5min
+OnCalendar=*:0/5
 
 [Install]
 WantedBy=timers.target
