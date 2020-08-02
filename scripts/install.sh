@@ -119,7 +119,7 @@ route /* {
 }
 
 # Enable basic auth
-basicauth / {
+basicauth /* {
     krossboard JDJhJDEwJGxGMmN2ZDJ4NjgycjVTbi5pRThSNGVnaWViSGpiNWpKVVpPLjRkRGNCVmV4VGtOUnBiSjRL
 }
 EOF
