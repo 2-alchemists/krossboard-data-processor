@@ -45,7 +45,7 @@ export AZURE_RESOURCE_GROUP="azure_resource_group_TBD"
 ```
 
 
-This requires to have [Packer](https://www.packer.io/) installed. The `make build-deps` target downloads and installs Packer under the `/usr/loca/bin` folder.
+This requires to have [Packer](https://www.packer.io/) installed. The target `make build-deps` downloads and installs Packer under the `/usr/loca/bin` folder.
 ```
 make dist-cloud-image
 ```
@@ -122,23 +122,23 @@ For a development environement the following information are required to auhenti
 Here are steps to create/get this information from your Azure Portal:
 * In the search field, type and select **App registrations**.
 * Click **New registration** and create a new app.
-* Set a **Name** for the application (e.g. *krossboard-app*) and leave the other settings as is.
-* Click **Register** to create the application.
-* Note the following information that will be used later
+* Under **Name**, type *krossboard-app* (or any other value).
+* Leave the other settings as is, then select **Register**.
+* On the overview page, copy and save the following information for use later.
   * **Application (client) ID**, it's defined as `AZURE_CLIENT_ID` variable.
   * **Directory (tenant) ID**,it's defined as `AZURE_TENANT_ID` variable.
-* Click **Certificates & secrets**.
-* Click **New client secret**.
-* Set a **Description** and an appropriate **Expires** period.
+* Select **Certificates & secrets**, and then select **New client secret**.
+* Type a **Description** and leave the default value for **Expires** (i.e. *In 1 year*).
 * Click on **Add**.
-* Note the value of the secret, it's defined as `AZURE_CLIENT_SECRET`) variable.
+* Copy the value of the secret and save it. It'll be used as `AZURE_CLIENT_SECRET`) variable. It cannot be retrieved anymore after you leave the page.
 * In the search field, type and select **Subcriptions**.
-* In the subscriptions list, select the target subscription.
+* In the list of subscriptions, select the target subscription.
 * Click **Access control (IAM)**.
 * Select **Add -> Add role assignment**.
-* In the **Role** field, search and select the role of `Azure Kubernetes Service Cluster User Role`.
-* In the **Select** field, search and select the name of the application created (e.g. *krossboard-app* as defined above).
-* Click on **Save**.
+* Under **Role**, select `Azure Kubernetes Service Cluster User Role`.
+* Under **Assign access to:**, leave this as **Azure AD user, group, or service principal**.
+* Under **Select**, type the name of the application created above and select it.
+* When you are done, select Save. Click on **Save**.
 * Repeat the last three steps above to assign the role of `Managed Applications Reader` to the application.
 
 
