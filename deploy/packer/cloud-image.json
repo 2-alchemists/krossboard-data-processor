@@ -54,7 +54,7 @@
       "image_offer": "UbuntuServer",
       "image_sku": "18.04-LTS",
       "location": "{{user `azure_build_location`}}",
-      "vm_size": "Standard_B1s",
+      "vm_size": "Standard_B1ms",
       "azure_tags": {
         "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
       }
