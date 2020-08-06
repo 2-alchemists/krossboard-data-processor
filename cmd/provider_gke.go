@@ -53,7 +53,6 @@ func updateGKEClusters() {
 		} else {
 			log.WithField("cluster", cluster.Name).Debugln("added/updated GKE cluster credentials")
 		}
-		cmd.Wait()
 	}
 }
 

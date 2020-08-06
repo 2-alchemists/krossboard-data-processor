@@ -36,12 +36,6 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 		return
 	}
 
-	if err != nil {
-		log.WithError(err).Fatalln("cannot get current containers")
-		orchestrationRoundErrors += 1
-		return
-	}
-
 	// Manage an instance for each cluster
 	for _, cluster := range discoveredClusters {
 		log.WithFields(log.Fields{"cluster": cluster.Name, "endpoint": cluster.APIEndpoint}).Debugln("processing new cluster")
