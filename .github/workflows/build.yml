@@ -7,6 +7,17 @@ on:
     branches: [ master ]
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Check code quality
+        uses: golangci/golangci-lint-action@v1
+        with:
+          version: v1.27
 
   build:
     name: Build
@@ -37,7 +48,3 @@ jobs:
         make test
         make build
 
-    - name: Check code quality
-      uses: golangci/golangci-lint-action@v1
-      with:
-        version: v1.27
