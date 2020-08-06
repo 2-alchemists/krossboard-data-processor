@@ -10,10 +10,12 @@ jobs:
     runs-on: ubuntu-18.04
 
     env:
+      KROSSBOARD_UI_IMAGE: krossboard/krossboard-ui:latest
+      KROSSBOARD_KOAINSTANCE_IMAGE: rchakode/kube-opex-analytics:latest
+      GOOGLE_PROJECT_ID: krossboard-factory
       GOOGLE_APPLICATION_CREDENTIALS: gcp_packer_builder_sa_creds.json    
 
     steps:
-      
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -43,6 +45,7 @@ jobs:
         version: v1.27
 
     - name: Build GCP image
+      shell: bash
       run: |
-        echo -n ${{ secrets.GCP_PACKER_BUILDER_SA_KEY }} > $GOOGLE_APPLICATION_CREDENTIALS
-        make dist-cloud-image-gcp    
+        echo -n "${{ secrets.GCP_PACKER_BUILDER_SA_KEY }}" > "$GOOGLE_APPLICATION_CREDENTIALS"
+        make dist-cloud-image-gcp
