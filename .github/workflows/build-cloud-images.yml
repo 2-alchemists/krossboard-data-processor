@@ -33,43 +33,50 @@ jobs:
       run: |
         make build-deps
 
-    - name: Test package
-      run: |
-        make test
+    # - name: Test package
+    #   run: |
+    #     make test
 
-    - name: Check code quality
-      uses: golangci/golangci-lint-action@v1
+    # - name: Check code quality
+    #   uses: golangci/golangci-lint-action@v1
+    #   with:
+    #     version: v1.27
+
+    - name: Setup GCP credentials
+      continue-on-error: true
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
-        version: v1.27
+        version: '290.0.1'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
 
     - name: Build GCP image
-      shell: bash  
       continue-on-error: true
+      shell: bash
       env:
-        GOOGLE_PROJECT_ID: krossboard-factory
-        GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp_packer_builder_sa_creds.json
+        GOOGLE_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       run: |
-        echo -n "${{ secrets.GCP_PACKER_BUILDER_SA_KEY }}" > "$GOOGLE_APPLICATION_CREDENTIALS"
-        cat "$GOOGLE_APPLICATION_CREDENTIALS"
         make dist-cloud-image-gcp
 
-    - name: Build Azure image
+    - name: Build Azure image    
+      continue-on-error: true
       shell: bash
       env:
         AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
         AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}       
-      continue-on-error: true
+        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}   
       run: |
         make dist-cloud-image-azure
 
-    - name: Build AWS image
+    - name: Build AWS image   
+      continue-on-error: true
       shell: bash
       env:
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}    
-      continue-on-error: true
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
       run: |
         make dist-cloud-image-aws
