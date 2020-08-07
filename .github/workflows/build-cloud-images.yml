@@ -11,9 +11,7 @@ jobs:
 
     env:
       KROSSBOARD_UI_IMAGE: krossboard/krossboard-ui:latest
-      KROSSBOARD_KOAINSTANCE_IMAGE: rchakode/kube-opex-analytics:latest
-      GOOGLE_PROJECT_ID: krossboard-factory
-      GOOGLE_APPLICATION_CREDENTIALS: gcp_packer_builder_sa_creds.json    
+      KROSSBOARD_KOAINSTANCE_IMAGE: rchakode/kube-opex-analytics:latest 
 
     steps:
     - name: Set up Go 1.13
@@ -45,7 +43,33 @@ jobs:
         version: v1.27
 
     - name: Build GCP image
-      shell: bash
+      shell: bash  
+      continue-on-error: true
+      env:
+        GOOGLE_PROJECT_ID: krossboard-factory
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp_packer_builder_sa_creds.json
       run: |
         echo -n "${{ secrets.GCP_PACKER_BUILDER_SA_KEY }}" > "$GOOGLE_APPLICATION_CREDENTIALS"
+        cat "$GOOGLE_APPLICATION_CREDENTIALS"
         make dist-cloud-image-gcp
+
+    - name: Build Azure image
+      shell: bash
+      env:
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}       
+      continue-on-error: true
+      run: |
+        make dist-cloud-image-azure
+
+    - name: Build AWS image
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}    
+      continue-on-error: true
+      run: |
+        make dist-cloud-image-aws

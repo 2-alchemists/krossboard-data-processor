@@ -1,6 +1,6 @@
 PACKAGE_NAME=krossboard-data-processor
 CLOUD_IMAGE_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
-RELEASE_PACKAGE_NAME=krossboard-beta-v$(CLOUD_IMAGE_VERSION)
+RELEASE_PACKAGE_NAME=krossboard-v$(CLOUD_IMAGE_VERSION)-preview
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
