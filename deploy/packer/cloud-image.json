@@ -1,8 +1,6 @@
 {
   "variables": {
-    "product_name": "krossboard",
-    "tarball_version": "",
-    "product_image_version": "",
+    "release_package_name": "",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
     "google_build_zone": "us-central1-a",
     "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
@@ -16,9 +14,7 @@
     "azure_storage_account": "krossboardvmimages",
     "azure_build_location": "Central US",
     "krossboard_koainstance_image": "{{env `KROSSBOARD_KOAINSTANCE_IMAGE`}}",
-    "krossboard_ui_image": "{{env `KROSSBOARD_UI_IMAGE`}}",
-    "krossboard_registry_username": "{{env `KROSSBOARD_REGISTRY_USERNAME`}}",
-    "krossboard_registry_password": "{{env `KROSSBOARD_REGISTRY_PASSWORD`}}"
+    "krossboard_ui_image": "{{env `KROSSBOARD_UI_IMAGE`}}"
   },
   "builders": [
     {
@@ -26,7 +22,7 @@
       "project_id": "{{user `google_project_id`}}",
       "source_image": "ubuntu-minimal-1804-bionic-v20200108",
       "source_image_family": "ubuntu-minimal-1804-lts",
-      "image_name": "{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
+      "image_name": "{{user `release_package_name`}}",
       "disk_size": "10",
       "machine_type": "n1-standard-1",
       "ssh_username": "ubuntu",
@@ -40,7 +36,7 @@
       "source_ami": "ami-0cc0a36f626a4fdf5",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
-      "ami_name": "ami-{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
+      "ami_name": "ami-{{user `release_package_name`}}",
       "tags": {
         "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
       }
@@ -52,13 +48,13 @@
       "client_id": "{{user `azure_client_id`}}",
       "client_secret": "{{user `azure_client_secret`}}",
       "managed_image_resource_group_name": "{{user `azure_resource_group`}}",
-      "managed_image_name": "{{user `product_name`}}-v{{user `product_image_version`}}-{{timestamp}}",
+      "managed_image_name": "{{user `release_package_name`}}",
       "os_type": "Linux",
       "image_publisher": "Canonical",
       "image_offer": "UbuntuServer",
       "image_sku": "18.04-LTS",
       "location": "{{user `azure_build_location`}}",
-      "vm_size": "Standard_B1s",
+      "vm_size": "Standard_B1ms",
       "azure_tags": {
         "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
       }
@@ -68,21 +64,19 @@
     {
       "type": "file",
       "destination": "/tmp/",
-      "source": "./{{user `product_name`}}-v{{user `tarball_version`}}-x86_64.tgz"
+      "source": "./{{user `release_package_name`}}.tgz"
     },
     {
       "type": "shell",
       "inline": [
         "sleep 5",
         "cd /tmp",
-        "tar zxf {{user `product_name`}}-v{{user `tarball_version`}}-x86_64.tgz",
-        "cd {{user `product_name`}}-v{{user `tarball_version`}}-x86_64",
-        "sed -i 's|krossboard_koainstance_image|{{user `krossboard_koainstance_image`}}|' ./scripts/{{user `product_name`}}.env",
-        "sed -i 's|krossboard_ui_image|{{user `krossboard_ui_image`}}|' ./scripts/{{user `product_name`}}.env",
-        "sed -i 's|krossboard_registry_username|{{user `krossboard_registry_username`}}|' ./scripts/{{user `product_name`}}.env",
-        "sed -i 's|krossboard_registry_password|{{user `krossboard_registry_password`}}|' ./scripts/{{user `product_name`}}.env",
-        "echo 'file ./scripts/{{user `product_name`}}.env updated'",
-        "cat ./scripts/{{user `product_name`}}.env",
+        "tar zxf {{user `release_package_name`}}.tgz",
+        "cd {{user `release_package_name`}}",
+        "sed -i 's|krossboard_koainstance_image|{{user `krossboard_koainstance_image`}}|' ./scripts/krossboard.env",
+        "sed -i 's|krossboard_ui_image|{{user `krossboard_ui_image`}}|' ./scripts/krossboard.env",
+        "echo 'file ./scripts/krossboard.env updated'",
+        "cat ./scripts/krossboard.env",
         "sudo ./install.sh"
       ]
     }

@@ -1,0 +1,9 @@
+[Unit]
+Description=Krossboard Data Collector Trigger
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target

@@ -1,5 +1,5 @@
 [Unit]
-Description=Krossboard Data Processor - Multi-cluster Kubernetes usage analytics tool
+Description=Krossboard API service
 ConditionPathExists=/opt/krossboard/bin/krossboard-data-processor
 After=network.target
 After=docker.target
@@ -8,17 +8,17 @@ After=docker.target
 Type=simple
 User=krossboard
 Group=krossboard
-LimitNOFILE=1024
+LimitNOFILE=8192
 Restart=on-failure
 RestartSec=10
 StartLimitInterval=60
 WorkingDirectory=/tmp/
-ExecStart=/opt/krossboard/bin/krossboard-data-processor
 EnvironmentFile=/opt/krossboard/etc/krossboard.env
 PermissionsStartOnly=true
 ExecStartPre=/bin/mkdir -p /var/log/krossboard
 ExecStartPre=/bin/chown syslog:adm /var/log/krossboard
 ExecStartPre=/bin/chmod 755 /var/log/krossboard
+ExecStart=/opt/krossboard/bin/krossboard-data-processor api
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=krossboard-data-processor

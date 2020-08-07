@@ -1,9 +1,6 @@
-PRODUCT_NAME=krossboard
-PACKAGE_NAME=$(PRODUCT_NAME)-data-processor
-PRODUCT_VERSION=$$(grep "ProgramVersion.=.*" main.go | cut -d"\"" -f2)-$$(git rev-parse --short HEAD)
-PRODUCT_CLOUD_IMAGE_VERSION=$$(echo $(PRODUCT_VERSION) | sed 's/\.//g' -)
-ARCH=$$(uname -m)
-DIST_DIR=$(PRODUCT_NAME)-v$(PRODUCT_VERSION)-$(ARCH)
+PACKAGE_NAME=krossboard-data-processor
+CLOUD_IMAGE_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
+RELEASE_PACKAGE_NAME=krossboard-v$(CLOUD_IMAGE_VERSION)-preview
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -29,16 +26,15 @@ docker-build:
 		-it -v "$(GOPATH)":/go \
 		-w /go/src/bitbucket.org/rsohlich/makepost \
 		golang:latest \
-		go build -o "$(BINARY_UNIX)" -v	
+		go build -o "$(BINARY_UNIX)" -v
 test:
 	$(GOCMD) clean -testcache
 	$(GOTEST) -v ./...
 clean:
 	$(GOCLEAN)
 	rm -f $(PACKAGE_NAME)
-run:
-	$(GOBUILD) -o $(PACKAGE_NAME) -v ./...
-	./$(PACKAGE_NAME)
+run: build
+	./$(PACKAGE_NAME) collector
 deps:
 	$(GOCMD) get .
 tools:
@@ -49,31 +45,25 @@ tools:
 check: tools
 	$(GOLANGCI) run .
 dist: build build-compress
-	mkdir -p $(DIST_DIR)/scripts/
-	cp $(PACKAGE_NAME) $(DIST_DIR)/
-	cp scripts/$(PRODUCT_NAME)* $(DIST_DIR)/scripts/
-	install -m 755 scripts/install.sh $(DIST_DIR)/
-	tar zcf $(DIST_DIR).tgz $(DIST_DIR)
+	mkdir -p $(RELEASE_PACKAGE_NAME)/scripts/
+	cp $(PACKAGE_NAME) $(RELEASE_PACKAGE_NAME)/
+	cp scripts/krossboard* $(RELEASE_PACKAGE_NAME)/scripts/
+	install -m 755 scripts/install.sh $(RELEASE_PACKAGE_NAME)/
+	tar zcf $(RELEASE_PACKAGE_NAME).tgz $(RELEASE_PACKAGE_NAME)
 	
 dist-cloud-image: dist-cloud-image-aws dist-cloud-image-gcp dist-cloud-image-azure
 
 dist-cloud-image-aws: dist
 	$(PACKER) build -only=amazon-ebs \
-		-var="product_name=$(PRODUCT_NAME)" \
-		-var="tarball_version=$(PRODUCT_VERSION)" \
-		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
 		$(PACKER_CONF_FILE)
 
 dist-cloud-image-gcp: dist
 	$(PACKER) build -only=googlecompute \
-		-var="product_name=$(PRODUCT_NAME)" \
-		-var="tarball_version=$(PRODUCT_VERSION)" \
-		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
 		$(PACKER_CONF_FILE)
 
 dist-cloud-image-azure: dist
 	$(PACKER) build -only=azure-arm \
-		-var="product_name=$(PRODUCT_NAME)" \
-		-var="tarball_version=$(PRODUCT_VERSION)" \
-		-var="product_image_version=$(PRODUCT_CLOUD_IMAGE_VERSION)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
 		$(PACKER_CONF_FILE)

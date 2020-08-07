@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"encoding/json"
@@ -110,45 +110,39 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 }
 
 func processConsolidatedUsage(kubeconfig *KubeConfig) {
-	workers.Add(1)
-	defer workers.Done()
-
-	for {
-		allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
+	allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
+	if err != nil {
+		log.WithError(err).Errorln("failed getting all clusters usage")
+	} else {
+		currentUsageFile := viper.GetString("krossboard_current_usage_file")
+		serializedData, _ := json.Marshal(allClustersUsage)
+		err = ioutil.WriteFile(currentUsageFile, serializedData, 0644)
 		if err != nil {
-			log.WithError(err).Errorln("get processing all clusters usage")
-		} else {
-			currentUsageFile := viper.GetString("krossboard_current_usage_file")
-			serializedData, _ := json.Marshal(allClustersUsage)
-			err = ioutil.WriteFile(currentUsageFile, serializedData, 0644)
-			if err != nil {
-				log.WithError(err).Errorln("failed writing current usage file")
-				continue
-			}
+			log.WithError(err).Errorln("failed writing current usage file")
+			return
 		}
+	}
 
-		for _, clusterUsage := range allClustersUsage {
-			if clusterUsage.OutToDate {
+	for _, clusterUsage := range allClustersUsage {
+		if clusterUsage.OutToDate {
+			continue
+		}
+		rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
+		usageDb := NewUsageDb(rrdFile)
+		_, err := os.Stat(rrdFile)
+		if os.IsNotExist(err) {
+			err := usageDb.CreateRRD()
+			if err != nil {
+				log.WithError(err).Errorln("failed creating RRD file", rrdFile)
 				continue
 			}
-			rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
-			usageDb := NewUsageDb(rrdFile)
-			_, err := os.Stat(rrdFile)
-			if os.IsNotExist(err) {
-				err := usageDb.CreateRRD()
-				if err != nil {
-					log.WithError(err).Errorln("failed creating RRD file", rrdFile)
-					continue
-				}
-				time.Sleep(time.Second) // otherwise update will fail with 'illegal attempt to update' error
-			}
-			cpuUsage := clusterUsage.CPUUsed + clusterUsage.CPUNonAllocatable
-			memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
-			err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
-			if err != nil {
-				log.WithError(err).Errorln("failed to udpate RRD file", rrdFile)
-			}
+			time.Sleep(time.Second) // otherwise update will fail with 'illegal attempt to update' error
 		}
-		time.Sleep(RRDStorageStep300Secs * time.Second)
+		cpuUsage := clusterUsage.CPUUsed + clusterUsage.CPUNonAllocatable
+		memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
+		err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
+		if err != nil {
+			log.WithError(err).Errorln("failed to udpate RRD file", rrdFile)
+		}
 	}
 }

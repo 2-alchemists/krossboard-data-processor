@@ -1,0 +1,82 @@
+name: Build cloud images
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build cloud images
+    runs-on: ubuntu-18.04
+
+    env:
+      KROSSBOARD_UI_IMAGE: krossboard/krossboard-ui:latest
+      KROSSBOARD_KOAINSTANCE_IMAGE: rchakode/kube-opex-analytics:latest 
+
+    steps:
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install build dependencies   
+      run: |
+        make build-deps
+
+    - name: Test package
+      run: |
+        make test
+
+    - name: Check code quality
+      uses: golangci/golangci-lint-action@v1
+      with:
+        version: v1.27
+
+    - name: Setup GCP credentials
+      continue-on-error: true
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '290.0.1'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Build GCP image
+      continue-on-error: true
+      shell: bash
+      env:
+        GOOGLE_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      run: |
+        make dist-cloud-image-gcp
+
+    - name: Build Azure image    
+      continue-on-error: true
+      shell: bash
+      env:
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}   
+      run: |
+        make dist-cloud-image-azure
+
+    - name: Build AWS image   
+      continue-on-error: true
+      shell: bash
+      env:
+        AWS_ACCESS_KEY: ${{ secrets.AWS_ACCESS_KEY }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
+      run: |
+        make dist-cloud-image-aws

@@ -19,8 +19,6 @@ fi
 DISTRIB_DIR=$(dirname $0)
 PRODUCT_NAME=krossboard
 PRODUCT_BACKEND=krossboard-data-processor
-PRODUCT_BACKEND_SERVICE=${PRODUCT_BACKEND}.service
-PRODUCT_FRONTEND_SERVICE=krossboard-ui.service
 DISTRIB_BINARY_PATH=${1-$DISTRIB_DIR/$PRODUCT_BACKEND}
 PRODUCT_USER=krossboard
 PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
@@ -35,14 +33,13 @@ apt update && apt -y upgrade
 # apt install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-apt install -y docker.io rrdtool librrd-dev vim
+apt install -y docker.io rrdtool librrd-dev vim curl
 
 echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} binary from $DISTRIB_BINARY_PATH...${NO_COLOR}"
 install -d $PRODUCT_HOME_DIR/{bin,data,etc}
 install -m 755 $DISTRIB_BINARY_PATH $PRODUCT_HOME_DIR/bin/
 install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_CONFIG_FILE $PRODUCT_CONFIG_DIR/
-install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_BACKEND_SERVICE /lib/systemd/system/
-install -m 644 $DISTRIB_DIR/scripts/$PRODUCT_FRONTEND_SERVICE /lib/systemd/system/
+install -m 644 $DISTRIB_DIR/scripts/${PRODUCT_NAME}-*.{service,timer} /lib/systemd/system/
 
 echo -e "${RED_COLOR}setting up runtime user ${PRODUCT_USER}...${NO_COLOR}"
 id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
@@ -97,32 +94,51 @@ fi
 echo -e "${RED_COLOR}signing the installation${NO_COLOR}"
 stat -c %Z $PRODUCT_HOME_DIR/bin/$DISTRIB_BINARY_PATH  | md5sum > /opt/$PRODUCT_USER/data/.sign
 
-echo -e "${RED_COLOR}update configuration file ${NO_COLOR}"
-echo "KROSSBOARD_UPDATE_INTERVAL_MIN=5" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
-
 echo -e "${RED_COLOR}dumping configuration file ${NO_COLOR}"
 cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
 echo -e "${RED_COLOR}creating Caddy configuration file ${PRODUCT_CONFIG_DIR}/Caddyfile ${NO_COLOR}"
 cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
-0.0.0.0:80
-browse
-log stdout
-errors stdout
-proxy /api 127.0.0.1:1519
+# domain name.
+:80
 
-basicauth krossboard Kr0sSB8qrdAdm {
-  realm "krossboard"
-  /
+# Set this path to your site's directory.
+root * /var/www/html
+
+# Enable the static file server.
+file_server
+
+# Add reverse proxy for the API
+route /api/* {
+  reverse_proxy 127.0.0.1:1519
+}
+
+# Rewrites other URI to index.html
+route /* {
+  try_files {path} {path}/ /index.html
+}
+
+# Enable basic auth
+basicauth /* {
+    krossboard JDJhJDEwJGxGMmN2ZDJ4NjgycjVTbi5pRThSNGVnaWViSGpiNWpKVVpPLjRkRGNCVmV4VGtOUnBiSjRL
 }
 EOF
 
-echo -e "${RED_COLOR}installing script to change basicauth password ${NO_COLOR}"
+echo -e "${RED_COLOR}installing script to change basicauth password${NO_COLOR}"
 install -m 755 $DISTRIB_DIR/scripts/krossboard-change-passwd.sh $PRODUCT_HOME_DIR/bin/krossboard-change-passwd
 
 echo -e "${RED_COLOR}setting permissions on files and updating systemd settings ${NO_COLOR}"
 chown -R $PRODUCT_USER:$PRODUCT_USER $PRODUCT_HOME_DIR/
-systemctl enable $PRODUCT_BACKEND_SERVICE
-systemctl enable $PRODUCT_FRONTEND_SERVICE
+
+
+echo -e "${RED_COLOR}enable systemd units${NO_COLOR}"
+service_units=$(find /lib/systemd/system/ -name "${PRODUCT_NAME}-*.service"  -printf "%f\n")
+for u in $service_units; do
+    systemctl enable $u
+done
+timer_units=$(find /lib/systemd/system/ -name "${PRODUCT_NAME}-*.timer"  -printf "%f\n")
+for u in $timer_units; do
+    systemctl enable $u
+done
 systemctl daemon-reload
 echo "done"
