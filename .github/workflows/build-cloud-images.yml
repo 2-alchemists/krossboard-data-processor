@@ -33,14 +33,14 @@ jobs:
       run: |
         make build-deps
 
-    # - name: Test package
-    #   run: |
-    #     make test
+    - name: Test package
+      run: |
+        make test
 
-    # - name: Check code quality
-    #   uses: golangci/golangci-lint-action@v1
-    #   with:
-    #     version: v1.27
+    - name: Check code quality
+      uses: golangci/golangci-lint-action@v1
+      with:
+        version: v1.27
 
     - name: Setup GCP credentials
       continue-on-error: true
