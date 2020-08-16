@@ -75,6 +75,7 @@ func initConfig() {
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
 	viper.SetDefault("krossboard_cors_origins", "*")
 	viper.SetDefault("docker_api_version", "1.39")
+	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	viper.SetDefault("krossboard_awscli_command", "aws")
 	viper.SetDefault("krossboard_aws_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_gcloud_command", "gcloud")
