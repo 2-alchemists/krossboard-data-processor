@@ -41,6 +41,18 @@ jobs:
       uses: golangci/golangci-lint-action@v1
       with:
         version: v1.27
+        
+    - name: Patch version
+      run: |
+        export GIT_LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        if [ -z "$GIT_LATEST_TAG" ]; then
+          export KB_RELEASE_VERSION=$(git rev-parse --short HEAD)
+        else
+          export KB_RELEASE_VERSION=$(echo $GIT_LATEST_TAG | sed 's/v//')
+        fi
+        VERSION_LINE=$(grep -n 'Version:' cmd/root.go | cut -f1 -d:)
+        VERSION_ORIG=$(grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}')
+        sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
 
     - name: Setup GCP credentials
       continue-on-error: true
@@ -57,6 +69,7 @@ jobs:
       env:
         GOOGLE_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       run: |
+        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-gcp
 
     - name: Build Azure image    
@@ -69,6 +82,7 @@ jobs:
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}   
       run: |
+        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-azure
 
     - name: Build AWS image   
@@ -79,4 +93,5 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
       run: |
+        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-aws
