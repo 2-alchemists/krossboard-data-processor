@@ -14,6 +14,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
+      - name: Setup build environment   
+        run: |
+          make build-deps
+
       - name: Check code quality
         uses: golangci/golangci-lint-action@v1
         with:
