@@ -12,31 +12,31 @@ import (
 
 func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 	containerManager := NewContainerManager(viper.GetString("krossboard_koainstance_image"))
-	if err := containerManager.PullImage(); err != nil {
-		log.WithFields(log.Fields{
-			"image":   containerManager.Image,
-			"message": err.Error(),
-		}).Fatalln("failed pulling base container image")
+
+	if !containerManager.ImageExists() {
+		log.Infoln("image does not exists, try to pulling it", containerManager.Image)
+		if err := containerManager.PullImage(); err != nil {
+			log.WithFields(log.Fields{
+				"image":   containerManager.Image,
+				"message": err.Error(),
+			}).Fatalln("failed pulling base container image")
+		}
 	}
 
-	orchestrationRoundErrors := int64(0)
 	discoveredClusters, err := kubeconfig.ListClusters()
 	if err != nil {
 		log.WithError(err).Errorln("failed reading clusters")
-		orchestrationRoundErrors += 1
-		time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 		return
 	}
 
 	runningConfig, err := systemStatus.GetInstances()
 	if err != nil {
 		log.WithField("message", err.Error()).Errorln("cannot load running configuration")
-		orchestrationRoundErrors += 1
-		time.Sleep(time.Duration(fibonacci(orchestrationRoundErrors)) * time.Second)
 		return
 	}
 
 	// Manage an instance for each cluster
+	orchestrationRoundErrors := int64(0)
 	for _, cluster := range discoveredClusters {
 		log.WithFields(log.Fields{"cluster": cluster.Name, "endpoint": cluster.APIEndpoint}).Debugln("processing new cluster")
 
