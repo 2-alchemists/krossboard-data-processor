@@ -26,14 +26,14 @@ PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
 PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env
 
 
-echo -e "${RED_COLOR}updaing apt source list and package versions...${NO_COLOR}"
-apt update && apt -y upgrade
+echo -e "${RED_COLOR}updating apt-get source list and package versions...${NO_COLOR}"
+apt-get update && apt-get -y upgrade
 
 # dev requirements
-# apt install -y make rrdtool librrd-dev upx-ucl pkg-config
+# apt-get install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR}Installing Docker, rrdtool and librrd-dev...${NO_COLOR}"
-apt install -y docker.io rrdtool librrd-dev vim curl
+apt-get install -y docker.io rrdtool librrd-dev vim curl
 
 echo -e "${RED_COLOR}installing ${PRODUCT_BACKEND} binary from $DISTRIB_BINARY_PATH...${NO_COLOR}"
 install -d $PRODUCT_HOME_DIR/{bin,data,etc}
@@ -67,7 +67,7 @@ if wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/c
     echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
     echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
     snap remove google-cloud-sdk
-    apt install -y google-cloud-sdk
+    apt-get install -y google-cloud-sdk
     DIST_GCLOUD_COMMAND=$(which gcloud || echo "")
     if [ "$DIST_GCLOUD_COMMAND" != "" ]; then
         echo -e "${RED_COLOR}command gcloud found at $DIST_GCLOUD_COMMAND${NO_COLOR}"
@@ -80,7 +80,7 @@ if wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone"
     CLOUD_PROVIDER="AWS"
     echo -e "${RED_COLOR}cloud provider is ${CLOUD_PROVIDER}${NO_COLOR}"
     echo -e "${RED_COLOR}applying prerequisites for $CLOUD_PROVIDER cloud...${NO_COLOR}"
-    apt -y install python3-pip && pip3 install --upgrade awscli
+    apt-get -y install python3-pip && pip3 install --upgrade awscli
 
     DIST_AWS_COMMAND=$(which aws || echo "")
     if [ "$DIST_AWS_COMMAND" != "" ]; then

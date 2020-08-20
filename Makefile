@@ -16,7 +16,7 @@ all: test build
 build:
 	$(GOBUILD) -o $(PACKAGE_NAME) -v
 build-deps:
-	sudo apt update && sudo apt install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
+	sudo apt-get update && sudo apt-get install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
 	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
 	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
 build-compress: build
