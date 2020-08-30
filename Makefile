@@ -1,6 +1,7 @@
 PACKAGE_NAME=krossboard-data-processor
-CLOUD_IMAGE_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
-RELEASE_PACKAGE_NAME=krossboard-v$(CLOUD_IMAGE_VERSION)-preview
+DATETIME_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
+GIT_SHA:=$(shell git rev-parse --short HEAD)
+RELEASE_PACKAGE_NAME=krossboard-v$(DATETIME_VERSION)-$(GIT_SHA)
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -9,7 +10,7 @@ GOVENDOR=govendor
 GOLANGCI=GO111MODULE=on ./bin/golangci-lint
 UPX=upx
 PACKER=packer
-PACKER_VERSION=1.5.1
+PACKER_VERSION=1.6.2
 PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
