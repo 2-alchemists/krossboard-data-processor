@@ -115,6 +115,6 @@ jobs:
         echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-aws
 
-    - name: Check on failures
-      if: steps.azure-build.outputs.status != 'success' || steps.aws-build.outputs.status != 'success' || steps.gcp-build.outputs.status != 'success'
-      run: exit 1        
+#     - name: Check on failures
+#      if: steps.azure-build.outputs.status != 'success' || steps.aws-build.outputs.status != 'success' || steps.gcp-build.outputs.status != 'success'
+#      run: exit 1        
