@@ -3,9 +3,11 @@
     "release_package_name": "",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
     "google_build_zone": "us-central1-a",
+    "google_image_storage_location": "us",
     "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
     "aws_build_region": "eu-central-1",
+    "aws_ami": "ami-04edc9c2bfcf9a772",
     "azure_subscription_id": "{{env `AZURE_SUBSCRIPTION_ID`}}",
     "azure_tenant_id": "{{env `AZURE_TENANT_ID`}}",
     "azure_client_id": "{{env `AZURE_CLIENT_ID`}}",
@@ -20,25 +22,38 @@
     {
       "type": "googlecompute",
       "project_id": "{{user `google_project_id`}}",
-      "source_image": "ubuntu-minimal-1804-bionic-v20200108",
+      "source_image": "ubuntu-minimal-1804-bionic-v20200824",
       "source_image_family": "ubuntu-minimal-1804-lts",
       "image_name": "{{user `release_package_name`}}",
       "disk_size": "10",
       "machine_type": "n1-standard-1",
       "ssh_username": "ubuntu",
-      "zone": "{{user `google_build_zone`}}"
+      "zone": "{{user `google_build_zone`}}",
+      "image_storage_locations": ["{{user `google_image_storage_location`}}"]
     },
     {
       "type": "amazon-ebs",
       "access_key": "{{user `aws_access_key`}}",
       "secret_key": "{{user `aws_secret_key`}}",
       "region": "{{user `aws_build_region`}}",
-      "source_ami": "ami-0cc0a36f626a4fdf5",
+      "ami_regions": ["eu-central-1", 
+                      "eu-west-1", 
+                      "eu-west-2", 
+                      "us-east-1", 
+                      "us-west-1",
+                      "sa-east-1",
+                      "ap-southeast-1", 
+                      "ap-southeast-2", 
+                      "ca-central-1",
+                      "me-south-1"],
+      "ami_groups": ["all"],
+      "source_ami": "{{user `aws_ami`}}",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
       "ami_name": "ami-{{user `release_package_name`}}",
       "tags": {
-        "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
+        "Base AMI": "{{ .SourceAMIName }}",
+        "Publisher": "2Alchemists SAS"
       }
     },
     {
@@ -56,7 +71,8 @@
       "location": "{{user `azure_build_location`}}",
       "vm_size": "Standard_B1ms",
       "azure_tags": {
-        "baseosimg": "UbuntuServer-18.04-LTS-Canonical"
+        "Base Image": "UbuntuServer-18.04-LTS-Canonical",
+        "Publisher": "2Alchemists SAS"
       }
     }
   ],
