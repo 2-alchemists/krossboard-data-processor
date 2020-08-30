@@ -10,7 +10,7 @@ GOVENDOR=govendor
 GOLANGCI=GO111MODULE=on ./bin/golangci-lint
 UPX=upx
 PACKER=packer
-PACKER_VERSION=1.5.1
+PACKER_VERSION=1.6.2
 PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
