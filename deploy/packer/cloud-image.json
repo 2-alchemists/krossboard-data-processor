@@ -7,7 +7,7 @@
     "aws_access_key": "{{env `AWS_ACCESS_KEY`}}",
     "aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
     "aws_build_region": "eu-central-1",
-    "aws_ami": "ami-04edc9c2bfcf9a772",
+    "aws_ami": "ami-07d1bb89ff2dd50fe",
     "azure_subscription_id": "{{env `AZURE_SUBSCRIPTION_ID`}}",
     "azure_tenant_id": "{{env `AZURE_TENANT_ID`}}",
     "azure_client_id": "{{env `AZURE_CLIENT_ID`}}",
