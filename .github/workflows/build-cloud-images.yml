@@ -5,6 +5,22 @@ on:
     branches: [ master ]
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Setup build environment   
+        run: |
+          make build-deps
+
+      - name: Check code quality
+        uses: golangci/golangci-lint-action@v1
+        with:
+          version: v1.27
+          
   build:
     name: Build cloud images
     runs-on: ubuntu-18.04
@@ -37,11 +53,6 @@ jobs:
       run: |
         make test
 
-    - name: Check code quality
-      uses: golangci/golangci-lint-action@v1
-      with:
-        version: v1.27
-        
     - name: Patch version
       run: |
         GIT_LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` | echo "")
