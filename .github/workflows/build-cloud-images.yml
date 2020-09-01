@@ -1,6 +1,9 @@
 name: Build cloud images
 
 on:
+  push:
+    tags:
+      - v*
   pull_request:
     branches: [ master ]
 
