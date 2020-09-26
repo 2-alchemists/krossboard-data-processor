@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -39,4 +40,9 @@ func getCloudProvider() string {
 	}
 
 	return "UNDEFINED"
+}
+
+// RoundTime rounds the given time to the provided resolution.
+func RoundTime(t time.Time, resolution time.Duration) time.Time {
+	return time.Unix(0, (t.UnixNano()/resolution.Nanoseconds())*resolution.Nanoseconds())
 }
