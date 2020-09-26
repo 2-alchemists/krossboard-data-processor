@@ -37,6 +37,9 @@ type UsageHistory struct {
 	MEMUsage []*UsageHistoryItem `json:"memUsage"`
 }
 
+// now points to the regular time.Now but offers a way to stub out the function inside tests.
+var now = time.Now
+
 // NewUsageDb instanciate a new UsageDb object wrapper
 func NewUsageDb(dbname string) *UsageDb {
 	return &UsageDb{
@@ -50,8 +53,7 @@ func NewUsageDb(dbname string) *UsageDb {
 
 // CreateRRD create a new RRD database
 func (m *UsageDb) CreateRRD() error {
-	now := time.Now()
-	rrdCreator := rrd.NewCreator(m.RRDFile, now, m.Step)
+	rrdCreator := rrd.NewCreator(m.RRDFile, now(), m.Step)
 	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)
 	rrdCreator.RRA("AVERAGE", 0.5, 12, 8880)
 	rrdCreator.DS("cpu_usage", "GAUGE", m.Step, m.MinValue, m.MaxValue)
