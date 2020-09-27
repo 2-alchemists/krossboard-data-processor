@@ -75,7 +75,7 @@ func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) er
 func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
 	rrdFetchStep := int64(RRDStorageStep3600Secs)
-	if endTimeUTC.Sub(startTimeUTC) < time.Duration(duration25Hours) {
+	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
 		rrdFetchStep = int64(RRDStorageStep300Secs)
 	}
 	rrdEndTime := RoundTime(endTimeUTC, time.Duration(rrdFetchStep)*time.Second)
@@ -86,8 +86,8 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*Usa
 	}
 	defer rrdFetchRes.FreeValues()
 
-	cpuUsage := []*UsageHistoryItem{}
-	memUsage := []*UsageHistoryItem{}
+	var cpuUsage []*UsageHistoryItem
+	var memUsage []*UsageHistoryItem
 	rrdRow := 0
 	for ti := rrdFetchRes.Start.Add(rrdFetchRes.Step); ti.Before(rrdEndTime) || ti.Equal(rrdEndTime); ti = ti.Add(rrdFetchRes.Step) {
 		cpu := rrdFetchRes.ValueAt(0, rrdRow)
