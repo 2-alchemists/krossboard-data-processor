@@ -37,6 +37,9 @@ type UsageHistory struct {
 	MEMUsage []*UsageHistoryItem `json:"memUsage"`
 }
 
+// now points to the regular time.Now but offers a way to stub out the function inside tests.
+var now = time.Now
+
 // NewUsageDb instanciate a new UsageDb object wrapper
 func NewUsageDb(dbname string) *UsageDb {
 	return &UsageDb{
@@ -50,8 +53,7 @@ func NewUsageDb(dbname string) *UsageDb {
 
 // CreateRRD create a new RRD database
 func (m *UsageDb) CreateRRD() error {
-	now := time.Now()
-	rrdCreator := rrd.NewCreator(m.RRDFile, now, m.Step)
+	rrdCreator := rrd.NewCreator(m.RRDFile, now(), m.Step)
 	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)
 	rrdCreator.RRA("AVERAGE", 0.5, 12, 8880)
 	rrdCreator.DS("cpu_usage", "GAUGE", m.Step, m.MinValue, m.MaxValue)
@@ -73,19 +75,19 @@ func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) er
 func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
 	rrdFetchStep := int64(RRDStorageStep3600Secs)
-	if endTimeUTC.Sub(startTimeUTC) < time.Duration(duration25Hours) {
+	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
 		rrdFetchStep = int64(RRDStorageStep300Secs)
 	}
-	rrdEndTime := time.Unix(int64(int64(endTimeUTC.Unix()/rrdFetchStep)*rrdFetchStep), 0)
-	rrdStartTime := time.Unix(int64(int64(startTimeUTC.Unix()/rrdFetchStep)*rrdFetchStep), 0)
+	rrdEndTime := RoundTime(endTimeUTC, time.Duration(rrdFetchStep)*time.Second)
+	rrdStartTime := RoundTime(startTimeUTC, time.Duration(rrdFetchStep)*time.Second)
 	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, time.Duration(rrdFetchStep)*time.Second)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read rrd file")
 	}
 	defer rrdFetchRes.FreeValues()
 
-	cpuUsage := []*UsageHistoryItem{}
-	memUsage := []*UsageHistoryItem{}
+	var cpuUsage []*UsageHistoryItem
+	var memUsage []*UsageHistoryItem
 	rrdRow := 0
 	for ti := rrdFetchRes.Start.Add(rrdFetchRes.Step); ti.Before(rrdEndTime) || ti.Equal(rrdEndTime); ti = ti.Add(rrdFetchRes.Step) {
 		cpu := rrdFetchRes.ValueAt(0, rrdRow)
