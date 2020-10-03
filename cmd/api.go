@@ -337,7 +337,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	for dbname, dbfile := range usageHistoryDbs {
 		usageDb := NewUsageDb(dbfile)
-		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
+		usageHistory, err := usageDb.FetchUsageHourly(actualStartDateUTC, actualEndDateUTC)
 		if err != nil {
 			log.WithError(err).Errorln("failed retrieving data from rrd file")
 		} else {

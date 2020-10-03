@@ -70,7 +70,7 @@ func TestUsageDb(t *testing.T) {
 
 					end := start.Add(time.Duration(5*3)*time.Minute)
 					Convey(fmt.Sprintf("When fetching usage for interval %s - %s", start, end), func() {
-						usage, err := usageDb.FetchUsage(start, end)
+						usage, err := usageDb.FetchUsageHourly(start, end)
 
 						So(err, ShouldBeNil)
 

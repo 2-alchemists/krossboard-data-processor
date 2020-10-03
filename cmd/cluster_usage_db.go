@@ -71,16 +71,27 @@ func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) er
 	return rrdUpdater.Update(ts, cpuUsage, memUsage)
 }
 
-// FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+// FetchUsageHourly retrieves from the managed RRD file, 5 minutes-step usage data between startTimeUTC and endTimeUTC
+func (m *UsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep300Secs)*time.Second)
+}
+
+// FetchUsageHourly retrieves from the managed RRD file, hour-step usage data between startTimeUTC and endTimeUTC
+func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
-	rrdFetchStep := int64(RRDStorageStep3600Secs)
+
 	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
-		rrdFetchStep = int64(RRDStorageStep300Secs)
+		return m.FetchUsage5Minutes(startTimeUTC, endTimeUTC)
 	}
-	rrdEndTime := RoundTime(endTimeUTC, time.Duration(rrdFetchStep)*time.Second)
-	rrdStartTime := RoundTime(startTimeUTC, time.Duration(rrdFetchStep)*time.Second)
-	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, time.Duration(rrdFetchStep)*time.Second)
+
+	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep3600Secs)*time.Second)
+}
+
+// FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC with the given step
+func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
+	rrdEndTime := RoundTime(endTimeUTC, duration)
+	rrdStartTime := RoundTime(startTimeUTC, duration)
+	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, duration)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read rrd file")
 	}
