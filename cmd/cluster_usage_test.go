@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brianvoe/gofakeit/v5"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"github.com/ziutek/rrd"
@@ -32,7 +33,7 @@ func TestUsageDb(t *testing.T) {
 		So(err, ShouldBeNil)
 
 		dbName := path.Join(tempDir, "test.db")
-		Convey(fmt.Sprintf("Given a new instance of UsageDB with dbName: '%s'", dbName), func() {
+		Convey("Given a new instance of UsageDB", func() {
 			usageDb := NewUsageDb(dbName)
 
 			So(usageDb, ShouldNotBeNil)
@@ -48,8 +49,10 @@ func TestUsageDb(t *testing.T) {
 				info, err := rrd.Info(usageDb.RRDFile)
 				So(err, ShouldBeNil)
 
-				start := time.Unix(int64(info["last_update"].(uint)), 0)
+				start := time.Unix(int64(info["last_update"].(uint)), 0).UTC()
 				So(start.Unix(), ShouldEqual, now().Unix())
+
+				fmt.Println("start", start)
 
 				type data struct {
 					t        int
@@ -57,9 +60,9 @@ func TestUsageDb(t *testing.T) {
 					memUsage float64
 				}
 				type input struct {
-					fetcher func(u *UsageDb, startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error)
-					period  time.Duration
-					data    func() []data
+					fetcher  func(u *UsageDb, startTime time.Time, endTime time.Time) (*UsageHistory, error)
+					duration time.Duration
+					data     func() []data
 				}
 				tests := []struct {
 					name  string
@@ -69,8 +72,8 @@ func TestUsageDb(t *testing.T) {
 					{
 						name: "hourly test case - nominal",
 						input: input{
-							fetcher: (*UsageDb).FetchUsageHourly,
-							period:  time.Duration(15) * time.Minute,
+							fetcher:  (*UsageDb).FetchUsageHourly,
+							duration: time.Duration(15) * time.Minute,
 							data: func() []data {
 								return []data{
 									{t: 5, cpuUsage: 10, memUsage: 15},
@@ -102,6 +105,60 @@ func TestUsageDb(t *testing.T) {
 							},
 						},
 					},
+					{
+						name: "monthly test case - nominal",
+						input: input{
+							fetcher:  (*UsageDb).FetchUsageMonthly,
+							duration: time.Duration(2664000) * time.Second * 2, // 2 months
+							data: func() []data {
+								gofakeit.Seed(1)
+
+								start := 5    // minutes
+								step := 5     // minutes
+								end := 131400 // minutes ~ 3 months
+
+								var res []data
+								for t := start; t < end; t += step {
+									res = append(res, data{
+										t:        t,
+										cpuUsage: gofakeit.Float64Range(0, 100),
+										memUsage: gofakeit.Float64Range(0, 100)})
+								}
+
+								return res
+							},
+						},
+						want: &UsageHistory{
+							CPUUsage: []*UsageHistoryItem{
+								{
+									DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
+									Value:   3676.8308439867487,
+								},
+								{
+									DateUTC: time.Date(start.Year(), start.Month()+1, 1, 0, 0, 0, 0, time.UTC),
+									Value:   36981.556600389304,
+								},
+								{
+									DateUTC: time.Date(start.Year(), start.Month()+2, 1, 0, 0, 0, 0, time.UTC),
+									Value:   32673.758350134198,
+								},
+							},
+							MEMUsage: []*UsageHistoryItem{
+								{
+									DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
+									Value:   3615.1705261647344,
+								},
+								{
+									DateUTC: time.Date(start.Year(), start.Month()+1, 1, 0, 0, 0, 0, time.UTC),
+									Value:   37462.62516932022,
+								},
+								{
+									DateUTC: time.Date(start.Year(), start.Month()+2, 1, 0, 0, 0, 0, time.UTC),
+									Value:   32836.23815938188,
+								},
+							},
+						},
+					},
 				}
 
 				for _, test := range tests {
@@ -109,14 +166,14 @@ func TestUsageDb(t *testing.T) {
 						Convey("Given some values added in the instance of RRD", func() {
 							data := test.input.data()
 							for _, datum := range data {
-								err := usageDb.UpdateRRD(start.Add(time.Duration(datum.t)*time.Minute), datum.cpuUsage, datum.memUsage)
+								_ = usageDb.UpdateRRD(start.Add(time.Duration(datum.t)*time.Minute), datum.cpuUsage, datum.memUsage)
 
-								So(err, ShouldBeNil)
+								// So(err, ShouldBeNil)
 							}
 
-							end := start.Add(test.input.period)
-							Convey(fmt.Sprintf("When fetching usage for interval %s - %s (%s)", start, end, test.input.period), func() {
-								usage, err := usageDb.FetchUsageHourly(start, end)
+							end := start.Add(test.input.duration)
+							Convey(fmt.Sprintf("When fetching usage for interval %s - %s (%s)", start, end, test.input.duration), func() {
+								usage, err := test.input.fetcher(usageDb, start, end)
 
 								So(err, ShouldBeNil)
 
