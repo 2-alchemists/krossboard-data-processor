@@ -1,4 +1,5 @@
 PACKAGE_NAME=krossboard-data-processor
+PACKAGE_BUILD_ARTIFACT=./bin/krossboard-data-processor
 DATETIME_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
 GIT_SHA:=$(shell git rev-parse --short HEAD)
 RELEASE_PACKAGE_NAME=krossboard-v$(DATETIME_VERSION)-$(GIT_SHA)
@@ -15,19 +16,19 @@ PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
 build:
-	$(GOBUILD) -o ./bin/$(PACKAGE_NAME) -v
+	$(GOBUILD) -o $(PACKAGE_BUILD_ARTIFACT) -v
 build-deps:
 	sudo apt-get update && sudo apt-get install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
 	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
 	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
 build-compress: build
-	$(UPX) $(PACKAGE_NAME)
+	$(UPX) $(PACKAGE_BUILD_ARTIFACT)
 docker-build:
 	docker run --rm \
 		-it -v "$(GOPATH)":/go \
 		-w /go/src/bitbucket.org/rsohlich/makepost \
 		golang:latest \
-		go build -o "$(BINARY_UNIX)" -v
+		go build -o $(PACKAGE_BUILD_ARTIFACT) -v
 test:
 	$(GOCMD) clean -testcache
 	$(GOTEST) -v ./...

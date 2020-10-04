@@ -36,10 +36,10 @@ func getCloudProvider() string {
 	if err == nil {
 		return "AZURE"
 	} else {
-		log.WithError(err).Debug("Azure cloud not  detected")
+		log.WithError(err).Debug("Azure cloud not detected")
 	}
 
-	return "UNDEFINED"
+	return "OTHER_CLOUD_PROVIDER"
 }
 
 // RoundTime rounds the given time to the provided resolution.
