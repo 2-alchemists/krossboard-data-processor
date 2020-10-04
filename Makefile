@@ -15,7 +15,7 @@ PACKER_CONF_FILE="./deploy/packer/cloud-image.json"
 
 all: test build
 build:
-	$(GOBUILD) -o $(PACKAGE_NAME) -v
+	$(GOBUILD) -o ./bin/$(PACKAGE_NAME) -v
 build-deps:
 	sudo apt-get update && sudo apt-get install -y rrdtool librrd-dev unzip pkg-config upx-ucl unzip
 	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
