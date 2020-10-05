@@ -36,7 +36,7 @@ clean:
 	$(GOCLEAN)
 	rm -f $(PACKAGE_NAME)
 run: build
-	./$(PACKAGE_NAME) collector
+	./$(PACKAGE_BUILD_ARTIFACT) collector
 deps:
 	$(GOCMD) get .
 tools:
