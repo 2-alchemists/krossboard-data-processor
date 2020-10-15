@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -70,15 +71,43 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			continue
 		}
 
-		accessToken, err := kubeconfig.GetAccessToken(cluster.AuthInfo)
-		if err != nil {
-			log.WithField("cluster", cluster.Name).Error("failed getting access token from credentials plugin: ", err.Error())
-			continue
-		}
 		tokenFile := fmt.Sprintf("%s/token", tokenVol)
-		err = ioutil.WriteFile(tokenFile, []byte(accessToken), 0600)
-		if err != nil {
-			log.WithError(err).Errorln("failed writing token file")
+		x509ClientCert := fmt.Sprintf("%s/cert.pem", tokenVol)
+		x509ClientCertKey := fmt.Sprintf("%s/cert_key.pem", tokenVol)
+
+		cluster.AuthType = AuthTypeUnknown
+		bearerToken, err := kubeconfig.GetAccessToken(cluster.AuthInfo)
+		if err == nil {
+			err = ioutil.WriteFile(tokenFile, []byte(bearerToken), 0600)
+			if err != nil {
+				log.WithError(err).Errorln("failed writing bearer token file")
+				continue
+			}
+			cluster.AuthType = AuthTypeBearerToken
+		} else if cluster.AuthInfo.ClientCertificateData != nil && len(cluster.AuthInfo.ClientCertificateData) != 0 {
+			if cluster.AuthInfo.ClientKeyData != nil && len(cluster.AuthInfo.ClientKeyData) != 0 {
+				err = ioutil.WriteFile(x509ClientCert, cluster.AuthInfo.ClientCertificateData, 0644)
+				if err != nil {
+					log.WithError(err).Errorln("failed writing client certificate file")
+					continue
+				}
+				err = ioutil.WriteFile(x509ClientCertKey, cluster.AuthInfo.ClientKeyData, 0600)
+				if err != nil {
+					log.WithError(err).Errorln("failed writing client certificate key file")
+					continue
+				}
+				cluster.AuthType = AuthTypeX509Cert
+			}
+		} else if cluster.AuthInfo.Username != "" && cluster.AuthInfo.Password != "" {
+			basicToken := base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", cluster.AuthInfo.Username, cluster.AuthInfo.Password)))
+			err = ioutil.WriteFile(tokenFile, []byte(basicToken), 0600)
+			if err != nil {
+				log.WithError(err).Errorln("failed writing basic token file")
+				continue
+			}
+			cluster.AuthType = AuthTypeBasicToken
+		} else {
+			log.WithField("cluster", cluster.Name).Error("failed getting cluster credentials: ", err.Error())
 			continue
 		}
 
@@ -116,6 +145,7 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 			ClusterEndpoint: cluster.APIEndpoint,
 			TokenVol:        tokenVol,
 			DataVol:         dataVol,
+			AuthType:        cluster.AuthType,
 		}
 
 		err = containerManager.CreateContainer(instance)

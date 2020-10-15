@@ -15,7 +15,7 @@ var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
 	Short:   "Multi-cluster Kubernetes usage analytics tool",
 	Long:    `Krossboard tracks the usage of your Kubernetes clusters at an one single place`,
-	Version: "1.0.0",
+	Version: "1.1.0",
 	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
@@ -72,6 +72,7 @@ func initConfig() {
 	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
 	viper.SetDefault("krossboard_update_interval_min", 30)
 	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
+	viper.SetDefault("krossboard_koainstance_token_dir", "/var/run/secrets/kubernetes.io/serviceaccount")
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
 	viper.SetDefault("krossboard_cors_origins", "*")
 	viper.SetDefault("docker_api_version", "1.39")

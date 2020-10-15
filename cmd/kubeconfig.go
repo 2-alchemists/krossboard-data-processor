@@ -15,6 +15,13 @@ import (
 	kapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+const (
+	AuthTypeUnknown     = 0
+	AuthTypeBearerToken = 1
+	AuthTypeX509Cert    = 2
+	AuthTypeBasicToken  = 3
+)
+
 // KubeConfig holds an object describing a K8s Cluster
 type KubeConfig struct {
 	Path string `json:"path,omitempty"`
@@ -26,6 +33,7 @@ type ManagedCluster struct {
 	APIEndpoint string         `json:"apiEndpoint,omitempty"`
 	AuthInfo    *kapi.AuthInfo `json:"authInfo,omitempty"`
 	CaData      []byte         `json:"cacert,omitempty"`
+	AuthType    int            `json:"authType,omitempty"`
 }
 
 // NewKubeConfig create a new KubeConfig object
@@ -79,7 +87,7 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	}
 
 	if authInfo.Token != "" {
-		return authInfo.Token, nil // AKS and alike
+		return authInfo.Token, nil // auth with Bearer token
 	}
 
 	authHookCmd := ""

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -31,6 +32,7 @@ type Instance struct {
 	ClusterEndpoint string    `json:"clusterEndpoint,omitempty"`
 	DataVol         string    `json:"dataVol,omitempty"`
 	TokenVol        string    `json:"tokenVol,omitempty"`
+	AuthType        int       `json:"authType,omitempty"`
 	CreationDate    time.Time `json:"creationDate,omitempty"`
 }
 
@@ -107,11 +109,27 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 		containerPort: struct{}{},
 	}
 
+	containerTokenVol := viper.GetString("krossboard_koainstance_token_dir")
 	envars := []string{
 		fmt.Sprintf("KOA_DB_LOCATION=%s", instance.DataVol),
 		fmt.Sprintf("KOA_K8S_API_ENDPOINT=%s", instance.ClusterEndpoint),
 		fmt.Sprintf("KOA_K8S_API_VERIFY_SSL=%s", viper.GetString("krossboard_k8s_verify_ssl")),
-		"KOA_K8S_CACERT=/var/run/secrets/kubernetes.io/serviceaccount/cacert.pem",
+		fmt.Sprintf("KOA_K8S_CACERT=%s/cacert.pem", containerTokenVol),
+	}
+
+	if instance.AuthType == AuthTypeX509Cert {
+		envars = append(envars,
+			fmt.Sprintf("KOA_K8S_AUTH_CLIENT_CERT=%s/cert.pem", containerTokenVol),
+			fmt.Sprintf("KOA_K8S_AUTH_CLIENT_CERT_KEY=%s/cert_key.pem", containerTokenVol))
+	} else if instance.AuthType == AuthTypeBasicToken {
+		tokenFile := fmt.Sprintf("%s/token", instance.DataVol)
+		token, err := ioutil.ReadFile(tokenFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed reading token file %v", tokenFile)
+		}
+		envars = append(envars,
+			fmt.Sprintf("KOA_K8S_AUTH_TOKEN=%s", token),
+			"KOA_K8S_AUTH_TOKEN_TYPE=Basic")
 	}
 
 	mounts := []dkrMount.Mount{
@@ -123,7 +141,7 @@ func (m *ContainerManager) CreateContainer(instance *Instance) error {
 		{
 			Type:   dkrMount.TypeBind,
 			Source: instance.TokenVol,
-			Target: "/var/run/secrets/kubernetes.io/serviceaccount",
+			Target: containerTokenVol,
 		},
 	}
 

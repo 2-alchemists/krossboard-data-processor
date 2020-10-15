@@ -8,7 +8,7 @@ import (
 func runClusterDataCollection() {
 
 	cloudProvider := getCloudProvider()
-	log.Infoln("cloud provider =>", cloudProvider)
+	log.Infoln("detected cloud provider =>", cloudProvider)
 
 	switch cloudProvider {
 	case "AWS":
@@ -18,7 +18,6 @@ func runClusterDataCollection() {
 	case "GCP":
 		updateGKEClusters()
 	default:
-		log.Fatalln("unauthorized cloud environment:", cloudProvider)
 	}
 
 	// load system statut
@@ -55,7 +54,7 @@ func runClusterDataCollection() {
 	if err != nil {
 		log.WithError(err).Fatalln("cannot delete failed containers")
 	} else {
-		log.Infoln(len(containersDeleted), "not running container(s) cleaned")
+		log.Infoln(len(containersDeleted), "not-running container(s) cleaned")
 	}
 
 	// now refresh instances
