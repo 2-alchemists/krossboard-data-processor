@@ -12,6 +12,7 @@ LimitNOFILE=8192
 WorkingDirectory=/tmp/
 EnvironmentFile=/opt/krossboard/etc/krossboard.env
 PermissionsStartOnly=true
+TimeoutStartSec=300
 ExecStartPre=/bin/mkdir -p /var/log/krossboard
 ExecStartPre=/bin/chown syslog:adm /var/log/krossboard
 ExecStartPre=/bin/chmod 755 /var/log/krossboard

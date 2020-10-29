@@ -20,6 +20,7 @@ const (
 	AuthTypeBearerToken = 1
 	AuthTypeX509Cert    = 2
 	AuthTypeBasicToken  = 3
+	kubeConfigEnvName   = "KUBECONFIG"
 )
 
 // KubeConfig holds an object describing a K8s Cluster
@@ -38,15 +39,19 @@ type ManagedCluster struct {
 
 // NewKubeConfig create a new KubeConfig object
 func NewKubeConfig() *KubeConfig {
-	var kubeconfig *string
-	if home := UserHomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	kubeConfigFilename := os.Getenv(kubeConfigEnvName)
+	if kubeConfigFilename == "" {
+		var pathPtr *string
+		if home := UserHomeDir(); home != "" {
+			pathPtr = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			pathPtr = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		}
+		flag.Parse()
+		kubeConfigFilename = *pathPtr
 	}
-	flag.Parse()
 	return &KubeConfig{
-		Path: *kubeconfig,
+		Path: kubeConfigFilename,
 	}
 }
 

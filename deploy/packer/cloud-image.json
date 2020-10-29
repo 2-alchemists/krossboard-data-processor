@@ -1,6 +1,8 @@
 {
   "variables": {
     "release_package_name": "",
+    "krossboard_koainstance_image": "{{env `KROSSBOARD_KOAINSTANCE_IMAGE`}}",
+    "krossboard_ui_image": "{{env `KROSSBOARD_UI_IMAGE`}}",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
     "google_build_zone": "us-central1-a",
     "google_image_storage_location": "us",
@@ -15,8 +17,27 @@
     "azure_resource_group": "{{env `AZURE_RESOURCE_GROUP`}}",
     "azure_storage_account": "krossboardvmimages",
     "azure_build_location": "Central US",
-    "krossboard_koainstance_image": "{{env `KROSSBOARD_KOAINSTANCE_IMAGE`}}",
-    "krossboard_ui_image": "{{env `KROSSBOARD_UI_IMAGE`}}"
+    "vbox_cpus": "1",
+    "vbox_disable_ipv6": "true",
+    "vbox_disk_size": "40960",
+    "vbox_headless": "true",
+    "vbox_hostname": "krossboard",
+    "vbox_http_proxy": "{{env `http_proxy`}}",
+    "vbox_https_proxy": "{{env `https_proxy`}}",
+    "vbox_iso_checksum": "8c5fc24894394035402f66f3824beb7234b757dd2b5531379cb310cedfdf0996",
+    "vbox_iso_checksum_type": "sha256",
+    "vbox_iso_name": "ubuntu-18.04.5-server-amd64.iso",
+    "vbox_iso_path": "iso",
+    "vbox_iso_url": "http://cdimage.ubuntu.com/ubuntu/releases/bionic/release/ubuntu-18.04.5-server-amd64.iso",
+    "vbox_memory": "1024",
+    "vbox_no_proxy": "{{env `no_proxy`}}",
+    "vbox_preseed": "preseed.cfg",
+    "vbox_ssh_username": "ubuntu",
+    "vbox_ssh_fullname": "ubuntu",
+    "vbox_ssh_password": "krossboard",
+    "vbox_ssh_pty": "true",
+    "vbox_update": "true",
+    "vbox_guest_os_type": "Ubuntu_64"
   },
   "builders": [
     {
@@ -73,9 +94,81 @@
         "Base Image": "UbuntuServer-18.04-LTS-Canonical",
         "Publisher": "2Alchemists SAS"
       }
-    }
+    },
+    {
+      "type": "virtualbox-iso",
+      "boot_command": [
+          "<esc><esc><enter><wait>",
+          "/install/vmlinuz noapic ",
+          "initrd=/install/initrd.gz ",
+          "preseed/url=http://{{.HTTPIP}}:{{.HTTPPort}}/{{user `vbox_preseed`}} ",
+          "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+          "hostname={{user `vbox_hostname`}} ",
+          "grub-installer/bootdev=/dev/sda<wait> ",
+          "fb=false debconf/frontend=noninteractive ",
+          "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+          "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+          "passwd/user-fullname={{user `vbox_ssh_fullname`}} ",
+          "passwd/user-password={{user `vbox_ssh_password`}} ",
+          "passwd/user-password-again={{user `vbox_ssh_password`}} ",
+          "passwd/username={{user `vbox_ssh_username`}} ",
+          "-- <enter>"
+      ],
+      "disk_size": "{{user `vbox_disk_size`}}",
+      "guest_additions_path": "VBoxGuestAdditions_{{.Version}}.iso",
+      "guest_os_type": "{{user `vbox_guest_os_type`}}",
+      "hard_drive_interface": "sata",
+      "headless": "{{user `vbox_headless`}}",
+      "http_directory": "deploy/packer/http",
+      "iso_checksum": "{{user `vbox_iso_checksum_type`}}:{{user `vbox_iso_checksum`}}",
+      "iso_urls": [
+          "{{user `vbox_iso_path`}}/{{user `vbox_iso_name`}}",
+          "{{user `vbox_iso_url`}}"
+      ],
+      "output_directory": "{{user `release_package_name`}}-ovf-vmdk",
+      "shutdown_command": "echo '{{user `vbox_ssh_password`}}'|sudo -S shutdown -P now",
+      "ssh_pty" : "{{user `vbox_ssh_pty`}}",
+      "ssh_password": "{{user `vbox_ssh_password`}}",
+      "ssh_username": "{{user `vbox_ssh_username`}}",
+      "ssh_wait_timeout": "10000s",
+      "vboxmanage": [
+          ["modifyvm", "{{.Name}}", "--audio", "none"],
+          ["modifyvm", "{{.Name}}", "--usb", "off"],
+          ["modifyvm", "{{.Name}}", "--vram", "12"],
+          ["modifyvm", "{{.Name}}", "--vrde", "off"],
+          ["modifyvm", "{{.Name}}", "--nictype1", "virtio"],
+          ["modifyvm", "{{.Name}}", "--memory", "{{user `vbox_memory`}}"],
+          ["modifyvm", "{{.Name}}", "--cpus", "{{user `vbox_cpus`}}"]
+      ],
+      "virtualbox_version_file": ".vbox_version",
+      "vm_name": "{{user `release_package_name`}}"
+  }
   ],
   "provisioners": [
+    {
+      "type": "shell",
+      "only": ["virtualbox-iso"],
+      "scripts": [
+          "deploy/packer/script/update.sh",
+          "deploy/packer/script/addsshuser.sh",
+          "deploy/packer/script/virtualbox.sh",
+          "deploy/packer/script/motd.sh",
+          "deploy/packer/script/minimize.sh",
+          "deploy/packer/script/cleanup.sh"
+      ],
+      "execute_command": "echo '{{user `vbox_ssh_password`}}'|{{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "expect_disconnect": true,
+      "environment_vars": [
+          "DEBIAN_FRONTEND=noninteractive",
+          "UPDATE={{user `vbox_update`}}",
+          "DISABLE_IPV6={{user `vbox_disable_ipv6`}}",
+          "SSH_USERNAME={{user `vbox_ssh_username`}}",
+          "SSH_PASSWORD={{user `vbox_ssh_password`}}",
+          "http_proxy={{user `vbox_http_proxy`}}",
+          "https_proxy={{user `vbox_https_proxy`}}",
+          "no_proxy={{user `vbox_no_proxy`}}"
+      ]
+    },    
     {
       "type": "file",
       "destination": "/tmp/",
@@ -91,9 +184,23 @@
         "sed -i 's|krossboard_koainstance_image|{{user `krossboard_koainstance_image`}}|' ./scripts/krossboard.env",
         "sed -i 's|krossboard_ui_image|{{user `krossboard_ui_image`}}|' ./scripts/krossboard.env",
         "echo 'file ./scripts/krossboard.env updated'",
-        "cat ./scripts/krossboard.env",
-        "sudo ./install.sh"
+        "cat ./scripts/krossboard.env"
       ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "cd /tmp/{{user `release_package_name`}}",
+        "sudo ./install.sh"
+      ],      
+      "override": {
+        "virtualbox-iso": {
+          "inline": [
+            "cd /tmp/{{user `release_package_name`}}",
+            "echo {{user `vbox_ssh_password`}} | sudo -E -S ./install.sh"
+          ]
+        }
+      }
     }
   ]
 }
