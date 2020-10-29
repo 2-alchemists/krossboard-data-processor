@@ -10,8 +10,9 @@
 set -u
 set -e
 
+source /opt/krossboard/etc/krossboard.env
+
 CADDYFILE=/opt/krossboard/etc/Caddyfile
-CADDYFILE=/tmp/Caddyfile
 
 MIN_PASSWORD_LENGTH=6
 
@@ -43,7 +44,7 @@ if [ "$in_new_pass" != "$in_confirm_pass" ]; then
     exit 1
 fi
 
-new_password_hashed=$(docker run --rm caddy:2.0.0 caddy hash-password --plaintext "$in_new_pass")
+new_password_hashed=$(docker run --rm ${KROSSBOARD_UI_IMAGE} caddy hash-password --plaintext "$in_new_pass")
 echo "$new_password_hashed"
 
 sed -i -E 's/(krossboard\s)[[:alnum:]]+/\1'$new_password_hashed'/' ${CADDYFILE}
