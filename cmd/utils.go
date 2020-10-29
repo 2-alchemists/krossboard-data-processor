@@ -16,10 +16,6 @@ func createDirIfNotExists(path string) error {
 }
 
 func getCloudProvider() string {
-	provider := viper.GetString("KROSSBOARD_CLOUD_PROVIDER")
-	if provider != "" {
-		return provider
-	}
 	_, err := getGCPProjectID()
 	if err == nil {
 		return "GCP"
@@ -38,8 +34,7 @@ func getCloudProvider() string {
 	} else {
 		log.WithError(err).Debug("Azure cloud not detected")
 	}
-
-	return "OTHER_CLOUD_PROVIDER"
+	return viper.GetString("KROSSBOARD_CLOUD_PROVIDER")
 }
 
 // RoundTime rounds the given time to the provided resolution.

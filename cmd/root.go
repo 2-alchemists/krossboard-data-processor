@@ -66,7 +66,7 @@ func initConfig() {
 	// handle default config variables
 	viper.AutomaticEnv()
 	viper.SetDefault("krossboard_log_level", "info")
-	viper.SetDefault("krossboard_cloud_provider", "")
+	viper.SetDefault("krossboard_cloud_provider", "AUTO")
 	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
 	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
