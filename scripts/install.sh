@@ -45,7 +45,7 @@ echo -e "${RED_COLOR}setting up runtime user ${PRODUCT_USER}...${NO_COLOR}"
 id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
 usermod -d $PRODUCT_HOME_DIR -G docker $PRODUCT_USER
 
-CLOUD_PROVIDER="UNSET"
+CLOUD_PROVIDER="AUTO"
 echo -e "${RED_COLOR}checking cloud provider...${NO_COLOR}"
 
 # checking for Azure cloud

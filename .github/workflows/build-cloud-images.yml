@@ -27,8 +27,8 @@ jobs:
     runs-on: ubuntu-18.04
 
     env:
-      KROSSBOARD_UI_IMAGE: krossboard/krossboard-ui:latest
-      KROSSBOARD_KOAINSTANCE_IMAGE: rchakode/kube-opex-analytics:latest 
+      KROSSBOARD_UI_IMAGE: ${{ secrets.KROSSBOARD_UI_IMAGE }}
+      KROSSBOARD_KOAINSTANCE_IMAGE: ${{ secrets.KROSSBOARD_KOAINSTANCE_IMAGE }}
 
     steps:
     - name: Set up Go 1.13
@@ -56,21 +56,21 @@ jobs:
 
     - name: Patch version
       run: |
-        GIT_LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` || echo "")
-        GIT_LATEST_SHA=$(git rev-parse --short HEAD)
-        if [ -z "$GIT_LATEST_TAG" ]; then
-          KB_RELEASE_VERSION=$GIT_LATEST_SHA
-        else
-          MATCHED_TAG=$(git describe --exact-match $GIT_LATEST_SHA || echo "TAG_NOT_MATCHED")
-          KB_RELEASE_VERSION=$(echo $GIT_LATEST_TAG | sed 's/v//')
-          if [ "$MATCHED_TAG" != "$GIT_LATEST_TAG" ]; then
-            KB_RELEASE_VERSION="${KB_RELEASE_VERSION}-${GIT_LATEST_SHA}"
-          fi
-        fi
+        KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
         VERSION_LINE=$(grep -n 'Version:' cmd/root.go | cut -f1 -d:)
         VERSION_ORIG=$(grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}')
         sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
-
+        echo "==>>> Release version is `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
+        
+    - name: Setup GCP credentials
+      continue-on-error: true
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      id: gcp-build
+      with:
+        version: '290.0.1'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true        
     - name: Setup GCP credentials
       continue-on-error: true
       uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
@@ -80,16 +80,14 @@ jobs:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         export_default_credentials: true
-
     - name: Build GCP image
       continue-on-error: true
       shell: bash
       env:
         GOOGLE_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       run: |
-        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-gcp
-
+   
     - name: Build Azure image    
       continue-on-error: true
       shell: bash
@@ -101,9 +99,8 @@ jobs:
         AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}   
       run: |
-        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-azure
-
+        
     - name: Build AWS image   
       continue-on-error: true
       shell: bash
@@ -113,7 +110,6 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
       run: |
-        echo "release version is => `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
         make dist-cloud-image-aws
 
 #     - name: Check on failures
