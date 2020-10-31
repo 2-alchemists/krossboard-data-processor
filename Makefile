@@ -2,7 +2,8 @@ PACKAGE_NAME=krossboard-data-processor
 PACKAGE_BUILD_ARTIFACT=./bin/krossboard-data-processor
 DATETIME_VERSION:=$(shell date "+%Y%m%dt%s" | sed 's/\.//g' -)
 GIT_SHA:=$(shell git rev-parse --short HEAD)
-RELEASE_PACKAGE_NAME=krossboard-v$(DATETIME_VERSION)-$(GIT_SHA)
+RELEASE_PACKAGE_CLOUD=krossboard-v$(DATETIME_VERSION)-$(GIT_SHA)
+RELEASE_PACKAGE_PUBLIC=krossboard-v$(shell ./tooling/get-dist-version.sh)
 GOCMD=GO111MODULE=on go
 GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
@@ -56,36 +57,44 @@ tools:
 check: tools
 	$(GOLANGCI) run .
 
-dist: build build-compress
-	mkdir -p $(RELEASE_PACKAGE_NAME)/scripts/
-	cp $(PACKAGE_BUILD_ARTIFACT) $(RELEASE_PACKAGE_NAME)/
-	cp ./scripts/krossboard* $(RELEASE_PACKAGE_NAME)/scripts/
-	install -m 755 ./scripts/install.sh $(RELEASE_PACKAGE_NAME)/
-	tar zcf $(RELEASE_PACKAGE_NAME).tgz $(RELEASE_PACKAGE_NAME)
-	rm -rf $(RELEASE_PACKAGE_NAME)/
+dist-cloud: build build-compress
+	mkdir -p $(RELEASE_PACKAGE_CLOUD)/scripts/
+	cp $(PACKAGE_BUILD_ARTIFACT) $(RELEASE_PACKAGE_CLOUD)/
+	cp ./scripts/krossboard* $(RELEASE_PACKAGE_CLOUD)/scripts/
+	install -m 755 ./scripts/install.sh $(RELEASE_PACKAGE_CLOUD)/
+	tar zcf $(RELEASE_PACKAGE_CLOUD).tgz $(RELEASE_PACKAGE_CLOUD)
+	rm -rf $(RELEASE_PACKAGE_CLOUD)/
+
+dist-public: build build-compress
+	mkdir -p $(RELEASE_PACKAGE_PUBLIC)/scripts/
+	cp $(PACKAGE_BUILD_ARTIFACT) $(RELEASE_PACKAGE_PUBLIC)/
+	cp ./scripts/krossboard* $(RELEASE_PACKAGE_PUBLIC)/scripts/
+	install -m 755 ./scripts/install.sh $(RELEASE_PACKAGE_PUBLIC)/
+	tar zcf $(RELEASE_PACKAGE_PUBLIC).tgz $(RELEASE_PACKAGE_PUBLIC)
+	rm -rf $(RELEASE_PACKAGE_PUBLIC)/	
 
 check-cloud-image-pre:
 	test -n "$(KROSSBOARD_KOAINSTANCE_IMAGE)"
 	test -n "$(KROSSBOARD_UI_IMAGE)"
 
-dist-cloud-image-aws: check-cloud-image-pre dist
+dist-cloud-image-aws: check-cloud-image-pre dist-cloud
 	$(PACKER) build -only=amazon-ebs \
-		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
-dist-cloud-image-gcp: check-cloud-image-pre dist
+dist-cloud-image-gcp: check-cloud-image-pre dist-cloud
 	$(PACKER) build -only=googlecompute \
-		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
-dist-cloud-image-azure: check-cloud-image-pre dist
+dist-cloud-image-azure: check-cloud-image-pre dist-cloud
 	$(PACKER) build -only=azure-arm \
-		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
-dist-ovf-image: check-cloud-image-pre dist
+dist-ovf-image: check-cloud-image-pre dist-cloud
 	$(PACKER) build -only=virtualbox-iso \
-		-var="release_package_name=$(RELEASE_PACKAGE_NAME)" \
+		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
 publish-ovf-image-req:
@@ -95,7 +104,7 @@ publish-ovf-image-req:
 	test -n "$(GITHUB_TAG)"
 
 publish-ovf-image: publish-ovf-image-req dist-ovf-image
-	ovf_dir="$(RELEASE_PACKAGE_NAME)-ovf-vmdk"
+	ovf_dir="$(RELEASE_PACKAGE_CLOUD)-ovf-vmdk"
 	ovf_artifact=${ovf_dir}.tgz
 	tar zcf ${ovf_artifact} ${ovf_dir}/
 	gh_release_cmd=linux-amd64-github-release

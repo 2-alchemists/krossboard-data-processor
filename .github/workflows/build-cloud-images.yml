@@ -56,17 +56,7 @@ jobs:
 
     - name: Patch version
       run: |
-        GIT_LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1` || echo "")
-        GIT_LATEST_SHA=$(git rev-parse --short HEAD)
-        if [ -z "$GIT_LATEST_TAG" ]; then
-          KB_RELEASE_VERSION=$GIT_LATEST_SHA
-        else
-          MATCHED_TAG=$(git describe --exact-match $GIT_LATEST_SHA || echo "TAG_NOT_MATCHED")
-          KB_RELEASE_VERSION=$(echo $GIT_LATEST_TAG | sed 's/v//')
-          if [ "$MATCHED_TAG" != "$GIT_LATEST_TAG" ]; then
-            KB_RELEASE_VERSION="${KB_RELEASE_VERSION}-${GIT_LATEST_SHA}"
-          fi
-        fi
+        KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
         VERSION_LINE=$(grep -n 'Version:' cmd/root.go | cut -f1 -d:)
         VERSION_ORIG=$(grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}')
         sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
