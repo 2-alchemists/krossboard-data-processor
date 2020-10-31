@@ -113,5 +113,5 @@ jobs:
         make dist-cloud-image-aws
 
 #     - name: Check on failures
-#      if: steps.ovf-build.outputs.status != 'success' || steps.azure-build.outputs.status != 'success' || steps.aws-build.outputs.status != 'success' || steps.gcp-build.outputs.status != 'success'
+#      if: steps.azure-build.outputs.status != 'success' || steps.aws-build.outputs.status != 'success' || steps.gcp-build.outputs.status != 'success'
 #      run: exit 1

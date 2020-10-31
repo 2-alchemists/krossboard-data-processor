@@ -69,9 +69,10 @@ dist-public: build build-compress
 	mkdir -p $(RELEASE_PACKAGE_PUBLIC)/scripts/
 	cp $(PACKAGE_BUILD_ARTIFACT) $(RELEASE_PACKAGE_PUBLIC)/
 	cp ./scripts/krossboard* $(RELEASE_PACKAGE_PUBLIC)/scripts/
+	cp NOTICE $(RELEASE_PACKAGE_PUBLIC)/
 	install -m 755 ./scripts/install.sh $(RELEASE_PACKAGE_PUBLIC)/
 	tar zcf $(RELEASE_PACKAGE_PUBLIC).tgz $(RELEASE_PACKAGE_PUBLIC)
-	rm -rf $(RELEASE_PACKAGE_PUBLIC)/	
+	rm -rf $(RELEASE_PACKAGE_PUBLIC)/
 
 check-cloud-image-pre:
 	test -n "$(KROSSBOARD_KOAINSTANCE_IMAGE)"
