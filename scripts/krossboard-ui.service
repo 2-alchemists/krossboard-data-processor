@@ -1,5 +1,5 @@
 [Unit]
-Description=Krossboard UI - Multi-cluster Kubernetes usage analytics tool
+Description=Krossboard UI - Multi-Kubernetes usage analytics tool
 ConditionPathExists=/opt/krossboard/etc/krossboard.env
 After=network.target
 After=docker.target
