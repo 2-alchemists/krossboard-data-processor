@@ -25,7 +25,6 @@ PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
 PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
 PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env
 
-
 echo -e "${RED_COLOR}updating apt-get source list and package versions...${NO_COLOR}"
 apt-get update && apt-get -y upgrade
 
@@ -142,3 +141,7 @@ for u in $timer_units; do
 done
 systemctl daemon-reload
 echo "done"
+
+echo "==> Recording creation date"
+mkdir /etc/krossboard/
+date > /etc/krossboard/build_date
