@@ -94,28 +94,6 @@ func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time
 		return nil, err
 	}
 
-	computeCumulativeMonth := func(items []*UsageHistoryItem) []*UsageHistoryItem {
-		var usages []*UsageHistoryItem
-
-		for _, usage := range items {
-			last := len(usages) - 1
-			if last > -1 &&
-				usages[last].DateUTC.Year() == usage.DateUTC.Year() &&
-				usages[last].DateUTC.Month() == usage.DateUTC.Month() {
-
-				v := usages[last]
-				v.Value += usage.Value
-			} else {
-				usages = append(usages, &UsageHistoryItem{
-					DateUTC: time.Date(usage.DateUTC.Year(), usage.DateUTC.Month(), 1, 0, 0, 0, 0, time.UTC),
-					Value:   usage.Value,
-				})
-			}
-		}
-
-		return usages
-	}
-
 	return &UsageHistory{
 			computeCumulativeMonth(usages.CPUUsage),
 			computeCumulativeMonth(usages.MEMUsage),
@@ -153,4 +131,27 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, durat
 	}
 
 	return &UsageHistory{cpuUsage, memUsage}, nil
+}
+
+// computeCumulativeMonth compute the cumulative data per month.
+func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
+	var usages []*UsageHistoryItem
+
+	for _, usage := range items {
+		last := len(usages) - 1
+		if last > -1 &&
+			usages[last].DateUTC.Year() == usage.DateUTC.Year() &&
+			usages[last].DateUTC.Month() == usage.DateUTC.Month() {
+
+			v := usages[last]
+			v.Value += usage.Value
+		} else {
+			usages = append(usages, &UsageHistoryItem{
+				DateUTC: time.Date(usage.DateUTC.Year(), usage.DateUTC.Month(), 1, 0, 0, 0, 0, time.UTC),
+				Value:   usage.Value,
+			})
+		}
+	}
+
+	return usages
 }
