@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brianvoe/gofakeit/v5"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"github.com/ziutek/rrd"
@@ -52,8 +51,6 @@ func TestUsageDb(t *testing.T) {
 				start := time.Unix(int64(info["last_update"].(uint)), 0).UTC()
 				So(start.Unix(), ShouldEqual, now().Unix())
 
-				fmt.Println("start", start)
-
 				type data struct {
 					t        int
 					cpuUsage float64
@@ -69,60 +66,66 @@ func TestUsageDb(t *testing.T) {
 					input input
 					want  *UsageHistory
 				}{
-					{
-						name: "hourly test case - nominal",
-						input: input{
-							fetcher:  (*UsageDb).FetchUsageHourly,
-							duration: time.Duration(15) * time.Minute,
-							data: func() []data {
-								return []data{
-									{t: 5, cpuUsage: 10, memUsage: 15},
-									{t: 10, cpuUsage: 20, memUsage: 25},
-									{t: 15, cpuUsage: 30, memUsage: 35},
-								}
-							},
-						},
-						want: &UsageHistory{
-							CPUUsage: []*UsageHistoryItem{
-								{
-									DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
-									Value:   10.066666666666666,
-								},
-								{
-									DateUTC: RoundTime(start.Add(time.Duration(5*3)*time.Minute), time.Duration(usageDb.Step)*time.Second),
-									Value:   20.066666666666666,
-								},
-							},
-							MEMUsage: []*UsageHistoryItem{
-								{
-									DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
-									Value:   15.066666666666666,
-								},
-								{
-									DateUTC: RoundTime(start.Add(time.Duration(5*3)*time.Minute), time.Duration(usageDb.Step)*time.Second),
-									Value:   25.066666666666666,
-								},
-							},
-						},
-					},
+					//{
+					//	name: "hourly test case - nominal",
+					//	input: input{
+					//		fetcher:  (*UsageDb).FetchUsageHourly,
+					//		duration: time.Duration(15) * time.Minute,
+					//		data: func() []data {
+					//			return []data{
+					//				{t: 5, cpuUsage: 10, memUsage: 15},
+					//				{t: 10, cpuUsage: 20, memUsage: 25},
+					//				{t: 15, cpuUsage: 30, memUsage: 35},
+					//			}
+					//		},
+					//	},
+					//	want: &UsageHistory{
+					//		CPUUsage: []*UsageHistoryItem{
+					//			{
+					//				DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
+					//				Value:   10.066666666666666,
+					//			},
+					//			{
+					//				DateUTC: RoundTime(start.Add(time.Duration(5*3)*time.Minute), time.Duration(usageDb.Step)*time.Second),
+					//				Value:   20.066666666666666,
+					//			},
+					//		},
+					//		MEMUsage: []*UsageHistoryItem{
+					//			{
+					//				DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
+					//				Value:   15.066666666666666,
+					//			},
+					//			{
+					//				DateUTC: RoundTime(start.Add(time.Duration(5*3)*time.Minute), time.Duration(usageDb.Step)*time.Second),
+					//				Value:   25.066666666666666,
+					//			},
+					//		},
+					//	},
+					//},
 					{
 						name: "monthly test case - nominal",
 						input: input{
 							fetcher:  (*UsageDb).FetchUsageMonthly,
 							duration: time.Duration(2664000) * time.Second * 2, // 2 months
 							data: func() []data {
-								gofakeit.Seed(1)
+								someValues := []float64{60.466029, 94.050909, 66.456005, 43.771419, 42.463750, 68.682307, 6.563702, 15.651925, 9.696952, 30.091186}
 
 								start := 5    // minutes
 								step := 5     // minutes
 								end := 131400 // minutes ~ 3 months
 
 								var res []data
+								i := 0
 								for t := start; t < end; t += step {
+									cpuUsage := someValues[(i % 10)]
+									i++
+									memUsage := someValues[(i % 10)]
+									i++
+
 									res = append(res, data{
 										t:        t,
-										cpuUsage: gofakeit.Float64Range(0, 100),
-										memUsage: gofakeit.Float64Range(0, 100)})
+										cpuUsage: cpuUsage,
+										memUsage: memUsage})
 								}
 
 								return res
@@ -132,29 +135,29 @@ func TestUsageDb(t *testing.T) {
 							CPUUsage: []*UsageHistoryItem{
 								{
 									DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
-									Value:   3676.8308439867487,
+									Value:   2752.122998720052,
 								},
 								{
 									DateUTC: time.Date(start.Year(), start.Month()+1, 1, 0, 0, 0, 0, time.UTC),
-									Value:   36981.556600389304,
+									Value:   27661.31926200003,
 								},
 								{
 									DateUTC: time.Date(start.Year(), start.Month()+2, 1, 0, 0, 0, 0, time.UTC),
-									Value:   32673.758350134198,
+									Value:   24540.338306223366,
 								},
 							},
 							MEMUsage: []*UsageHistoryItem{
 								{
 									DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
-									Value:   3615.1705261647344,
+									Value:   3736.6572568958586,
 								},
 								{
 									DateUTC: time.Date(start.Year(), start.Month()+1, 1, 0, 0, 0, 0, time.UTC),
-									Value:   37462.62516932022,
+									Value:   37584.91415399974,
 								},
 								{
 									DateUTC: time.Date(start.Year(), start.Month()+2, 1, 0, 0, 0, 0, time.UTC),
-									Value:   32836.23815938188,
+									Value:   33345.75017615485,
 								},
 							},
 						},
@@ -165,10 +168,13 @@ func TestUsageDb(t *testing.T) {
 					Convey(fmt.Sprintf("Given the test case '%s'", test.name), func() {
 						Convey("Given some values added in the instance of RRD", func() {
 							data := test.input.data()
-							for _, datum := range data {
-								_ = usageDb.UpdateRRD(start.Add(time.Duration(datum.t)*time.Minute), datum.cpuUsage, datum.memUsage)
 
-								// So(err, ShouldBeNil)
+							for _, datum := range data {
+								err = usageDb.UpdateRRD(start.Add(time.Duration(datum.t)*time.Minute), datum.cpuUsage, datum.memUsage)
+								if err != nil {
+									// check only for faulty step (to limit the number of assertions)
+									So(err, ShouldBeNil)
+								}
 							}
 
 							end := start.Add(test.input.duration)

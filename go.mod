@@ -6,9 +6,8 @@ require (
 	cloud.google.com/go v0.58.0
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/aws/aws-sdk-go v1.32.2
-	github.com/brianvoe/gofakeit/v5 v5.10.1
 	github.com/buger/jsonparser v1.0.0
-	github.com/containerd/containerd v1.3.4
+	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/docker/distribution v0.0.0-20200319173657-742aab907b54 // indirect
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200612211812-aaf470eca7b5+incompatible
 	github.com/docker/go-connections v0.4.0
