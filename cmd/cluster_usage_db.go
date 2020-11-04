@@ -135,7 +135,7 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, durat
 
 // computeCumulativeMonth compute the cumulative data per month.
 func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
-	var usages []*UsageHistoryItem
+	usages := []*UsageHistoryItem{}
 
 	for _, usage := range items {
 		last := len(usages) - 1
