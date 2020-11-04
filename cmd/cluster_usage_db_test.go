@@ -200,6 +200,91 @@ func TestUsageDb(t *testing.T) {
 	})
 }
 
+func TestComputeCumulativeMonth(t *testing.T) {
+	Convey("Given a a set of history data", t, func(c C) {
+		type args struct {
+			items []*UsageHistoryItem
+		}
+		tests := []struct {
+			name string
+			args args
+			want []*UsageHistoryItem
+		}{
+			{
+				name: "empty",
+				args: args{
+					items: []*UsageHistoryItem{
+					},
+				},
+				want: []*UsageHistoryItem{
+				},
+			},
+			{
+				name: "1 month",
+				args: args{
+					items: []*UsageHistoryItem{
+						{DateUTC: date(c, "2020-01-02T15:14:05Z"), Value: 10},
+						{DateUTC: date(c, "2020-01-12T16:24:05Z"), Value: 20},
+						{DateUTC: date(c, "2020-01-24T17:34:05Z"), Value: 30},
+						{DateUTC: date(c, "2020-01-30T18:44:05Z"), Value: 40},
+					},
+				},
+				want: []*UsageHistoryItem{
+					{DateUTC: date(c, "2020-01-01T00:00:00Z"), Value: 100},
+				},
+			},
+			{
+				name: "2 months (same year)",
+				args: args{
+					items: []*UsageHistoryItem{
+						{DateUTC: date(c, "2020-01-02T15:14:05Z"), Value: 10},
+						{DateUTC: date(c, "2020-01-12T16:24:05Z"), Value: 20},
+						{DateUTC: date(c, "2020-02-14T17:34:05Z"), Value: 30},
+						{DateUTC: date(c, "2020-02-28T18:44:05Z"), Value: 40},
+					},
+				},
+				want: []*UsageHistoryItem{
+					{DateUTC: date(c, "2020-01-01T00:00:00Z"), Value: 30},
+					{DateUTC: date(c, "2020-02-01T00:00:00Z"), Value: 70},
+				},
+			},
+			{
+				name: "3 months (2 years)",
+				args: args{
+					items: []*UsageHistoryItem{
+						{DateUTC: date(c, "2020-12-02T15:14:05Z"), Value: 10},
+						{DateUTC: date(c, "2020-12-12T16:24:05Z"), Value: 20},
+						{DateUTC: date(c, "2021-01-14T17:34:05Z"), Value: 30},
+						{DateUTC: date(c, "2021-02-28T18:44:05Z"), Value: 40},
+					},
+				},
+				want: []*UsageHistoryItem{
+					{DateUTC: date(c, "2020-12-01T00:00:00Z"), Value: 30},
+					{DateUTC: date(c, "2021-01-01T00:00:00Z"), Value: 30},
+					{DateUTC: date(c, "2021-02-01T00:00:00Z"), Value: 40},
+				},
+			},
+		}
+		for _, tt := range tests {
+			Convey(fmt.Sprintf("When performing the consolidation for '%s'", tt.name), func() {
+				got := computeCumulativeMonth(tt.args.items)
+
+				Convey("Then monthly consolidated values are the expected ones", func() {
+					So(got, ShouldResemble, tt.want)
+				})
+			})
+		}
+	})
+}
+
+func date(c C, dateStr string) time.Time {
+	t, err := time.Parse(time.RFC3339, dateStr)
+
+	So(err, ShouldBeNil)
+
+	return t
+}
+
 // func TestSpec(t *testing.T) {
 // 	Convey("Given valid base config settings", t, func() {
 // 		viper.Set("krossboard_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", UserHomeDir()))
