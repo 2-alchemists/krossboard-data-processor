@@ -260,17 +260,34 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	queryStartDate := queryParams.Get("startDateUTC")
 	queryEndDate := queryParams.Get("endDateUTC")
 	queryFormat := strings.ToLower(queryParams.Get("format"))
+	queryPeriod := strings.ToLower(queryParams.Get("period"))
 
 	// process format
 	if queryFormat != "" && queryFormat != "json" && queryFormat != "csv" {
-		log.Errorln("invalid format", queryFormat)
+		err := fmt.Errorf("invalid value '%s' for query parameter 'format'. Valid values are: 'json', 'csv'", queryFormat)
+		log.WithError(err).WithField("param", "format").Warnln("Bad request")
 		w.WriteHeader(http.StatusBadRequest)
 		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
-			Message: "invalid format",
+			Message: err.Error(),
 		})
 		w.Write(outRaw) //nolint:errcheck
 		return
+	}
+
+	// process period
+	if queryPeriod != "" && queryPeriod != "hourly" && queryPeriod != "monthly" {
+		err := fmt.Errorf("invalid value '%s' for query parameter 'period'. Valid values are: 'hourly', 'monthly'", queryPeriod)
+		log.WithError(err).WithField("param", "period").Warnln("Bad request")
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		w.Write(outRaw) //nolint:errcheck
+		return
+	}
+	if queryPeriod == "" {
+		queryPeriod = "hourly"
 	}
 
 	// process  end date parameter
@@ -337,7 +354,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	for dbname, dbfile := range usageHistoryDbs {
 		usageDb := NewUsageDb(dbfile)
-		usageHistory, err := usageDb.FetchUsage(actualStartDateUTC, actualEndDateUTC)
+		usageHistory, err := func() (*UsageHistory, error) {
+			if queryPeriod == "monthly" {
+				return usageDb.FetchUsageMonthly(actualStartDateUTC, actualEndDateUTC)
+			} else {
+				return usageDb.FetchUsageHourly(actualStartDateUTC, actualEndDateUTC)
+			}
+		}()
 		if err != nil {
 			log.WithError(err).Errorln("failed retrieving data from rrd file")
 		} else {

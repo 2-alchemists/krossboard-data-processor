@@ -54,8 +54,8 @@ func NewUsageDb(dbname string) *UsageDb {
 // CreateRRD create a new RRD database
 func (m *UsageDb) CreateRRD() error {
 	rrdCreator := rrd.NewCreator(m.RRDFile, now(), m.Step)
-	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)
-	rrdCreator.RRA("AVERAGE", 0.5, 12, 8880)
+	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)               // 14 days - 5-minute resolution
+	rrdCreator.RRA("AVERAGE", 0.5, 12 /* 1 hour */, 8880) // 1 year - 1-hour resolution
 	rrdCreator.DS("cpu_usage", "GAUGE", m.Step, m.MinValue, m.MaxValue)
 	rrdCreator.DS("mem_usage", "GAUGE", m.Step, m.MinValue, m.MaxValue)
 	err := rrdCreator.Create(false)
@@ -71,16 +71,41 @@ func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) er
 	return rrdUpdater.Update(ts, cpuUsage, memUsage)
 }
 
-// FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+// FetchUsageHourly retrieves from the managed RRD file, 5 minutes-step usage data between startTimeUTC and endTimeUTC
+func (m *UsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep300Secs)*time.Second)
+}
+
+// FetchUsageHourly retrieves from the managed RRD file, hour-step usage data between startTimeUTC and endTimeUTC
+func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
-	rrdFetchStep := int64(RRDStorageStep3600Secs)
+
 	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
-		rrdFetchStep = int64(RRDStorageStep300Secs)
+		return m.FetchUsage5Minutes(startTimeUTC, endTimeUTC)
 	}
-	rrdEndTime := RoundTime(endTimeUTC, time.Duration(rrdFetchStep)*time.Second)
-	rrdStartTime := RoundTime(startTimeUTC, time.Duration(rrdFetchStep)*time.Second)
-	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, time.Duration(rrdFetchStep)*time.Second)
+
+	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep3600Secs)*time.Second)
+}
+
+// FetchUsageMonthly retrieves from the managed RRD file, month-step usage data between startTimeUTC and endTimeUTC
+func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+	usages, err := m.FetchUsageHourly(startTimeUTC, endTimeUTC)
+	if err != nil {
+		return nil, err
+	}
+
+	return &UsageHistory{
+			computeCumulativeMonth(usages.CPUUsage),
+			computeCumulativeMonth(usages.MEMUsage),
+		},
+		nil
+}
+
+// FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC with the given step
+func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
+	rrdEndTime := RoundTime(endTimeUTC, duration)
+	rrdStartTime := RoundTime(startTimeUTC, duration)
+	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, duration)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read rrd file")
 	}
@@ -106,4 +131,27 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time) (*Usa
 	}
 
 	return &UsageHistory{cpuUsage, memUsage}, nil
+}
+
+// computeCumulativeMonth compute the cumulative data per month.
+func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
+	usages := []*UsageHistoryItem{}
+
+	for _, usage := range items {
+		last := len(usages) - 1
+		if last > -1 &&
+			usages[last].DateUTC.Year() == usage.DateUTC.Year() &&
+			usages[last].DateUTC.Month() == usage.DateUTC.Month() {
+
+			v := usages[last]
+			v.Value += usage.Value
+		} else {
+			usages = append(usages, &UsageHistoryItem{
+				DateUTC: time.Date(usage.DateUTC.Year(), usage.DateUTC.Month(), 1, 0, 0, 0, 0, time.UTC),
+				Value:   usage.Value,
+			})
+		}
+	}
+
+	return usages
 }
