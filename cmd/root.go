@@ -70,7 +70,6 @@ func initConfig() {
 	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
 	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
 	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
-	viper.SetDefault("krossboard_update_interval_min", 30)
 	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
 	viper.SetDefault("krossboard_koainstance_token_dir", "/var/run/secrets/kubernetes.io/serviceaccount")
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")

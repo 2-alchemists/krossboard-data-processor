@@ -63,10 +63,10 @@ dist-check-prereqs:
 	test -n "$(KROSSBOARD_UI_IMAGE)"	
 
 dist-cloud: dist-check-prereqs build build-compress
-	bash ./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_CLOUD) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
+	./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_CLOUD) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
 
 dist-public: dist-check-prereqs build build-compress
-	bash ./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_PUBLIC) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
+	./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_PUBLIC) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
 
 dist-cloud-image-aws: check-cloud-image-pre dist-cloud
 	$(PACKER) build -only=amazon-ebs \
@@ -89,6 +89,6 @@ dist-ovf-image: check-cloud-image-pre dist-public
 		$(PACKER_CONF_FILE)
 
 publish-ovf-image: dist-ovf-image
-	bash ./tooling/publish-release.sh $(RELEASE_PUBLIC_VERSION) $(RELEASE_PACKAGE_PUBLIC)
+	./tooling/publish-release.sh $(RELEASE_PUBLIC_VERSION) $(RELEASE_PACKAGE_PUBLIC)
 
 dist-cloud-image: dist-cloud-image-aws dist-cloud-image-gcp dist-cloud-image-azure
