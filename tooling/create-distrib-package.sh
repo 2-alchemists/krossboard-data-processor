@@ -3,13 +3,13 @@
 set -e
 set -u
 
-PACKAGE_BUILD_ARTIFACT=$1
+PROGRAM_ARTIFACT=$1
 RELEASE_DIST_PACKAGE=$2
 KROSSBOARD_KOAINSTANCE_IMAGE=$3
 KROSSBOARD_UI_IMAGE=$4
 
 mkdir -p ${RELEASE_DIST_PACKAGE}/scripts/
-cp ${PACKAGE_BUILD_ARTIFACT} ${RELEASE_DIST_PACKAGE}/
+cp ${PROGRAM_ARTIFACT} ${RELEASE_DIST_PACKAGE}/
 cp ./scripts/krossboard* ${RELEASE_DIST_PACKAGE}/scripts/
 			"sed -i 's|krossboard_koainstance_image|${KROSSBOARD_KOAINSTANCE_IMAGE}|' ${RELEASE_DIST_PACKAGE}/scripts/krossboard.env",
 			"sed -i 's|krossboard_ui_image|${KROSSBOARD_UI_IMAGE}|' ${RELEASE_DIST_PACKAGE}/scripts/krossboard.env",	
