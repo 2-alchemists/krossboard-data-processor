@@ -1,8 +1,6 @@
 {
   "variables": {
     "release_package_name": "",
-    "krossboard_koainstance_image": "{{env `KROSSBOARD_KOAINSTANCE_IMAGE`}}",
-    "krossboard_ui_image": "{{env `KROSSBOARD_UI_IMAGE`}}",
     "google_project_id": "{{env `GOOGLE_PROJECT_ID`}}",
     "google_build_zone": "us-central1-a",
     "google_image_storage_location": "us",
@@ -181,9 +179,6 @@
         "cd /tmp",
         "tar zxf {{user `release_package_name`}}.tgz",
         "cd {{user `release_package_name`}}",
-        "sed -i 's|krossboard_koainstance_image|{{user `krossboard_koainstance_image`}}|' ./scripts/krossboard.env",
-        "sed -i 's|krossboard_ui_image|{{user `krossboard_ui_image`}}|' ./scripts/krossboard.env",
-        "echo 'file ./scripts/krossboard.env updated'",
         "cat ./scripts/krossboard.env"
       ]
     },
