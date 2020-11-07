@@ -139,9 +139,11 @@ timer_units=$(find /lib/systemd/system/ -name "${PRODUCT_NAME}-*.timer"  -printf
 for u in $timer_units; do
     systemctl enable $u
 done
+
 systemctl daemon-reload
-echo "done"
 
 echo "==> Recording creation date"
 mkdir /etc/krossboard/
 date > /etc/krossboard/build_date
+
+echo "done"
