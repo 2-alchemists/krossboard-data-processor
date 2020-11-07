@@ -45,5 +45,6 @@ done
 systemctl daemon-reload
 
 systemctl restart krossboard-data-processor-api
+systemctl restart krossboard-ui
 
 echo "done"
