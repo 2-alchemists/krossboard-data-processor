@@ -68,12 +68,12 @@ dist-cloud: dist-check-prereqs build build-compress
 dist-public: dist-check-prereqs build build-compress
 	./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_PUBLIC) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
 
-dist-cloud-image-aws: check-cloud-image-pre dist-cloud
+dist-cloud-image-aws: dist-cloud
 	$(PACKER) build -only=amazon-ebs \
 		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
-dist-cloud-image-gcp: check-cloud-image-pre dist-cloud
+dist-cloud-image-gcp: dist-cloud
 	$(PACKER) build -only=googlecompute \
 		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
@@ -83,12 +83,12 @@ dist-cloud-image-azure: dist-cloud
 		-var="release_package_name=$(RELEASE_PACKAGE_CLOUD)" \
 		$(PACKER_CONF_FILE)
 
-dist-ovf-image: check-cloud-image-pre dist-public
+dist-ovf: dist-public
 	$(PACKER) build -only=virtualbox-iso \
 		-var="release_package_name=$(RELEASE_PACKAGE_PUBLIC)" \
 		$(PACKER_CONF_FILE)
 
-publish-ovf-image: dist-ovf-image
+publish-ovf: dist-ovf
 	./tooling/publish-release.sh $(RELEASE_PUBLIC_VERSION) $(RELEASE_PACKAGE_PUBLIC)
 
 dist-cloud-image: dist-cloud-image-aws dist-cloud-image-gcp dist-cloud-image-azure
