@@ -36,7 +36,7 @@ PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
 PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
 PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env
 
-echo "${RED_COLOR} Building cloud image => $KB_IMAGE_BUILDER ${NO_COLOR}"
+echo "${RED_COLOR} Building cloud image => $CLOUD_PROVIDER ${NO_COLOR}"
 
 echo -e "${RED_COLOR} Updating apt-get source list and package versions... ${NO_COLOR}"
 apt-get update && apt-get -y upgrade
