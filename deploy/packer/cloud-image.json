@@ -191,9 +191,8 @@
       "override": {
         "virtualbox-iso": {
           "inline": [
-            "export KB_VBOX_BUILDER=True",
             "cd /tmp/{{user `release_package_name`}}",
-            "echo {{user `vbox_ssh_password`}} | sudo -E -S ./install.sh"
+            "echo {{user `vbox_ssh_password`}} | sudo -E -S ./install.sh VIRTUALBOX"
           ]
         }
       }

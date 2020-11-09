@@ -1,15 +1,26 @@
 #!/bin/bash
-
-set -u
+# ------------------------------------------------------------------------ #
+# File: install.sh                                                          #
+# Creation: August 22, 2020                                                #
+# Copyright (c) 2020 2Alchemists SAS                                       #
+#                                                                          #
+# This file is part of Krossboard (https://krossboard.app/).               #
+#                                                                          #
+# The tool is distributed in the hope that it will be useful,              #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+# Krossboard terms of use: https://krossboard.app/legal/terms-of-use/      #
+#--------------------------------------------------------------------------#
 set -e
 RED_COLOR='\033[0;31m'
 NO_COLOR='\033[0m'
 
 if [ $# -gt 1 ]; then
-    echo -e "${RED_COLOR}usage:\n\t $0 [/PATH/TO/BINARY]\n${NO_COLOR}"
+    echo -e "${RED_COLOR}usage:\n\t $0 [CLOUD_PROVIDER]\n${NO_COLOR}"
     exit 1
 fi
-
+CLOUD_PROVIDER=${1:-AUTO}
+set -u
 
 if [ `id -u` -ne 0 ]; then
     echo -e "${RED_COLOR}the script must be run as root${NO_COLOR}"
@@ -25,11 +36,10 @@ PRODUCT_HOME_DIR=/opt/$PRODUCT_USER
 PRODUCT_CONFIG_DIR=/opt/$PRODUCT_USER/etc
 PRODUCT_CONFIG_FILE=$PRODUCT_NAME.env
 
+echo "${RED_COLOR} Building cloud image => $KB_IMAGE_BUILDER ${NO_COLOR}"
+
 echo -e "${RED_COLOR} Updating apt-get source list and package versions... ${NO_COLOR}"
 apt-get update && apt-get -y upgrade
-
-# dev requirements
-# apt-get install -y make rrdtool librrd-dev upx-ucl pkg-config
 
 echo -e "${RED_COLOR} Installing Docker, rrdtool and librrd-dev... ${NO_COLOR}"
 apt-get install -y docker.io rrdtool librrd-dev vim curl
@@ -44,11 +54,8 @@ echo -e "${RED_COLOR} Setting up runtime user ${PRODUCT_USER}...${NO_COLOR}"
 id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
 usermod -d $PRODUCT_HOME_DIR -G docker $PRODUCT_USER
 
-CLOUD_PROVIDER="AUTO"
-echo -e "${RED_COLOR} Checking cloud provider... ${NO_COLOR}"
-
 # Checking for Azure cloud builder
-if [ -z "$KB_VBOX_BUILDER" ] && wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null ]; then
     CLOUD_PROVIDER="Azure"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
@@ -61,7 +68,7 @@ if [ -z "$KB_VBOX_BUILDER" ] && wget --header 'Metadata: true' -q "http://169.25
 fi
 
 # Checking for Google cloud builder
-if [ -z "$KB_VBOX_BUILDER" ] && wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ]; then
     CLOUD_PROVIDER="Google"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
@@ -75,7 +82,7 @@ if [ -z "$KB_VBOX_BUILDER" ] && wget --header 'Metadata-Flavor: Google' -q "http
 fi
 
 # checking for AWS cloud
-if [ -z "$KB_VBOX_BUILDER" ] &&  wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] &&  [ wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null ]; then
     CLOUD_PROVIDER="AWS"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
