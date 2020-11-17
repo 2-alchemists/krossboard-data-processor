@@ -52,5 +52,5 @@ ${gh_release_cmd} upload \
     --user $GITHUB_USER \
     --repo "${GITHUB_REPOSITORY_NAME}" \
     --tag ${GITHUB_TAG} \
-    --name "${ovf_dir}" \
+    --name "${ovf_artifact}" \
     --file ./${ovf_artifact}
