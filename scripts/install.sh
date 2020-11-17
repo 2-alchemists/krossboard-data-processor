@@ -55,7 +55,7 @@ id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
 usermod -d $PRODUCT_HOME_DIR -G docker $PRODUCT_USER
 
 # Checking for Azure cloud builder
-if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null ]; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null ; then
     CLOUD_PROVIDER="Azure"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
@@ -68,7 +68,7 @@ if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata: true' -q "http:
 fi
 
 # Checking for Google cloud builder
-if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ]; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ; then
     CLOUD_PROVIDER="Google"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
@@ -82,7 +82,7 @@ if [ "$CLOUD_PROVIDER" == "AUTO" ] && [ wget --header 'Metadata-Flavor: Google' 
 fi
 
 # checking for AWS cloud
-if [ "$CLOUD_PROVIDER" == "AUTO" ] &&  [ wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null ]; then
+if [ "$CLOUD_PROVIDER" == "AUTO" ] &&  wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null ; then
     CLOUD_PROVIDER="AWS"
     echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
     echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
