@@ -52,7 +52,7 @@ deps:
 tools:
 	@if [ ! -f ./bin/golangci-lint ]; then \
 		echo "installing golangci-lint..."; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0; \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.32.2; \
 	fi
 
 check: tools
