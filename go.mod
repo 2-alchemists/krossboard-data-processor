@@ -12,7 +12,6 @@ require (
 	github.com/docker/docker v17.12.0-ce-rc1.0.20200612211812-aaf470eca7b5+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
@@ -33,6 +32,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210108203827-ffc7fda8c3d7
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/client-go v0.17.0
-	k8s.io/utils v0.0.0-20200603063816-c1c6865ac451 // indirect
+	k8s.io/client-go v0.20.2
 )
