@@ -9,6 +9,7 @@ import (
 )
 
 var kubeconfig *KubeConfig
+var licenseNewTarget string
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
@@ -18,7 +19,7 @@ var rootCmd = &cobra.Command{
 	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
-var apiCmd = &cobra.Command{
+var startAPIServiceCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the REST API service",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,7 +28,7 @@ var apiCmd = &cobra.Command{
 	},
 }
 
-var consolidatorCmd = &cobra.Command{
+var startConsolidatorServiceCmd = &cobra.Command{
 	Use:   "consolidator",
 	Short: "Start the resource usage consolidator",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -36,13 +37,29 @@ var consolidatorCmd = &cobra.Command{
 		log.Infoln(" analytics consolidation completed")
 	},
 }
-var collectorCmd = &cobra.Command{
+var startCollectorServiceCmd = &cobra.Command{
 	Use:   "collector",
 	Short: "Run the clusters data collector",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Infoln("starting clusters data collection")
 		runClusterDataCollection()
 		log.Infoln("clusters data collection completed")
+	},
+}
+
+var manageLicenseCmd = &cobra.Command{
+	Use:   "license",
+	Short: "Create a new license key pair",
+
+	Run: func(cmd *cobra.Command, args []string) {
+		if licenseNewTarget == "keypair" {
+			createLicenseKeyPair()
+		} else if licenseNewTarget == "license" {
+			createAppVersionLicense()
+		} else {
+			fmt.Println("unknown license management target", licenseNewTarget)
+			os.Exit(1)
+		}
 	},
 }
 
@@ -55,9 +72,15 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.AddCommand(apiCmd)
-	rootCmd.AddCommand(consolidatorCmd)
-	rootCmd.AddCommand(collectorCmd)
+
+	rootCmd.AddCommand(startAPIServiceCmd)
+	rootCmd.AddCommand(startConsolidatorServiceCmd)
+	rootCmd.AddCommand(startCollectorServiceCmd)
+
+	manageLicenseCmd.Flags().StringVarP(&licenseNewTarget, "new", "c", "", "(Required) Specify the action to perform. Can be set to 'keypair' or 'license')")
+	manageLicenseCmd.MarkFlagRequired("new")
+
+	rootCmd.AddCommand(manageLicenseCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
