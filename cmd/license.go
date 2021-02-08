@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hyperboloide/lk"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"os"
 	"strings"
 	"time"
 )
@@ -18,46 +18,40 @@ type AppLicense struct {
 	ExtendedSupport bool
 }
 
-const LicenseTokenConfigKey = "krossboard_license_token"
-const LicensePrivKeyConfigKey = "krossboard_license_priv_key"
-const LicensePubKeyConfigKey = "krossboard_license_pub_key"
+const KrossboardLicenseTokenConfigKey = "krossboard_license_token"
+const KrossboardLicensePrivKeyConfigKey = "krossboard_license_priv_key"
+const KrossboardLicensePubKeyConfigKey = "krossboard_license_pub_key"
 
 
-func createLicenseKeyPair() {
+func createLicenseKeyPair() (privKeyB64 string, pubKeyB64 string, err error){
 	privKey, err := lk.NewPrivateKey()
 	if err != nil {
-		fmt.Println("✘ Failed creating private key:", err)
-		os.Exit(1)
+		return "", "", errors.Wrap(err, "failed creating private key")
 	}
 
-	privKey64, err := privKey.ToB64String()
+	privKeyB64, err = privKey.ToB64String()
 	if err != nil {
-		fmt.Println("✘ Failed getting the private key in base64:", err)
-		os.Exit(1)
+		return "", "", errors.Wrap(err, "failed getting the private key in base64")
 	}
 
 	pubKey := privKey.GetPublicKey()
-	pubKey64 := pubKey.ToB64String()
+	pubKeyB64 = pubKey.ToB64String()
 	if err != nil {
-		fmt.Println("✘ Failed getting the public key in base64:", err)
-		os.Exit(1)
+		return "", "", errors.Wrap(err, "failed getting the public key in base64")
 	}
 
-	fmt.Println("✓ Success")
-	fmt.Printf("%s=%s\n", strings.ToUpper(LicensePrivKeyConfigKey), privKey64)
-	fmt.Printf("%s=%s\n", strings.ToUpper(LicensePubKeyConfigKey), pubKey64)
+	return privKeyB64, pubKeyB64, nil
 }
 
-func createAppVersionLicense() {
-	semVerParts := strings.Split(licenseTargetVersion, ".")
+func createLicenseTokenFromEnv(appVersion string) (licenseB64 string, err error){
+	semVerParts := strings.Split(appVersion, ".")
 	if len(semVerParts) != 3 {
-		fmt.Println("✘ Unsupported target license version. Please provide a valid license version (e.g. --target-version=1.1.0)")
-		os.Exit(1)
+		return "", errors.New("unexpected version string => " + appVersion)
 	}
 
 	licenseIssueDate := time.Now()
 	licenseDoc := AppLicense{
-		Version: fmt.Sprintf("%s.%s"),
+		Version: fmt.Sprintf("%s.%s", semVerParts[0], semVerParts[1]),
 		GeneratedAt: licenseIssueDate,
 		ExpireAt: licenseIssueDate.Add(time.Hour * 24 * 365), // one-year license
 		Issuer: "2Alchemists SAS",
@@ -67,29 +61,60 @@ func createAppVersionLicense() {
 	// marshall the license document to json:
 	docBytes, err := json.Marshal(licenseDoc)
 	if err != nil {
-		fmt.Println("✘ Failed encoding JSON license document", err)
-		os.Exit(1)
+		return "", errors.Wrap(err, "failed encoding JSON license document")
 	}
 
-	privKeyB64 := viper.GetString(LicensePrivKeyConfigKey)
+	privKeyB64 := viper.GetString(KrossboardLicensePrivKeyConfigKey)
 	privKey, err := lk.PrivateKeyFromB64String(privKeyB64)
 	if err != nil {
-		fmt.Println("✘ Failed decoding LK private key from base64 string", err)
-		os.Exit(1)
+		return "", errors.Wrap(err, "base64-decoding of the private key failed")
 	}
 
 	license, err := lk.NewLicense(privKey, docBytes)
 	if err != nil {
-		fmt.Println("✘ Failed generating a license", err)
-		os.Exit(1)
+		return "", errors.Wrap(err, "failed generating a license")
 	}
 
 	// encode the new license to b64, this is what you give to your customer.
-	licenseB64, err := license.ToB64String()
+	licenseB64, err = license.ToB64String()
 	if err != nil {
-		fmt.Println("✘ Failed encoding the license in base64", err)
-		os.Exit(1)
+		return "", errors.Wrap(err, "failed encoding the license in base64")
 	}
-	fmt.Println("✓ Success")
-	fmt.Printf("%s=%s\n", strings.ToUpper(LicenseTokenConfigKey), licenseB64)
+	return licenseB64, nil
+}
+
+func validateLicenseFromEnv() (licenseDoc *AppLicense, err error) {
+	semVerParts := strings.Split(KrossboardVersion, ".")
+	if len(semVerParts) != 3 {
+		return nil, errors.New("unexpected version string => " + KrossboardVersion)
+	}
+
+	licenseB64 := viper.GetString(KrossboardLicenseTokenConfigKey)
+	license, err := lk.LicenseFromB64String(licenseB64)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed decoding license token")
+	}
+
+	licensePubKeyB64 := viper.GetString(KrossboardLicensePubKeyConfigKey)
+	licensePubKey, err := lk.PublicKeyFromB64String(licensePubKeyB64)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed decoding license public key")
+	}
+
+	if ok, err := license.Verify(licensePubKey); err != nil {
+		return nil, errors.Wrap(err, "failed verify the license signature")
+	} else if !ok {
+		return nil, errors.New("invalid license signature")
+	}
+
+	licenseDoc = &AppLicense{}
+	if err := json.Unmarshal(license.Data, licenseDoc); err != nil {
+		return nil, errors.Wrap(err, "failed decoding in JSON")
+	}
+
+	if licenseDoc.ExpireAt.Before(time.Now()) {
+		return nil, errors.New(fmt.Sprintln("license expired on:", licenseDoc.ExpireAt.Format("006-01-02")))
+	}
+
+	return licenseDoc,nil
 }

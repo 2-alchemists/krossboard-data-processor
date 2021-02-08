@@ -2,21 +2,24 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
 )
 
+const KrossboardVersion = "1.2.0"
+
 var kubeconfig *KubeConfig
-var licenseTargetAction string
-var licenseTargetVersion string
+var licenseTargetActionOption string
+var licenseTargetVersionOption string
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
 	Short:   "Multi-cluster Kubernetes usage analytics tool",
 	Long:    `Krossboard tracks the usage of your Kubernetes clusters at an one single place`,
-	Version: "1.2.0",
+	Version: KrossboardVersion,
 	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
@@ -53,14 +56,31 @@ var manageLicenseCmd = &cobra.Command{
 	Short: "Create a new license key pair",
 
 	Run: func(cmd *cobra.Command, args []string) {
-		if licenseTargetAction == "keypair" {
-			createLicenseKeyPair()
-		} else if licenseTargetAction == "license" {
-			createAppVersionLicense()
-		} else {
-			fmt.Println("unknown license management target", licenseTargetAction)
-			os.Exit(1)
+		if licenseTargetActionOption == "keypair" {
+			privKeyB64, pubKeyB64, err := createLicenseKeyPair()
+			if err != nil {
+				fmt.Println("✘ Can't create license key pair:", err)
+			} else {
+				fmt.Println("✓ Success")
+				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicensePrivKeyConfigKey), privKeyB64)
+				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicensePubKeyConfigKey), pubKeyB64)
+			}
+			return
 		}
+
+		if licenseTargetActionOption == "license" {
+			licenseB64, err := createLicenseTokenFromEnv(licenseTargetVersionOption)
+			if err != nil {
+				fmt.Println("✘ Can't generate a license:", err)
+			} else {
+				fmt.Println("✓ Success")
+				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicenseTokenConfigKey), licenseB64)
+			}
+			return
+		}
+
+		fmt.Println("unknown license management target", licenseTargetActionOption)
+		os.Exit(1)
 	},
 }
 
@@ -78,8 +98,8 @@ func init() {
 	rootCmd.AddCommand(startConsolidatorServiceCmd)
 	rootCmd.AddCommand(startCollectorServiceCmd)
 
-	manageLicenseCmd.Flags().StringVarP(&licenseTargetAction, "new", "c", "", "(Required) Specify the action to perform. Can be set to 'keypair' or 'license')")
-	manageLicenseCmd.Flags().StringVarP(&licenseTargetVersion, "target-version", "t", "", "Set target version for license creation)")
+	manageLicenseCmd.Flags().StringVarP(&licenseTargetActionOption, "new", "c", "", "(Required) Specify the action to perform. Can be set to 'keypair' or 'license')")
+	manageLicenseCmd.Flags().StringVarP(&licenseTargetVersionOption, "target-version", "t", "", "Set target version for license creation)")
 
 	manageLicenseCmd.MarkFlagRequired("new")
 
