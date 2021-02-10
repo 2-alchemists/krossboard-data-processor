@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/hyperboloide/lk"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"testing"
+	"time"
 )
 
 func TestKeyPairGeneration(t *testing.T) {
@@ -49,7 +49,7 @@ func TestCreateLicenseToken(t *testing.T) {
 
 		viper.Set(KrossboardLicensePrivKeyConfigKey, privKeyB64)
 
-		licenseB64, err := createLicenseTokenFromEnv(KrossboardVersion)
+		licenseB64, err := createLicenseTokenFromEnvConfig("1.2.3", time.Hour * 24 * 365) // one-year license
 		Convey("license creation should succeed", func() {
 			So(err, ShouldBeNil)
 			So(licenseB64, ShouldNotBeEmpty)
@@ -60,13 +60,65 @@ func TestCreateLicenseToken(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-
 		Convey("the created license should be valid", func() {
 			viper.Set(KrossboardLicenseTokenConfigKey, licenseB64)
 			viper.Set(KrossboardLicensePubKeyConfigKey, pubKeyB64)
-			licenseDoc, err := validateLicenseFromEnv()
+			licenseDoc, err := validateLicenseFromEnvConfig("1.2.5")
 			So(err, ShouldBeNil)
-			fmt.Println(licenseDoc)
+			So(licenseDoc.MajorVersion, ShouldEqual, "1.2")
+		})
+	})
+}
+
+
+func TestValidLicenseToken(t *testing.T) {
+	Convey("Test create license token", t, func() {
+
+		privKeyB64, pubKeyB64, err := createLicenseKeyPair()
+		Convey("key pair creation should succeed", func() {
+			So(err, ShouldBeNil)
+			So(privKeyB64, ShouldNotBeEmpty)
+			So(pubKeyB64, ShouldNotBeEmpty)
+		})
+
+		viper.Set(KrossboardLicensePrivKeyConfigKey, privKeyB64)
+		licenseB64, err := createLicenseTokenFromEnvConfig("1.2.3", time.Hour * 24 * 365) // one-year license
+
+		Convey("the created license should be valid", func() {
+			So(err, ShouldBeNil)
+			So(licenseB64, ShouldNotBeEmpty)
+			viper.Set(KrossboardLicenseTokenConfigKey, licenseB64)
+			viper.Set(KrossboardLicensePubKeyConfigKey, pubKeyB64)
+			licenseDoc, err := validateLicenseFromEnvConfig("1.2.5")
+			So(err, ShouldBeNil)
+			So(licenseDoc.MajorVersion, ShouldEqual, "1.2")
+		})
+	})
+}
+
+func TestExpiredLicenseToken(t *testing.T) {
+	Convey("Test create license token", t, func() {
+
+		privKeyB64, pubKeyB64, err := createLicenseKeyPair()
+		Convey("key pair creation should succeed", func() {
+			So(err, ShouldBeNil)
+			So(privKeyB64, ShouldNotBeEmpty)
+			So(pubKeyB64, ShouldNotBeEmpty)
+		})
+
+		viper.Set(KrossboardLicensePrivKeyConfigKey, privKeyB64)
+		licenseB64, err := createLicenseTokenFromEnvConfig("1.2.3", time.Second) // one-second license
+
+		time.Sleep(2 * time.Second) // wait that the one-second license expires
+
+		Convey("the created license should be valid", func() {
+			So(err, ShouldBeNil)
+			So(licenseB64, ShouldNotBeEmpty)
+			viper.Set(KrossboardLicenseTokenConfigKey, licenseB64)
+			viper.Set(KrossboardLicensePubKeyConfigKey, pubKeyB64)
+			licenseDoc, err := validateLicenseFromEnvConfig("1.2.5")
+			So(err, ShouldBeError)
+			So(licenseDoc, ShouldBeNil)
 		})
 	})
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,6 +15,7 @@ const KrossboardVersion = "1.2.0"
 var kubeconfig *KubeConfig
 var licenseTargetActionOption string
 var licenseTargetVersionOption string
+var licenseDurationDayOption int
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
@@ -69,7 +71,11 @@ var manageLicenseCmd = &cobra.Command{
 		}
 
 		if licenseTargetActionOption == "license" {
-			licenseB64, err := createLicenseTokenFromEnv(licenseTargetVersionOption)
+			licenseDuration := time.Hour * 24 * 365
+			if licenseDurationDayOption > 0 {
+				licenseDuration = time.Hour * 24 * licenseDuration
+			}
+			licenseB64, err := createLicenseTokenFromEnvConfig(licenseTargetVersionOption, licenseDuration)
 			if err != nil {
 				fmt.Println("✘ Can't generate a license:", err)
 			} else {
@@ -100,6 +106,7 @@ func init() {
 
 	manageLicenseCmd.Flags().StringVarP(&licenseTargetActionOption, "new", "c", "", "(Required) Specify the action to perform. Can be set to 'keypair' or 'license')")
 	manageLicenseCmd.Flags().StringVarP(&licenseTargetVersionOption, "target-version", "t", "", "Set target version for license creation)")
+	manageLicenseCmd.Flags().IntVarP(&licenseDurationDayOption, "duration", "d", 365, "Set the validity duration in days (default is 365 days)")
 
 	manageLicenseCmd.MarkFlagRequired("new")
 

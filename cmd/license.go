@@ -11,10 +11,10 @@ import (
 )
 
 type AppLicense struct {
-	Version string
-	GeneratedAt time.Time
-	ExpireAt time.Time
-	Issuer string
+	MajorVersion    string
+	GeneratedAt     time.Time
+	ExpireAt        time.Time
+	Issuer          string
 	ExtendedSupport bool
 }
 
@@ -43,7 +43,7 @@ func createLicenseKeyPair() (privKeyB64 string, pubKeyB64 string, err error){
 	return privKeyB64, pubKeyB64, nil
 }
 
-func createLicenseTokenFromEnv(appVersion string) (licenseB64 string, err error){
+func createLicenseTokenFromEnvConfig(appVersion string, duration time.Duration) (licenseB64 string, err error){
 	semVerParts := strings.Split(appVersion, ".")
 	if len(semVerParts) != 3 {
 		return "", errors.New("unexpected version string => " + appVersion)
@@ -51,10 +51,10 @@ func createLicenseTokenFromEnv(appVersion string) (licenseB64 string, err error)
 
 	licenseIssueDate := time.Now()
 	licenseDoc := AppLicense{
-		Version: fmt.Sprintf("%s.%s", semVerParts[0], semVerParts[1]),
-		GeneratedAt: licenseIssueDate,
-		ExpireAt: licenseIssueDate.Add(time.Hour * 24 * 365), // one-year license
-		Issuer: "2Alchemists SAS",
+		MajorVersion:    fmt.Sprintf("%s.%s", semVerParts[0], semVerParts[1]),
+		GeneratedAt:     licenseIssueDate,
+		ExpireAt:        licenseIssueDate.Add(duration),
+		Issuer:          "2Alchemists SAS",
 		ExtendedSupport: false,
 	}
 
@@ -83,10 +83,10 @@ func createLicenseTokenFromEnv(appVersion string) (licenseB64 string, err error)
 	return licenseB64, nil
 }
 
-func validateLicenseFromEnv() (licenseDoc *AppLicense, err error) {
-	semVerParts := strings.Split(KrossboardVersion, ".")
+func validateLicenseFromEnvConfig(version string) (licenseDoc *AppLicense, err error) {
+	semVerParts := strings.Split(version, ".")
 	if len(semVerParts) != 3 {
-		return nil, errors.New("unexpected version string => " + KrossboardVersion)
+		return nil, errors.New("unexpected version string => " + version)
 	}
 
 	licenseB64 := viper.GetString(KrossboardLicenseTokenConfigKey)
@@ -113,7 +113,7 @@ func validateLicenseFromEnv() (licenseDoc *AppLicense, err error) {
 	}
 
 	if licenseDoc.ExpireAt.Before(time.Now()) {
-		return nil, errors.New(fmt.Sprintln("license expired on:", licenseDoc.ExpireAt.Format("006-01-02")))
+		return nil, errors.New(fmt.Sprintln("license expired on:", licenseDoc.ExpireAt.Format("2006-01-02")))
 	}
 
 	return licenseDoc,nil
