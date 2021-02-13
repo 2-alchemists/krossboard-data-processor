@@ -47,7 +47,7 @@ run: build
 	./$(PROGRAM_ARTIFACT) collector
 
 deps:
-	$(GOCMD) get .
+	$(GOCMD) mod tidy
 
 tools:
 	@if [ ! -f ./bin/golangci-lint ]; then \
