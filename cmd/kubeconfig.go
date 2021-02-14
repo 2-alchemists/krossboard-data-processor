@@ -37,15 +37,15 @@ type ManagedCluster struct {
 	AuthType    int            `json:"authType,omitempty"`
 }
 
-// NewKubeConfig create a new KubeConfig object
+// NewKubeConfig creates a new KubeConfig object
 func NewKubeConfig() *KubeConfig {
 	kubeConfigFilename := os.Getenv(kubeConfigEnvName)
-	if kubeConfigFilename == "" {
+	if kubeConfigFilename != "" {
 		var pathPtr *string
 		if home := UserHomeDir(); home != "" {
-			pathPtr = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
 			pathPtr = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		} else {
+			pathPtr = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 		}
 		flag.Parse()
 		kubeConfigFilename = *pathPtr
@@ -55,7 +55,7 @@ func NewKubeConfig() *KubeConfig {
 	}
 }
 
-// ListClusters list Kubernetes clusters available in KUBECONFIG
+// ListClusters lists Kubernetes clusters available in KUBECONFIG
 func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
 	config, err := clientcmd.LoadFromFile(m.Path)
 	if err != nil {
