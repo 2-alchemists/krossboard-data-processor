@@ -10,7 +10,6 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
 
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -123,15 +122,6 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 	}
 
 	return token, nil
-}
-
-// nolint:unused // TODO: to remove?
-func (m *KubeConfig) buildConfigFromFlags(contextName string) (*rest.Config, error) {
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: m.Path},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: contextName,
-		}).ClientConfig()
 }
 
 // UserHomeDir returns the current use home directory
