@@ -24,9 +24,9 @@ func orchestrateInstances(systemStatus *SystemStatus, kubeconfig *KubeConfig) {
 		}
 	}
 
-	discoveredClusters, err := kubeconfig.ListClusters()
-	if err != nil {
-		log.WithError(err).Errorln("failed reading clusters")
+	discoveredClusters := kubeconfig.ListClusters()
+	if len(discoveredClusters) == 0 {
+		log.Errorln("no cluster to process")
 		return
 	}
 

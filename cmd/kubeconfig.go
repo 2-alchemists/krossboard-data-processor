@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -24,7 +25,7 @@ const (
 
 // KubeConfig holds an object describing a K8s Cluster
 type KubeConfig struct {
-	Path string `json:"path,omitempty"`
+	Paths []string `json:"path,omitempty"`
 }
 
 // ManagedCluster holds an object describing managed clusters
@@ -38,50 +39,57 @@ type ManagedCluster struct {
 
 // NewKubeConfig creates a new KubeConfig object
 func NewKubeConfig() *KubeConfig {
-	kubeConfigFilename := os.Getenv(kubeConfigEnvName)
-	if kubeConfigFilename != "" {
+	config := &KubeConfig{
+		Paths: []string{},
+	}
+
+	kubeConfigEnv := os.Getenv(kubeConfigEnvName)
+	if kubeConfigEnv != "" {
+		config.Paths = append(config.Paths, strings.Split(kubeConfigEnv, ";")...)
+	} else {
 		var pathPtr *string
 		if home := UserHomeDir(); home != "" {
-			pathPtr = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		} else {
 			pathPtr = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		} else {
+			pathPtr = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 		}
 		flag.Parse()
-		kubeConfigFilename = *pathPtr
+		config.Paths = append(config.Paths, *pathPtr)
 	}
-	return &KubeConfig{
-		Path: kubeConfigFilename,
-	}
+	return config
 }
 
 // ListClusters lists Kubernetes clusters available in KUBECONFIG
-func (m *KubeConfig) ListClusters() (map[string]*ManagedCluster, error) {
-	config, err := clientcmd.LoadFromFile(m.Path)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed loading KUBECONFIG")
-	}
+func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
+	discoveredClusters := make(map[string]*ManagedCluster, 0)
+	for _, path := range m.Paths {
+		config, err := clientcmd.LoadFromFile(path)
+		if err != nil {
+			log.WithError(err).Errorln("failed reading KUBECONFIG", path)
+			continue
+		}
 
-	authInfos := make(map[string]string)
-	for user, authInfo := range config.AuthInfos {
-		authInfos[user] = authInfo.Token
-	}
+		authInfos := make(map[string]string)
+		for user, authInfo := range config.AuthInfos {
+			authInfos[user] = authInfo.Token
+		}
 
-	discoveredClusters := map[string]*ManagedCluster{}
-	for clusterName, clusterInfo := range config.Clusters {
-		clusterNameEscaped := strings.ReplaceAll(clusterName, "/", "@")
-		discoveredClusters[clusterNameEscaped] = &ManagedCluster{
-			Name:        clusterNameEscaped,
-			APIEndpoint: clusterInfo.Server,
-			CaData:      clusterInfo.CertificateAuthorityData,
+		for clusterName, clusterInfo := range config.Clusters {
+			clusterNameEscaped := strings.ReplaceAll(clusterName, "/", "@")
+			discoveredClusters[clusterNameEscaped] = &ManagedCluster{
+				Name:        clusterNameEscaped,
+				APIEndpoint: clusterInfo.Server,
+				CaData:      clusterInfo.CertificateAuthorityData,
+			}
+		}
+		for _, context := range config.Contexts {
+			clusterNameEscaped := strings.ReplaceAll(context.Cluster, "/", "@")
+			if cluster, found := discoveredClusters[clusterNameEscaped]; found {
+				cluster.AuthInfo = config.AuthInfos[context.AuthInfo]
+			}
 		}
 	}
-	for _, context := range config.Contexts {
-		clusterNameEscaped := strings.ReplaceAll(context.Cluster, "/", "@")
-		if cluster, found := discoveredClusters[clusterNameEscaped]; found {
-			cluster.AuthInfo = config.AuthInfos[context.AuthInfo]
-		}
-	}
-	return discoveredClusters, nil
+	return discoveredClusters
 }
 
 // GetAccessToken retrieves access token from AuthInfo
