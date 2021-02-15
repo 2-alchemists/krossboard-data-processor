@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,7 +21,7 @@ const (
 	AuthTypeBearerToken = 1
 	AuthTypeX509Cert    = 2
 	AuthTypeBasicToken  = 3
-	kubeConfigEnvName   = "KUBECONFIG"
+	KubeConfigKey       = "kubeconfig"
 )
 
 // KubeConfig holds an object describing a K8s Cluster
@@ -43,7 +44,7 @@ func NewKubeConfig() *KubeConfig {
 		Paths: []string{},
 	}
 
-	kubeConfigEnv := os.Getenv(kubeConfigEnvName)
+	kubeConfigEnv := viper.GetString(KubeConfigKey)
 	if kubeConfigEnv != "" {
 		config.Paths = append(config.Paths, strings.Split(kubeConfigEnv, ";")...)
 	} else {
