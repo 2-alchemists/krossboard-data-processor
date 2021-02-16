@@ -62,7 +62,7 @@ func NewKubeConfig() *KubeConfig {
 
 // ListClusters lists Kubernetes clusters available in KUBECONFIG
 func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
-	discoveredClusters := make(map[string]*ManagedCluster, 0)
+	discoveredClusters := make(map[string]*ManagedCluster)
 	for _, path := range m.Paths {
 		config, err := clientcmd.LoadFromFile(path)
 		if err != nil {
