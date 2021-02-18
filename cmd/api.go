@@ -132,7 +132,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 
 	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		log.WithError(err).Errorln("failed calling target API", apiUrl)
+		log.WithError(err).Errorln("http.NewRequest failed on URL", apiUrl)
 		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
@@ -141,7 +141,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(proxyReq)
 	if err != nil {
-		log.WithError(err).Errorln("failed calling target API", apiUrl)
+		log.WithError(err).Errorln("httpClient.Do failed on URL", apiUrl)
 		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
@@ -161,7 +161,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 			w.Header().Add(hk, hval)
 		}
 	}
-	w.Write(respBody) //nolint:errcheck
+	_, _ = w.Write(respBody) //nolint:errcheck
 }
 
 // DiscoveryHandler returns current system status along with Kubernetes Opex Analytics instances' endpoints

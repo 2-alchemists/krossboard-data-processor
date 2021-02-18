@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"net/http"
 	"os"
 	"time"
 
@@ -14,6 +15,20 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/ziutek/rrd"
 )
+
+// KOANodeUsage holds an instance of node usage as processed by kube-opex-analytics
+type KOANodeUsage struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	State string `json:"state"`
+	Message string `json:"message"`
+	CPUCapacity float64 `json:"cpuCapacity"`
+	CPUAllocatable float64 `json:"cpuAllocatable"`
+	CPUUsage float64 `json:"cpuUsage"`
+	MEMCapacity float64 `json:"memCapacity"`
+	MEMAllocatable float64 `json:"memAllocatable"`
+	MEMUsage float64 `json:"memUsage"`
+}
 
 // K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster
 type K8sClusterUsage struct {
@@ -145,4 +160,36 @@ func processConsolidatedUsage(kconfig *KubeConfig) {
 			log.WithError(err).Errorln("failed to udpate RRD file", rrdFile)
 		}
 	}
+}
+
+
+// getClusterNodesUsage returns nodes usage for a given cluster
+func getClusterNodesUsage(clusterName string) (*map[string]KOANodeUsage, error){
+	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
+	httpReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
+	}
+	
+	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
+
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("httpClient.Do failed on URL %s", url))
+	}
+	defer resp.Body.Close()
+
+	respRaw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+	}
+
+	nodesUsage := &map[string]KOANodeUsage{}
+	err = json.Unmarshal(respRaw, nodesUsage)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+	}
+
+	return nodesUsage, nil
 }
