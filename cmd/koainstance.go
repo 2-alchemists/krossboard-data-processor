@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Instance hold a Kubernetes Opex Analytics instance info
+// Instance holds a Kubernetes Opex Analytics instance info
 type Instance struct {
 	ID              string    `json:"id,omitempty"`
 	Name            string    `json:"name,omitempty"`
@@ -36,7 +36,7 @@ type Instance struct {
 	CreationDate    time.Time `json:"creationDate,omitempty"`
 }
 
-// ContainerManager object to manipule containers
+// ContainerManager object to manipulate containers
 type ContainerManager struct {
 	Image string `json:"image,omitempty"`
 }

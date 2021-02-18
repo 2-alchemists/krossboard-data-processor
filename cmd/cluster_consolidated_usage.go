@@ -25,10 +25,10 @@ type K8sClusterUsage struct {
 	OutToDate         bool    `json:"outToDate"`
 }
 
-func getAllClustersCurrentUsage(kubeconfig *KubeConfig) ([]*K8sClusterUsage, error) {
-	clusters, err := kubeconfig.ListClusters()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed reading clusters")
+func getAllClustersCurrentUsage(kconfig *KubeConfig) ([]*K8sClusterUsage, error) {
+	clusters := kconfig.ListClusters()
+	if len(clusters) == 0 {
+		return nil, errors.New("no cluster found")
 	}
 
 	var allUsage []*K8sClusterUsage
@@ -109,8 +109,8 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 	return usage, nil
 }
 
-func processConsolidatedUsage(kubeconfig *KubeConfig) {
-	allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
+func processConsolidatedUsage(kconfig *KubeConfig) {
+	allClustersUsage, err := getAllClustersCurrentUsage(kconfig)
 	if err != nil {
 		log.WithError(err).Errorln("failed getting all clusters usage")
 	} else {
