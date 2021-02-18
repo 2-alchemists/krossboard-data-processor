@@ -67,7 +67,8 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 	rrdEnd := time.Unix(rrdEndEpoch, 0)
 	rrdStart := rrdEnd.Add(RRDLastUsageFetchWindow * time.Second)
 	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
-	dbfiles, err := ioutil.ReadDir(rrdDir)
+
+	foundFiles, err := ioutil.ReadDir(rrdDir)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed reading data folder")
 	}
@@ -80,23 +81,23 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 		MemNonAllocatable: 0.0,
 		OutToDate:         true,
 	}
-	for _, dbfile := range dbfiles {
-		if dbfile.IsDir() {
+	for _, curFile := range foundFiles {
+		if curFile.IsDir() {
 			continue
 		}
-		rrdfile := fmt.Sprintf("%s/%s", rrdDir, dbfile.Name())
-		rrdFileInfo, err := rrd.Info(rrdfile)
+		rrdFile := fmt.Sprintf("%s/%s", rrdDir, curFile.Name())
+		rrdFileInfo, err := rrd.Info(rrdFile)
 		if err != nil {
-			log.WithError(err).Warnln("seems to be not valid rrd file", rrdfile)
+			log.WithError(err).Warnln("seems to be not valid rrd file", rrdFile)
 			continue
 		}
 
 		if rrdStart.Sub(time.Unix(int64(rrdFileInfo["last_update"].(uint)), 0)) > time.Duration(0) {
-			log.Debugln("not recently updated rrd file", rrdfile)
+			log.Debugln("not recently updated rrd file", rrdFile)
 			continue
 		}
 
-		fetchRes, err := rrd.Fetch(rrdfile, "LAST", rrdStart, rrdEnd, RRDStorageStep300Secs*time.Second)
+		fetchRes, err := rrd.Fetch(rrdFile, "LAST", rrdStart, rrdEnd, RRDStorageStep300Secs*time.Second)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to retrieve data from rrd file")
 		}
@@ -109,7 +110,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 			mem := fetchRes.ValueAt(1, rrdRow)
 			if !math.IsNaN(cpu) && !math.IsNaN(mem) && cpu >= 0 && mem >= 0 {
 				usage.OutToDate = false
-				if dbfile.Name() == "non-allocatable" {
+				if curFile.Name() == "non-allocatable" {
 					usage.CPUNonAllocatable = cpu
 					usage.MemNonAllocatable = mem
 				} else {
