@@ -3,7 +3,7 @@ module github.com/2-alchemists/krossboard-data-processor
 go 1.13
 
 require (
-	cloud.google.com/go v0.75.0
+	cloud.google.com/go v0.78.0
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/aws/aws-sdk-go v1.36.30
 	github.com/buger/jsonparser v1.1.1
@@ -29,7 +29,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/ziutek/rrd v0.0.3
-	google.golang.org/genproto v0.0.0-20210108203827-ffc7fda8c3d7
+	google.golang.org/genproto v0.0.0-20210222152913-aa3ee6e6a81c
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/client-go v0.20.2
