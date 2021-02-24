@@ -16,8 +16,8 @@ const (
 	RRDStorageStep3600Secs = 3600
 )
 
-// UsageDb holds a wrapper on a RRD database file along with appropriated settinfgs to store a usage data
-type UsageDb struct {
+// NamespaceUsageDb holds a wrapper on a RRD database file along with appropriated settinfgs to store a usage data
+type NamespaceUsageDb struct {
 	RRDFile  string
 	Step     uint
 	MinValue float64
@@ -40,9 +40,9 @@ type UsageHistory struct {
 // now points to the regular time.Now but offers a way to stub out the function inside tests.
 var now = time.Now
 
-// NewUsageDb instanciate a new UsageDb object wrapper
-func NewUsageDb(dbname string) *UsageDb {
-	return &UsageDb{
+// NewUsageDb instanciate a new NamespaceUsageDb object wrapper
+func NewUsageDb(dbname string) *NamespaceUsageDb {
+	return &NamespaceUsageDb{
 		RRDFile:  dbname,
 		Step:     uint(RRDStorageStep300Secs),
 		MinValue: 0,
@@ -52,7 +52,7 @@ func NewUsageDb(dbname string) *UsageDb {
 }
 
 // CreateRRD create a new RRD database
-func (m *UsageDb) CreateRRD() error {
+func (m *NamespaceUsageDb) CreateRRD() error {
 	rrdCreator := rrd.NewCreator(m.RRDFile, now(), m.Step)
 	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)               // 14 days - 5-minute resolution
 	rrdCreator.RRA("AVERAGE", 0.5, 12 /* 1 hour */, 8880) // 1 year - 1-hour resolution
@@ -66,18 +66,18 @@ func (m *UsageDb) CreateRRD() error {
 }
 
 // UpdateRRD adds a new entry into a RRD database
-func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) error {
+func (m *NamespaceUsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) error {
 	rrdUpdater := rrd.NewUpdater(m.RRDFile)
 	return rrdUpdater.Update(ts, cpuUsage, memUsage)
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, 5 minutes-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep300Secs)*time.Second)
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, hour-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
 
 	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
@@ -88,7 +88,7 @@ func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time)
 }
 
 // FetchUsageMonthly retrieves from the managed RRD file, month-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
 	usages, err := m.FetchUsageHourly(startTimeUTC, endTimeUTC)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time
 }
 
 // FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC with the given step
-func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
 	rrdEndTime := RoundTime(endTimeUTC, duration)
 	rrdStartTime := RoundTime(startTimeUTC, duration)
 	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, duration)

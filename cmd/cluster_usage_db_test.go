@@ -57,7 +57,7 @@ func TestUsageDb(t *testing.T) {
 					memUsage float64
 				}
 				type input struct {
-					fetcher  func(u *UsageDb, startTime time.Time, endTime time.Time) (*UsageHistory, error)
+					fetcher  func(u *NamespaceUsageDb, startTime time.Time, endTime time.Time) (*UsageHistory, error)
 					duration time.Duration
 					data     func() []data
 				}
@@ -69,7 +69,7 @@ func TestUsageDb(t *testing.T) {
 					{
 						name: "hourly test case - nominal",
 						input: input{
-							fetcher:  (*UsageDb).FetchUsageHourly,
+							fetcher:  (*NamespaceUsageDb).FetchUsageHourly,
 							duration: time.Duration(15) * time.Minute,
 							data: func() []data {
 								return []data{
@@ -106,7 +106,7 @@ func TestUsageDb(t *testing.T) {
 					//{
 					//	name: "monthly test case - nominal",
 					//	input: input{
-					//		fetcher:  (*UsageDb).FetchUsageMonthly,
+					//		fetcher:  (*NamespaceUsageDb).FetchUsageMonthly,
 					//		duration: time.Duration(2664000) * time.Second * 2, // 2 months
 					//		data: func() []data {
 					//			someValues := []float64{60.466029, 94.050909, 66.456005, 43.771419, 42.463750, 68.682307, 6.563702, 15.651925, 9.696952, 30.091186}
