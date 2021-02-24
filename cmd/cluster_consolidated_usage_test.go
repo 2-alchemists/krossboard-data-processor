@@ -123,7 +123,7 @@ func TestKOAClusterNodesUsage(t *testing.T) {
 	Convey("Test KOANodesUsage", t, func() {
 
 		Convey("Given a valid dataset", func() {
-			nodesUsage := &map[string]KOANodeUsage{}
+			nodesUsage := &map[string]NodeUsage{}
 			err := json.Unmarshal(nodesUsageDataset, nodesUsage)
 			So(err, ShouldBeNil)
 			So(len(*nodesUsage), ShouldEqual, 1)
@@ -138,6 +138,5 @@ func TestKOAClusterNodesUsage(t *testing.T) {
 			So(node.MEMAllocatable, ShouldEqual, 2967547904)
 			So(node.MEMUsage, ShouldEqual, 781180928)
 		})
-
 	})
 }

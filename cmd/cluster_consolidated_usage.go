@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -16,8 +17,8 @@ import (
 	"github.com/ziutek/rrd"
 )
 
-// KOANodeUsage holds an instance of node usage as processed by kube-opex-analytics
-type KOANodeUsage struct {
+// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
+type NodeUsage struct {
 	ID string `json:"id"`
 	Name string `json:"name"`
 	State string `json:"state"`
@@ -125,8 +126,43 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 	return usage, nil
 }
 
-func processConsolidatedUsage(kconfig *KubeConfig) {
-	allClustersUsage, err := getAllClustersCurrentUsage(kconfig)
+
+// getClusterNodesUsage returns nodes usage for a given cluster
+func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
+	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
+	httpReq, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
+	}
+
+	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
+
+	httpClient := http.Client{
+		Timeout: time.Second * 5,
+	}
+	resp, err := httpClient.Do(httpReq)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("httpClient.Do failed on URL %s", url))
+	}
+	defer resp.Body.Close()
+
+	respRaw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+	}
+
+	nodesUsage := &map[string]NodeUsage{}
+	err = json.Unmarshal(respRaw, nodesUsage)
+	if err != nil {
+		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+	}
+
+	return nodesUsage, nil
+}
+
+
+func processConsolidatedUsage(kubeconfig *KubeConfig) {
+	allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
 	if err != nil {
 		log.WithError(err).Errorln("failed getting all clusters usage")
 	} else {
@@ -139,10 +175,14 @@ func processConsolidatedUsage(kconfig *KubeConfig) {
 		}
 	}
 
+
+	nodesUsageCacheKey := fmt.Sprintln(time.Now().UnixNano())
 	for _, clusterUsage := range allClustersUsage {
 		if clusterUsage.OutToDate {
 			continue
 		}
+
+		// processing cluster namespaces' usage
 		rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
 		usageDb := NewUsageDb(rrdFile)
 		_, err := os.Stat(rrdFile)
@@ -158,39 +198,26 @@ func processConsolidatedUsage(kconfig *KubeConfig) {
 		memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
 		err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
 		if err != nil {
-			log.WithError(err).Errorln("failed to udpate RRD file", rrdFile)
+			log.WithError(err).Errorln("failed to update RRD file", rrdFile)
+		}
+
+		// processing cluster nodes' usage
+		nodeUsageDbPath := fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
+		nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath)
+		if err != nil {
+			log.WithError(err).Errorln("NewNodeUsageDB failed")
+		}
+
+		nodeUsage, err := getClusterNodesUsage(clusterUsage.ClusterName)
+		if err != nil {
+			log.WithError(err).Errorln("getClusterNodesUsage failed")
+		} else {
+			nodeUsageDb.Data.Set(nodesUsageCacheKey, nodeUsage, cache.DefaultExpiration)
+			err = nodeUsageDb.Save()
+			if err != nil {
+				log.WithError(err).Errorln("Failed saving node usage cache")
+			}
 		}
 	}
 }
 
-
-// getClusterNodesUsage returns nodes usage for a given cluster
-func getClusterNodesUsage(clusterName string) (*map[string]KOANodeUsage, error){
-	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
-	httpReq, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
-	}
-	
-	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
-
-	httpClient := http.Client{}
-	resp, err := httpClient.Do(httpReq)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("httpClient.Do failed on URL %s", url))
-	}
-	defer resp.Body.Close()
-
-	respRaw, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
-	}
-
-	nodesUsage := &map[string]KOANodeUsage{}
-	err = json.Unmarshal(respRaw, nodesUsage)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
-	}
-
-	return nodesUsage, nil
-}
