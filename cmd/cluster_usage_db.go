@@ -25,29 +25,30 @@ type NamespaceUsageDb struct {
 	Xfs      float64
 }
 
-// UsageHistoryItem holds a resource usage at a timestamp
-type UsageHistoryItem struct {
+// ResourceUsageItem holds a resource usage at a timestamp
+type ResourceUsageItem struct {
 	DateUTC time.Time `json:"dateUTC"`
 	Value   float64   `json:"value"`
 }
 
-// UsageHistory holds resource usage history for all kinds of managed resources (CPU, memory)
-type UsageHistory struct {
-	CPUUsage []*UsageHistoryItem `json:"cpuUsage"`
-	MEMUsage []*UsageHistoryItem `json:"memUsage"`
+// NamespaceUsageHistory holds resource usage history for all kinds of managed resources (CPU, memory)
+type NamespaceUsageHistory struct {
+	CPUUsage []*ResourceUsageItem `json:"cpuUsage"`
+	MEMUsage []*ResourceUsageItem `json:"memUsage"`
 }
 
-// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
-type NodeUsage struct {
-	Name string `json:"name"`
-	State string `json:"state"`
-	Message string `json:"message"`
-	CPUCapacity float64 `json:"cpuCapacity"`
-	CPUAllocatable float64 `json:"cpuAllocatable"`
-	CPUUsage float64 `json:"cpuUsage"`
-	MEMCapacity float64 `json:"memCapacity"`
-	MEMAllocatable float64 `json:"memAllocatable"`
-	MEMUsage float64 `json:"memUsage"`
+// NodeUsageItem holds an instance of node usage as processed by kube-opex-analytics
+type NodeUsageItem struct {
+	DateUTC time.Time `json:"dateUTC,omitempty"`
+	Name string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+	Message string `json:"message,omitempty"`
+	CPUCapacity float64 `json:"cpuCapacity,omitempty"`
+	CPUAllocatable float64 `json:"cpuAllocatable,omitempty"`
+	CPUUsage float64 `json:"cpuUsage,omitempty"`
+	MEMCapacity float64 `json:"memCapacity,omitempty"`
+	MEMAllocatable float64 `json:"memAllocatable,omitempty"`
+	MEMUsage float64 `json:"memUsage,omitempty"`
 }
 
 // K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster
@@ -95,12 +96,12 @@ func (m *NamespaceUsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage fl
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, 5 minutes-step usage data between startTimeUTC and endTimeUTC
-func (m *NamespaceUsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep300Secs)*time.Second)
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, hour-step usage data between startTimeUTC and endTimeUTC
-func (m *NamespaceUsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
 
 	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
@@ -111,13 +112,13 @@ func (m *NamespaceUsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC t
 }
 
 // FetchUsageMonthly retrieves from the managed RRD file, month-step usage data between startTimeUTC and endTimeUTC
-func (m *NamespaceUsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	usages, err := m.FetchUsageHourly(startTimeUTC, endTimeUTC)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UsageHistory{
+	return &NamespaceUsageHistory{
 			computeCumulativeMonth(usages.CPUUsage),
 			computeCumulativeMonth(usages.MEMUsage),
 		},
@@ -125,7 +126,7 @@ func (m *NamespaceUsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC 
 }
 
 // FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC with the given step
-func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*NamespaceUsageHistory, error) {
 	rrdEndTime := RoundTime(endTimeUTC, duration)
 	rrdStartTime := RoundTime(startTimeUTC, duration)
 	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, duration)
@@ -134,18 +135,18 @@ func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Ti
 	}
 	defer rrdFetchRes.FreeValues()
 
-	var cpuUsage []*UsageHistoryItem
-	var memUsage []*UsageHistoryItem
+	var cpuUsage []*ResourceUsageItem
+	var memUsage []*ResourceUsageItem
 	rrdRow := 0
 	for ti := rrdFetchRes.Start.Add(rrdFetchRes.Step); ti.Before(rrdEndTime) || ti.Equal(rrdEndTime); ti = ti.Add(rrdFetchRes.Step) {
 		cpu := rrdFetchRes.ValueAt(0, rrdRow)
 		mem := rrdFetchRes.ValueAt(1, rrdRow)
 		if !math.IsNaN(cpu) && !math.IsNaN(mem) {
-			cpuUsage = append(cpuUsage, &UsageHistoryItem{
+			cpuUsage = append(cpuUsage, &ResourceUsageItem{
 				DateUTC: ti,
 				Value:   cpu,
 			})
-			memUsage = append(memUsage, &UsageHistoryItem{
+			memUsage = append(memUsage, &ResourceUsageItem{
 				DateUTC: ti,
 				Value:   mem,
 			})
@@ -153,12 +154,12 @@ func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Ti
 		rrdRow++
 	}
 
-	return &UsageHistory{cpuUsage, memUsage}, nil
+	return &NamespaceUsageHistory{cpuUsage, memUsage}, nil
 }
 
 // computeCumulativeMonth compute the cumulative data per month.
-func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
-	usages := []*UsageHistoryItem{}
+func computeCumulativeMonth(items []*ResourceUsageItem) []*ResourceUsageItem {
+	usages := []*ResourceUsageItem{}
 
 	for _, usage := range items {
 		last := len(usages) - 1
@@ -169,7 +170,7 @@ func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
 			v := usages[last]
 			v.Value += usage.Value
 		} else {
-			usages = append(usages, &UsageHistoryItem{
+			usages = append(usages, &ResourceUsageItem{
 				DateUTC: time.Date(usage.DateUTC.Year(), usage.DateUTC.Month(), 1, 0, 0, 0, 0, time.UTC),
 				Value:   usage.Value,
 			})

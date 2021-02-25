@@ -123,13 +123,12 @@ func TestKOAClusterNodesUsage(t *testing.T) {
 	Convey("Test KOANodesUsage", t, func() {
 
 		Convey("Given a valid dataset", func() {
-			nodesUsage := &map[string]NodeUsage{}
+			nodesUsage := &map[string]NodeUsageItem{}
 			err := json.Unmarshal(nodesUsageDataset, nodesUsage)
 			So(err, ShouldBeNil)
 			So(len(*nodesUsage), ShouldEqual, 1)
 			node, found := (*nodesUsage)["gke-cluster-1-default-pool-7f5e6673-lxjd"]
 			So(found, ShouldBeTrue)
-			So(node.ID, ShouldEqual, "83dc93c4-6941-428d-b7da-2b54de83317c")
 			So(node.Name, ShouldEqual, "gke-cluster-1-default-pool-7f5e6673-lxjd")
 			So(node.CPUCapacity, ShouldEqual, 2)
 			So(node.CPUAllocatable, ShouldEqual, 0.9400000000000001)

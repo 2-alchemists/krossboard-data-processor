@@ -104,7 +104,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 
 
 // getClusterNodesUsage returns nodes usage for a given cluster
-func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
+func getClusterNodesUsage(clusterName string) (*map[string]NodeUsageItem, error){
 	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -127,7 +127,7 @@ func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
 		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
 	}
 
-	nodesUsage := &map[string]NodeUsage{}
+	nodesUsage := &map[string]NodeUsageItem{}
 	err = json.Unmarshal(respRaw, nodesUsage)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))

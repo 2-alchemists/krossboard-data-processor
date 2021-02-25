@@ -47,9 +47,9 @@ type GetAllClustersCurrentUsageResp struct {
 
 // GetClusterUsageHistoryResp holds the message returned by the GetClusterUsageHistoryHandler API callback
 type GetClusterUsageHistoryResp struct {
-	Status             string                   `json:"status,omitempty"`
-	Message            string                   `json:"message,omitempty"`
-	ListOfUsageHistory map[string]*UsageHistory `json:"usageHistory,omitempty"`
+	Status             string                            `json:"status,omitempty"`
+	Message            string                            `json:"message,omitempty"`
+	ListOfUsageHistory map[string]*NamespaceUsageHistory `json:"usageHistory,omitempty"`
 }
 
 var routes = map[string]interface{}{
@@ -350,11 +350,11 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	resultUsageHistory := &GetClusterUsageHistoryResp{
 		Status:             "ok",
-		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
+		ListOfUsageHistory: make(map[string]*NamespaceUsageHistory, len(getInstancesResult.Instances)),
 	}
 	for dbname, dbfile := range usageHistoryDbs {
 		usageDb := NewUsageDb(dbfile)
-		usageHistory, err := func() (*UsageHistory, error) {
+		usageHistory, err := func() (*NamespaceUsageHistory, error) {
 			if queryPeriod == "monthly" {
 				return usageDb.FetchUsageMonthly(actualStartDateUTC, actualEndDateUTC)
 			} else {
