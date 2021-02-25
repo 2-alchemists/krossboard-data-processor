@@ -17,30 +17,6 @@ import (
 	"github.com/ziutek/rrd"
 )
 
-// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
-type NodeUsage struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	State string `json:"state"`
-	Message string `json:"message"`
-	CPUCapacity float64 `json:"cpuCapacity"`
-	CPUAllocatable float64 `json:"cpuAllocatable"`
-	CPUUsage float64 `json:"cpuUsage"`
-	MEMCapacity float64 `json:"memCapacity"`
-	MEMAllocatable float64 `json:"memAllocatable"`
-	MEMUsage float64 `json:"memUsage"`
-}
-
-// K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster
-type K8sClusterUsage struct {
-	ClusterName       string  `json:"clusterName"`
-	CPUUsed           float64 `json:"cpuUsed"`
-	MemUsed           float64 `json:"memUsed"`
-	CPUNonAllocatable float64 `json:"cpuNonAllocatable"`
-	MemNonAllocatable float64 `json:"memNonAllocatable"`
-	OutToDate         bool    `json:"outToDate"`
-}
-
 func getAllClustersCurrentUsage(kconfig *KubeConfig) ([]*K8sClusterUsage, error) {
 	clusters := kconfig.ListClusters()
 	if len(clusters) == 0 {
@@ -175,49 +151,61 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 		}
 	}
 
-
-	nodesUsageCacheKey := fmt.Sprintln(time.Now().UnixNano())
+	processingTimeNs := time.Now().UnixNano()
 	for _, clusterUsage := range allClustersUsage {
-		if clusterUsage.OutToDate {
-			continue
+		if ! clusterUsage.OutToDate {
+			processClusterNamespaceUsage(clusterUsage)
 		}
+		processClusterNodeUsage(clusterUsage, processingTimeNs)
 
-		// processing cluster namespaces' usage
-		rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
-		usageDb := NewUsageDb(rrdFile)
-		_, err := os.Stat(rrdFile)
-		if os.IsNotExist(err) {
-			err := usageDb.CreateRRD()
-			if err != nil {
-				log.WithError(err).Errorln("failed creating RRD file", rrdFile)
-				continue
-			}
-			time.Sleep(time.Second) // otherwise update will fail with 'illegal attempt to update' error
-		}
-		cpuUsage := clusterUsage.CPUUsed + clusterUsage.CPUNonAllocatable
-		memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
-		err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
-		if err != nil {
-			log.WithError(err).Errorln("failed to update RRD file", rrdFile)
-		}
-
-		// processing cluster nodes' usage
-		nodeUsageDbPath := fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
-		nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath)
-		if err != nil {
-			log.WithError(err).Errorln("NewNodeUsageDB failed")
-		}
-
-		nodeUsage, err := getClusterNodesUsage(clusterUsage.ClusterName)
-		if err != nil {
-			log.WithError(err).Errorln("getClusterNodesUsage failed")
-		} else {
-			nodeUsageDb.Data.Set(nodesUsageCacheKey, nodeUsage, cache.DefaultExpiration)
-			err = nodeUsageDb.Save()
-			if err != nil {
-				log.WithError(err).Errorln("Failed saving node usage cache")
-			}
-		}
 	}
 }
 
+func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
+	rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
+	usageDb := NewUsageDb(rrdFile)
+	_, err := os.Stat(rrdFile)
+	if os.IsNotExist(err) {
+		err := usageDb.CreateRRD()
+		if err != nil {
+			log.WithError(err).Errorln("failed creating RRD file", rrdFile)
+			return
+		}
+		time.Sleep(time.Second) // otherwise update will fail with 'illegal attempt to update' error
+	}
+	cpuUsage := clusterUsage.CPUUsed + clusterUsage.CPUNonAllocatable
+	memUsage := clusterUsage.MemUsed + clusterUsage.MemNonAllocatable
+	err = usageDb.UpdateRRD(time.Now(), cpuUsage, memUsage)
+	if err != nil {
+		log.WithError(err).Errorln("failed to update RRD file", rrdFile)
+	}
+
+}
+
+
+
+func processClusterNodeUsage(clusterUsage *K8sClusterUsage, processingTimeNs int64) {
+	// processing cluster nodes' usage
+	nodeUsageDbPath := fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
+	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath)
+	if err != nil {
+		log.WithError(err).Errorln("NewNodeUsageDB failed")
+	}
+
+	err = nodeUsageDb.Load()
+	if err != nil {
+		log.WithError(err).Errorln("Failed loading nodes usage db", nodeUsageDb.Path)
+	}
+
+	nodeUsage, err := getClusterNodesUsage(clusterUsage.ClusterName)
+	if err != nil {
+		log.WithError(err).Errorln("getClusterNodesUsage failed")
+	} else {
+		nodeUsageDb.Data.Set(fmt.Sprint(processingTimeNs), nodeUsage, cache.DefaultExpiration)
+		err = nodeUsageDb.Save()
+		if err != nil {
+			log.WithError(err).Errorln("Failed saving node usage cache")
+		}
+	}
+
+}

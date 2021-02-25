@@ -37,6 +37,29 @@ type UsageHistory struct {
 	MEMUsage []*UsageHistoryItem `json:"memUsage"`
 }
 
+// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
+type NodeUsage struct {
+	Name string `json:"name"`
+	State string `json:"state"`
+	Message string `json:"message"`
+	CPUCapacity float64 `json:"cpuCapacity"`
+	CPUAllocatable float64 `json:"cpuAllocatable"`
+	CPUUsage float64 `json:"cpuUsage"`
+	MEMCapacity float64 `json:"memCapacity"`
+	MEMAllocatable float64 `json:"memAllocatable"`
+	MEMUsage float64 `json:"memUsage"`
+}
+
+// K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster
+type K8sClusterUsage struct {
+	ClusterName       string  `json:"clusterName"`
+	CPUUsed           float64 `json:"cpuUsed"`
+	MemUsed           float64 `json:"memUsed"`
+	CPUNonAllocatable float64 `json:"cpuNonAllocatable"`
+	MemNonAllocatable float64 `json:"memNonAllocatable"`
+	OutToDate         bool    `json:"outToDate"`
+}
+
 // now points to the regular time.Now but offers a way to stub out the function inside tests.
 var now = time.Now
 
