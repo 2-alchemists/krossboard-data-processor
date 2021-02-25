@@ -57,6 +57,7 @@ var routes = map[string]interface{}{
 	"/api/discovery":          DiscoveryHandler,
 	"/api/currentusage":       GetAllClustersCurrentUsageHandler,
 	"/api/usagehistory":       GetClustersUsageHistoryHandler,
+	"/api/clusternodeusage/{clustername}":   GetClusterNodeUsageHandler,
 }
 
 func startAPI() {
@@ -193,7 +194,7 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	outRaw, _ := json.Marshal(discoveryResp)
-	w.Write(outRaw) //nolint:errcheck
+	_, _ = w.Write(outRaw) //nolint:errcheck
 }
 
 // GetAllClustersCurrentUsageHandler returns current usage of all clusters
@@ -292,7 +293,6 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	// process  end date parameter
 	areValidParameters := false
-	const queryTimeLayout = "2006-01-02T15:04:05"
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
@@ -321,7 +321,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	usageHistoryDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, instance := range getInstancesResult.Instances {
-			usageHistoryDbs[instance.ClusterName] = fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), instance.ClusterName)
+			usageHistoryDbs[instance.ClusterName] = getUsageHistoryPath(instance.ClusterName)
 		}
 	} else {
 		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
@@ -403,7 +403,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(respPayload) //nolint:errcheck
+	_, _ = w.Write(respPayload) //nolint:errcheck
 }
 
 func listRegularDbFiles(folder string) (error, []string) {
@@ -415,4 +415,73 @@ func listRegularDbFiles(folder string) (error, []string) {
 		return nil
 	})
 	return err, files
+}
+
+// GetClusterNodeUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
+func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
+	params := mux.Vars(req)
+	clusterName := params["clustername"]
+
+	nodeUsageDbPath := getNodeUsagePath(clusterName)
+	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath, false)
+	if err != nil {
+		log.WithError(err).Errorln("Failed creating node usage db")
+	}
+
+	err = nodeUsageDb.Load()
+	if err != nil {
+		log.WithError(err).Errorln("Failed loading nodes usage file", nodeUsageDb.Path)
+		http.Error(w, "server internal error", http.StatusInternalServerError)
+		return
+	}
+
+	var result []NodeUsage
+	for tsKey, nodeUsageItems_ := range nodeUsageDb.Data.Items() {
+		nodeUsageItems := nodeUsageItems_.Object.(map[string]interface{})
+		for _, nodeUsageItem_ := range nodeUsageItems {
+			nodeList := nodeUsageItem_.(map[string]interface {})
+			usage := NodeUsage{}
+			usage.DateUTC = tsKey
+			for property, value := range nodeList {
+				if property == "cpuAllocatable" {
+					usage.CPUAllocatable = value.(float64)
+				}
+				if property == "cpuCapacity" {
+					usage.CPUCapacity = value.(float64)
+				}
+				if property == "cpuUsage" {
+					usage.CPUUsage = value.(float64)
+				}
+				if property == "memAllocatable" {
+					usage.MEMAllocatable = value.(float64)
+				}
+				if property == "memCapacity" {
+					usage.MEMCapacity = value.(float64)
+				}
+				if property == "memUsage" {
+					usage.MEMUsage = value.(float64)
+				}
+				if property == "message" {
+					usage.Message = value.(string)
+				}
+				if property == "name" {
+					usage.Name = value.(string)
+				}
+				if property == "state" {
+					usage.State = value.(string)
+				}
+			}
+			result = append(result, usage)
+		}
+	}
+
+	encodedResult, err := json.Marshal(result)
+	if err != nil {
+		log.WithError(err).Errorln("Failed encoding result in JSON", result)
+		http.Error(w, "server internal error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(encodedResult)
 }

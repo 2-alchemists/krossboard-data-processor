@@ -123,7 +123,7 @@ func TestKOAClusterNodesUsage(t *testing.T) {
 	Convey("Test KOANodesUsage", t, func() {
 
 		Convey("Given a valid dataset", func() {
-			nodesUsage := &map[string]NodeUsageItem{}
+			nodesUsage := &map[string]NodeUsage{}
 			err := json.Unmarshal(nodesUsageDataset, nodesUsage)
 			So(err, ShouldBeNil)
 			So(len(*nodesUsage), ShouldEqual, 1)

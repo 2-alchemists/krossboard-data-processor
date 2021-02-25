@@ -104,7 +104,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 
 
 // getClusterNodesUsage returns nodes usage for a given cluster
-func getClusterNodesUsage(clusterName string) (*map[string]NodeUsageItem, error){
+func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
 	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -127,7 +127,7 @@ func getClusterNodesUsage(clusterName string) (*map[string]NodeUsageItem, error)
 		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
 	}
 
-	nodesUsage := &map[string]NodeUsageItem{}
+	nodesUsage := &map[string]NodeUsage{}
 	err = json.Unmarshal(respRaw, nodesUsage)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
@@ -151,18 +151,18 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 		}
 	}
 
-	processingTimeNs := time.Now().UnixNano()
+	sampleTimeUTC := time.Now().Format(queryTimeLayout)
 	for _, clusterUsage := range allClustersUsage {
 		if ! clusterUsage.OutToDate {
 			processClusterNamespaceUsage(clusterUsage)
 		}
-		processClusterNodeUsage(clusterUsage, processingTimeNs)
+		processClusterNodeUsage(clusterUsage, sampleTimeUTC)
 
 	}
 }
 
 func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
-	rrdFile := fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
+	rrdFile := getUsageHistoryPath(clusterUsage.ClusterName)
 	usageDb := NewUsageDb(rrdFile)
 	_, err := os.Stat(rrdFile)
 	if os.IsNotExist(err) {
@@ -184,28 +184,30 @@ func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
 
 
 
-func processClusterNodeUsage(clusterUsage *K8sClusterUsage, processingTimeNs int64) {
-	// processing cluster nodes' usage
-	nodeUsageDbPath := fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterUsage.ClusterName)
-	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath)
+func processClusterNodeUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC string) {
+	nodeUsageDbPath := getNodeUsagePath(clusterUsage.ClusterName)
+	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath, true)
 	if err != nil {
 		log.WithError(err).Errorln("NewNodeUsageDB failed")
+		return
 	}
 
 	err = nodeUsageDb.Load()
 	if err != nil {
-		log.WithError(err).Errorln("Failed loading nodes usage db", nodeUsageDb.Path)
+		log.WithError(err).Errorln("Failed loading nodes usage file", nodeUsageDb.Path)
+		return
 	}
 
 	nodeUsage, err := getClusterNodesUsage(clusterUsage.ClusterName)
 	if err != nil {
 		log.WithError(err).Errorln("getClusterNodesUsage failed")
-	} else {
-		nodeUsageDb.Data.Set(fmt.Sprint(processingTimeNs), nodeUsage, cache.DefaultExpiration)
-		err = nodeUsageDb.Save()
-		if err != nil {
-			log.WithError(err).Errorln("Failed saving node usage cache")
-		}
+		return
 	}
 
+	nodeUsageDb.Data.Set(fmt.Sprint(sampleTimeUTC), nodeUsage, cache.DefaultExpiration)
+	err = nodeUsageDb.Save()
+	if err != nil {
+		log.WithError(err).Errorln("Failed saving node usage cache")
+		return
+	}
 }

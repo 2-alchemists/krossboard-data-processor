@@ -37,9 +37,9 @@ type NamespaceUsageHistory struct {
 	MEMUsage []*ResourceUsageItem `json:"memUsage"`
 }
 
-// NodeUsageItem holds an instance of node usage as processed by kube-opex-analytics
-type NodeUsageItem struct {
-	DateUTC time.Time `json:"dateUTC,omitempty"`
+// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
+type NodeUsage struct {
+	DateUTC string `json:"dateUTC,omitempty"`
 	Name string `json:"name,omitempty"`
 	State string `json:"state,omitempty"`
 	Message string `json:"message,omitempty"`

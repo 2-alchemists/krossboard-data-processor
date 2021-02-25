@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+const queryTimeLayout = "2006-01-02T15:04:05"
 
 func createDirIfNotExists(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -40,4 +43,13 @@ func getCloudProvider() string {
 // RoundTime rounds the given time to the provided resolution.
 func RoundTime(t time.Time, resolution time.Duration) time.Time {
 	return time.Unix(0, (t.UnixNano()/resolution.Nanoseconds())*resolution.Nanoseconds())
+}
+
+
+func getNodeUsagePath(clusterName string) string {
+	return fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
+}
+
+func getUsageHistoryPath(clusterName string) string {
+	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
 }
