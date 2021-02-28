@@ -12,9 +12,9 @@ func TestNewKubeConfig(t *testing.T) {
 	Convey("Test KUBECONFIG settings", t, func() {
 
 		kconfigDir := UserHomeDir()+"/.kube"
-		createDirIfNotExists(kconfigDir)
+		_ = createDirIfNotExists(kconfigDir)
 
-		ioutil.WriteFile(kconfigDir+"/config",
+		_ = ioutil.WriteFile(kconfigDir+"/config",
 			[]byte(`
 apiVersion: v1
 clusters:
