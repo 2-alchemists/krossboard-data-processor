@@ -436,12 +436,16 @@ func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
 	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath, false)
 	if err != nil {
 		log.WithError(err).Errorln("Failed creating node usage db")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
 	}
 
 	err = nodeUsageDb.Load()
 	if err != nil {
 		log.WithError(err).Errorln("Failed loading nodes usage file", nodeUsageDb.Path)
-		http.Error(w, "server internal error", http.StatusInternalServerError)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})
+		http.Error(w, string(b), http.StatusInternalServerError)
 		return
 	}
 
@@ -488,7 +492,8 @@ func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
 	encodedResult, err := json.Marshal(result)
 	if err != nil {
 		log.WithError(err).Errorln("Failed encoding result in JSON", result)
-		http.Error(w, "server internal error", http.StatusInternalServerError)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})
+		http.Error(w, string(b), http.StatusInternalServerError)
 		return
 	}
 
