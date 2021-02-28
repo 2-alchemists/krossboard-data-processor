@@ -98,7 +98,7 @@ echo -e "${RED_COLOR} Dumping configuration file ${NO_COLOR}"
 cat $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 
 echo -e "${RED_COLOR} Creating Caddy configuration file ${PRODUCT_CONFIG_DIR}/Caddyfile ${NO_COLOR}"
-cat <<EOF >> ${PRODUCT_CONFIG_DIR}/Caddyfile
+cat <<EOF > ${PRODUCT_CONFIG_DIR}/Caddyfile
 # domain name.
 :80
 
