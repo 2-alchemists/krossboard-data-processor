@@ -47,19 +47,32 @@ func NewKubeConfig() *KubeConfig {
 	kubeConfigEnv := viper.GetString(KubeConfigKey)
 	if kubeConfigEnv != "" {
 		config.Paths = append(config.Paths, strings.Split(kubeConfigEnv, ";")...)
+		return config
+	}
+
+	var defaultKubeConfig *string
+	if home := UserHomeDir(); home != "" {
+		defaultKubeConfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		var pathPtr *string
-		if home := UserHomeDir(); home != "" {
-			pathPtr = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			pathPtr = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
-		config.Paths = append(config.Paths, *pathPtr)
+		defaultKubeConfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+
+	if _, err := os.Stat(*defaultKubeConfig); err != nil {
+		log.WithError(err).Debugln("ignoring the default KUBECONFIG path", *defaultKubeConfig)
+	} else {
+		config.Paths = append(config.Paths, *defaultKubeConfig)
+	}
+
+	kconfigDir := viper.GetString("krossboard_kubeconfig_dir")
+	err, kconfigFiles := listRegularFiles(kconfigDir)
+	if err != nil {
+		log.WithError(err).Debugln("ignoring KUBECONFIG directory", kconfigDir)
+	} else {
+		config.Paths = append(config.Paths, kconfigFiles...)
 	}
 	return config
 }
-
 
 // NewKubeConfig creates a new KubeConfig from a given file path
 func NewKubeConfigFrom(path string) *KubeConfig {

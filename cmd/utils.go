@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -52,4 +54,18 @@ func getNodeUsagePath(clusterName string) string {
 
 func getUsageHistoryPath(clusterName string) string {
 	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
+}
+
+func listRegularFiles(folder string) (error, []string) {
+	if _, err := os.Stat(folder); err != nil {
+		return err, nil
+	}
+	var files []string
+	err := filepath.Walk(folder, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+			files = append(files, fmt.Sprintf("%s/%s", folder, info.Name()))
+		}
+		return nil
+	})
+	return err, files
 }

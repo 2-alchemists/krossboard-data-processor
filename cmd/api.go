@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -347,13 +346,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
-		err, dbfiles := listRegularDbFiles(dbdir)
+		err, dbfiles := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
 			areValidParameters = true
 		} else {
 			for _, dbfile := range dbfiles {
-				usageHistoryDbs[dbfile] = fmt.Sprintf("%s/%s", dbdir, dbfile)
+				usageHistoryDbs[dbfile] = dbfile
 			}
 		}
 	}
@@ -426,17 +425,6 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(respPayload)
-}
-
-func listRegularDbFiles(folder string) (error, []string) {
-	var files []string
-	err := filepath.Walk(folder, func(_ string, info os.FileInfo, err error) error {
-		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
-			files = append(files, info.Name())
-		}
-		return nil
-	})
-	return err, files
 }
 
 // GetClusterNodeUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
