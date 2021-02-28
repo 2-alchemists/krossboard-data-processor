@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	kclient "k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"os/signal"
@@ -52,13 +53,34 @@ type GetClusterUsageHistoryResp struct {
 	ListOfUsageHistory map[string]*NamespaceUsageHistory `json:"usageHistory,omitempty"`
 }
 
-var routes = map[string]interface{}{
-	"/api/dataset/{filename}": GetDatasetHandler,
-	"/api/discovery":          DiscoveryHandler,
-	"/api/currentusage":       GetAllClustersCurrentUsageHandler,
-	"/api/usagehistory":       GetClustersUsageHistoryHandler,
-	"/api/clusternodeusage/{clustername}":   GetClusterNodeUsageHandler,
+
+var routes = map[string]map[string]interface{}{
+	"/api/dataset/{filename}": {
+		"method": "GET",
+		"handler": GetDatasetHandler,
+	},
+	"/api/discovery": {
+		"method": "GET",
+		"handler": DiscoveryHandler,
+	},
+	"/api/currentusage": {
+		"method": "GET",
+		"handler" :GetAllClustersCurrentUsageHandler,
+	},
+	"/api/usagehistory": {
+		"method": "GET",
+		"handler": GetClustersUsageHistoryHandler,
+	},
+	"/api/clusternodeusage/{clustername}": {
+		"method": "GET",
+		"handler": GetClusterNodeUsageHandler,
+	},
+	"/api/kubeconfig": {
+		"method": "POST",
+		"handler": KubeConfigHandler,
+	},
 }
+
 
 func startAPI() {
 	var wait time.Duration
@@ -67,7 +89,7 @@ func startAPI() {
 
 	router := mux.NewRouter()
 	for r, h := range routes {
-		router.HandleFunc(r, h.(func(http.ResponseWriter, *http.Request))).Methods("GET", "OPTIONS")
+		router.HandleFunc(r, h["handler"].(func(http.ResponseWriter, *http.Request))).Methods(h["method"].(string), "OPTIONS")
 	}
 
 	appCors := cors.New(cors.Options{
@@ -162,7 +184,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 			w.Header().Add(hk, hval)
 		}
 	}
-	_, _ = w.Write(respBody) //nolint:errcheck
+	_, _ = w.Write(respBody)
 }
 
 // DiscoveryHandler returns current system status along with Kubernetes Opex Analytics instances' endpoints
@@ -194,7 +216,7 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	outRaw, _ := json.Marshal(discoveryResp)
-	_, _ = w.Write(outRaw) //nolint:errcheck
+	_, _ = w.Write(outRaw)
 }
 
 // GetAllClustersCurrentUsageHandler returns current usage of all clusters
@@ -225,7 +247,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(respHTTPStatus)
 	outRaw, _ := json.Marshal(currentUsageResp)
-	w.Write(outRaw) //nolint:errcheck
+	_, _ = w.Write(outRaw)
 }
 
 // GetClustersUsageHistoryHandler returns all clusters usage history
@@ -240,7 +262,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "failed loading system status",
 		})
-		w.Write(outRaw) //nolint:errcheck
+		_, _ = w.Write(outRaw)
 		return
 	}
 
@@ -252,7 +274,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "failed retrieving managed instances",
 		})
-		w.Write(outRaw) //nolint:errcheck
+		_, _ = w.Write(outRaw)
 		return
 	}
 
@@ -272,7 +294,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: err.Error(),
 		})
-		w.Write(outRaw) //nolint:errcheck
+		_, _ = w.Write(outRaw)
 		return
 	}
 
@@ -284,7 +306,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: err.Error(),
 		})
-		w.Write(outRaw) //nolint:errcheck
+		_, _ = w.Write(outRaw)
 		return
 	}
 	if queryPeriod == "" {
@@ -344,7 +366,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
-		w.Write(outRaw) //nolint:errcheck
+		_, _ = w.Write(outRaw)
 		return
 	}
 
@@ -403,7 +425,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(respPayload) //nolint:errcheck
+	_, _ = w.Write(respPayload)
 }
 
 func listRegularDbFiles(folder string) (error, []string) {
@@ -484,4 +506,63 @@ func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(encodedResult)
+}
+
+// KubeConfigHandler handles API calls to manage KUBECONFIG
+func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
+	maxUploadKb := viper.GetInt64("krossboard_kubeconfig_max_size_kb")
+	req.ParseMultipartForm(maxUploadKb *  (1 << 10))
+
+	uploadedFile, uploadHandler, err := req.FormFile("kubeconfig")
+	if err != nil {
+		log.WithError(err).Errorln("error reading upload parameters")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "error reading file content"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+	defer uploadedFile.Close()
+
+	log.Infoln("File received:", uploadHandler.Filename)
+	log.Infoln("  Size:", uploadHandler.Size)
+	log.Infoln("  MIME Header:", uploadHandler.Header)
+
+	uploadBytes, err := ioutil.ReadAll(uploadedFile)
+	if err != nil {
+		log.WithError(err).Errorln("Failed reading the uploaded file content")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed reading file content"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
+
+	kconfigDir := viper.GetString("krossboard_kubeconfig_dir")
+	err = createDirIfNotExists(kconfigDir)
+	if err != nil {
+		log.WithError(err).Errorln("Failed creating target directory")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "internal server error"})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
+	destFilename := fmt.Sprintf("%s/kubeconfig-uploaded-%s", kconfigDir, time.Now().Format("20060102T150405"))
+	err = ioutil.WriteFile(destFilename, uploadBytes, 0600)
+	if err != nil {
+		log.WithError(err).Errorln("Failed saving the uploaded file", destFilename)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "internal server error"})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = kclient.LoadFromFile(destFilename)
+	if err != nil {
+		log.WithError(err).Errorln("failed parsing KUBECONFIG", destFilename)
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "invalid KUBECONFIG content"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		_ = os.Remove(destFilename)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	b, _ := json.Marshal(&ErrorResp{Status: "success", Message: "upload completed successfully "+destFilename})
+	http.Error(w, string(b), http.StatusBadRequest)
+	_, _ = w.Write(b)
 }

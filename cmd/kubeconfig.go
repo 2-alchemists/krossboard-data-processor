@@ -12,7 +12,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
 
-	"k8s.io/client-go/tools/clientcmd"
+	kclient "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -60,11 +60,19 @@ func NewKubeConfig() *KubeConfig {
 	return config
 }
 
+
+// NewKubeConfig creates a new KubeConfig from a given file path
+func NewKubeConfigFrom(path string) *KubeConfig {
+	return &KubeConfig{
+		Paths: []string{path},
+	}
+}
+
 // ListClusters lists Kubernetes clusters available in KUBECONFIG
 func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
 	discoveredClusters := make(map[string]*ManagedCluster)
 	for _, path := range m.Paths {
-		config, err := clientcmd.LoadFromFile(path)
+		config, err := kclient.LoadFromFile(path)
 		if err != nil {
 			log.WithError(err).Errorln("failed reading KUBECONFIG", path)
 			continue
