@@ -499,7 +499,13 @@ func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
 // KubeConfigHandler handles API calls to manage KUBECONFIG
 func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
 	maxUploadKb := viper.GetInt64("krossboard_kubeconfig_max_size_kb")
-	req.ParseMultipartForm(maxUploadKb *  (1 << 10))
+	err := req.ParseMultipartForm(maxUploadKb *  (1 << 10))
+	if err != nil {
+		log.WithError(err).Errorln("failed parsing multi-part form")
+		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed parsing input"})
+		http.Error(w, string(b), http.StatusBadRequest)
+		return
+	}
 
 	uploadedFile, uploadHandler, err := req.FormFile("kubeconfig")
 	if err != nil {
