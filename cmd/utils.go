@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+const queryTimeLayout = "2006-01-02T15:04:05"
 
 func createDirIfNotExists(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -40,4 +45,27 @@ func getCloudProvider() string {
 // RoundTime rounds the given time to the provided resolution.
 func RoundTime(t time.Time, resolution time.Duration) time.Time {
 	return time.Unix(0, (t.UnixNano()/resolution.Nanoseconds())*resolution.Nanoseconds())
+}
+
+
+func getNodeUsagePath(clusterName string) string {
+	return fmt.Sprintf("%s/.nodeusage_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
+}
+
+func getUsageHistoryPath(clusterName string) string {
+	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
+}
+
+func listRegularFiles(folder string) (error, []string) {
+	if _, err := os.Stat(folder); err != nil {
+		return err, nil
+	}
+	var files []string
+	err := filepath.Walk(folder, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+			files = append(files, fmt.Sprintf("%s/%s", folder, info.Name()))
+		}
+		return nil
+	})
+	return err, files
 }

@@ -16,8 +16,8 @@ const (
 	RRDStorageStep3600Secs = 3600
 )
 
-// UsageDb holds a wrapper on a RRD database file along with appropriated settinfgs to store a usage data
-type UsageDb struct {
+// NamespaceUsageDb holds a wrapper on a RRD database file along with appropriated settinfgs to store a usage data
+type NamespaceUsageDb struct {
 	RRDFile  string
 	Step     uint
 	MinValue float64
@@ -25,24 +25,48 @@ type UsageDb struct {
 	Xfs      float64
 }
 
-// UsageHistoryItem holds a resource usage at a timestamp
-type UsageHistoryItem struct {
+// ResourceUsageItem holds a resource usage at a timestamp
+type ResourceUsageItem struct {
 	DateUTC time.Time `json:"dateUTC"`
 	Value   float64   `json:"value"`
 }
 
-// UsageHistory holds resource usage history for all kinds of managed resources (CPU, memory)
-type UsageHistory struct {
-	CPUUsage []*UsageHistoryItem `json:"cpuUsage"`
-	MEMUsage []*UsageHistoryItem `json:"memUsage"`
+// NamespaceUsageHistory holds resource usage history for all kinds of managed resources (CPU, memory)
+type NamespaceUsageHistory struct {
+	CPUUsage []*ResourceUsageItem `json:"cpuUsage"`
+	MEMUsage []*ResourceUsageItem `json:"memUsage"`
+}
+
+// NodeUsage holds an instance of node usage as processed by kube-opex-analytics
+type NodeUsage struct {
+	DateUTC string `json:"dateUTC,omitempty"`
+	Name string `json:"name,omitempty"`
+	State string `json:"state,omitempty"`
+	Message string `json:"message,omitempty"`
+	CPUCapacity float64 `json:"cpuCapacity,omitempty"`
+	CPUAllocatable float64 `json:"cpuAllocatable,omitempty"`
+	CPUUsage float64 `json:"cpuUsage,omitempty"`
+	MEMCapacity float64 `json:"memCapacity,omitempty"`
+	MEMAllocatable float64 `json:"memAllocatable,omitempty"`
+	MEMUsage float64 `json:"memUsage,omitempty"`
+}
+
+// K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster
+type K8sClusterUsage struct {
+	ClusterName       string  `json:"clusterName"`
+	CPUUsed           float64 `json:"cpuUsed"`
+	MemUsed           float64 `json:"memUsed"`
+	CPUNonAllocatable float64 `json:"cpuNonAllocatable"`
+	MemNonAllocatable float64 `json:"memNonAllocatable"`
+	OutToDate         bool    `json:"outToDate"`
 }
 
 // now points to the regular time.Now but offers a way to stub out the function inside tests.
 var now = time.Now
 
-// NewUsageDb instanciate a new UsageDb object wrapper
-func NewUsageDb(dbname string) *UsageDb {
-	return &UsageDb{
+// NewUsageDb instanciate a new NamespaceUsageDb object wrapper
+func NewUsageDb(dbname string) *NamespaceUsageDb {
+	return &NamespaceUsageDb{
 		RRDFile:  dbname,
 		Step:     uint(RRDStorageStep300Secs),
 		MinValue: 0,
@@ -52,7 +76,7 @@ func NewUsageDb(dbname string) *UsageDb {
 }
 
 // CreateRRD create a new RRD database
-func (m *UsageDb) CreateRRD() error {
+func (m *NamespaceUsageDb) CreateRRD() error {
 	rrdCreator := rrd.NewCreator(m.RRDFile, now(), m.Step)
 	rrdCreator.RRA("AVERAGE", 0.5, 1, 4032)               // 14 days - 5-minute resolution
 	rrdCreator.RRA("AVERAGE", 0.5, 12 /* 1 hour */, 8880) // 1 year - 1-hour resolution
@@ -66,18 +90,18 @@ func (m *UsageDb) CreateRRD() error {
 }
 
 // UpdateRRD adds a new entry into a RRD database
-func (m *UsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) error {
+func (m *NamespaceUsageDb) UpdateRRD(ts time.Time, cpuUsage float64, memUsage float64) error {
 	rrdUpdater := rrd.NewUpdater(m.RRDFile)
 	return rrdUpdater.Update(ts, cpuUsage, memUsage)
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, 5 minutes-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage5Minutes(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	return m.FetchUsage(startTimeUTC, endTimeUTC, time.Duration(RRDStorageStep300Secs)*time.Second)
 }
 
 // FetchUsageHourly retrieves from the managed RRD file, hour-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	const duration25Hours = 25 * time.Hour
 
 	if endTimeUTC.Sub(startTimeUTC) < duration25Hours {
@@ -88,13 +112,13 @@ func (m *UsageDb) FetchUsageHourly(startTimeUTC time.Time, endTimeUTC time.Time)
 }
 
 // FetchUsageMonthly retrieves from the managed RRD file, month-step usage data between startTimeUTC and endTimeUTC
-func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time) (*NamespaceUsageHistory, error) {
 	usages, err := m.FetchUsageHourly(startTimeUTC, endTimeUTC)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UsageHistory{
+	return &NamespaceUsageHistory{
 			computeCumulativeMonth(usages.CPUUsage),
 			computeCumulativeMonth(usages.MEMUsage),
 		},
@@ -102,7 +126,7 @@ func (m *UsageDb) FetchUsageMonthly(startTimeUTC time.Time, endTimeUTC time.Time
 }
 
 // FetchUsage retrieves from the managed RRD file, usage data between startTimeUTC and endTimeUTC with the given step
-func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*UsageHistory, error) {
+func (m *NamespaceUsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, duration time.Duration) (*NamespaceUsageHistory, error) {
 	rrdEndTime := RoundTime(endTimeUTC, duration)
 	rrdStartTime := RoundTime(startTimeUTC, duration)
 	rrdFetchRes, err := rrd.Fetch(m.RRDFile, "AVERAGE", rrdStartTime, rrdEndTime, duration)
@@ -111,18 +135,18 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, durat
 	}
 	defer rrdFetchRes.FreeValues()
 
-	var cpuUsage []*UsageHistoryItem
-	var memUsage []*UsageHistoryItem
+	var cpuUsage []*ResourceUsageItem
+	var memUsage []*ResourceUsageItem
 	rrdRow := 0
 	for ti := rrdFetchRes.Start.Add(rrdFetchRes.Step); ti.Before(rrdEndTime) || ti.Equal(rrdEndTime); ti = ti.Add(rrdFetchRes.Step) {
 		cpu := rrdFetchRes.ValueAt(0, rrdRow)
 		mem := rrdFetchRes.ValueAt(1, rrdRow)
 		if !math.IsNaN(cpu) && !math.IsNaN(mem) {
-			cpuUsage = append(cpuUsage, &UsageHistoryItem{
+			cpuUsage = append(cpuUsage, &ResourceUsageItem{
 				DateUTC: ti,
 				Value:   cpu,
 			})
-			memUsage = append(memUsage, &UsageHistoryItem{
+			memUsage = append(memUsage, &ResourceUsageItem{
 				DateUTC: ti,
 				Value:   mem,
 			})
@@ -130,12 +154,12 @@ func (m *UsageDb) FetchUsage(startTimeUTC time.Time, endTimeUTC time.Time, durat
 		rrdRow++
 	}
 
-	return &UsageHistory{cpuUsage, memUsage}, nil
+	return &NamespaceUsageHistory{cpuUsage, memUsage}, nil
 }
 
 // computeCumulativeMonth compute the cumulative data per month.
-func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
-	usages := []*UsageHistoryItem{}
+func computeCumulativeMonth(items []*ResourceUsageItem) []*ResourceUsageItem {
+	usages := []*ResourceUsageItem{}
 
 	for _, usage := range items {
 		last := len(usages) - 1
@@ -146,7 +170,7 @@ func computeCumulativeMonth(items []*UsageHistoryItem) []*UsageHistoryItem {
 			v := usages[last]
 			v.Value += usage.Value
 		} else {
-			usages = append(usages, &UsageHistoryItem{
+			usages = append(usages, &ResourceUsageItem{
 				DateUTC: time.Date(usage.DateUTC.Year(), usage.DateUTC.Month(), 1, 0, 0, 0, 0, time.UTC),
 				Value:   usage.Value,
 			})

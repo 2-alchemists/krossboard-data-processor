@@ -57,19 +57,19 @@ func TestUsageDb(t *testing.T) {
 					memUsage float64
 				}
 				type input struct {
-					fetcher  func(u *UsageDb, startTime time.Time, endTime time.Time) (*UsageHistory, error)
+					fetcher  func(u *NamespaceUsageDb, startTime time.Time, endTime time.Time) (*NamespaceUsageHistory, error)
 					duration time.Duration
 					data     func() []data
 				}
 				tests := []struct {
 					name  string
 					input input
-					want  *UsageHistory
+					want  *NamespaceUsageHistory
 				}{
 					{
 						name: "hourly test case - nominal",
 						input: input{
-							fetcher:  (*UsageDb).FetchUsageHourly,
+							fetcher:  (*NamespaceUsageDb).FetchUsageHourly,
 							duration: time.Duration(15) * time.Minute,
 							data: func() []data {
 								return []data{
@@ -79,8 +79,8 @@ func TestUsageDb(t *testing.T) {
 								}
 							},
 						},
-						want: &UsageHistory{
-							CPUUsage: []*UsageHistoryItem{
+						want: &NamespaceUsageHistory{
+							CPUUsage: []*ResourceUsageItem{
 								{
 									DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
 									Value:   10.066666666666666,
@@ -90,7 +90,7 @@ func TestUsageDb(t *testing.T) {
 									Value:   20.066666666666666,
 								},
 							},
-							MEMUsage: []*UsageHistoryItem{
+							MEMUsage: []*ResourceUsageItem{
 								{
 									DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
 									Value:   15.066666666666666,
@@ -106,7 +106,7 @@ func TestUsageDb(t *testing.T) {
 					//{
 					//	name: "monthly test case - nominal",
 					//	input: input{
-					//		fetcher:  (*UsageDb).FetchUsageMonthly,
+					//		fetcher:  (*NamespaceUsageDb).FetchUsageMonthly,
 					//		duration: time.Duration(2664000) * time.Second * 2, // 2 months
 					//		data: func() []data {
 					//			someValues := []float64{60.466029, 94.050909, 66.456005, 43.771419, 42.463750, 68.682307, 6.563702, 15.651925, 9.696952, 30.091186}
@@ -132,8 +132,8 @@ func TestUsageDb(t *testing.T) {
 					//			return res
 					//		},
 					//	},
-					//	want: &UsageHistory{
-					//		CPUUsage: []*UsageHistoryItem{
+					//	want: &NamespaceUsageHistory{
+					//		CPUUsage: []*ResourceUsageItem{
 					//			{
 					//				DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
 					//				Value:   2752.122998720052,
@@ -147,7 +147,7 @@ func TestUsageDb(t *testing.T) {
 					//				Value:   24540.338306223366,
 					//			},
 					//		},
-					//		MEMUsage: []*UsageHistoryItem{
+					//		MEMUsage: []*ResourceUsageItem{
 					//			{
 					//				DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),
 					//				Value:   3736.6572568958586,
@@ -203,47 +203,47 @@ func TestUsageDb(t *testing.T) {
 func TestComputeCumulativeMonth(t *testing.T) {
 	Convey("Given a a set of history data", t, func(c C) {
 		type args struct {
-			items []*UsageHistoryItem
+			items []*ResourceUsageItem
 		}
 		tests := []struct {
 			name string
 			args args
-			want []*UsageHistoryItem
+			want []*ResourceUsageItem
 		}{
 			{
 				name: "empty",
 				args: args{
-					items: []*UsageHistoryItem{
+					items: []*ResourceUsageItem{
 					},
 				},
-				want: []*UsageHistoryItem{
+				want: []*ResourceUsageItem{
 				},
 			},
 			{
 				name: "1 month",
 				args: args{
-					items: []*UsageHistoryItem{
+					items: []*ResourceUsageItem{
 						{DateUTC: date(c, "2020-01-02T15:14:05Z"), Value: 10},
 						{DateUTC: date(c, "2020-01-12T16:24:05Z"), Value: 20},
 						{DateUTC: date(c, "2020-01-24T17:34:05Z"), Value: 30},
 						{DateUTC: date(c, "2020-01-30T18:44:05Z"), Value: 40},
 					},
 				},
-				want: []*UsageHistoryItem{
+				want: []*ResourceUsageItem{
 					{DateUTC: date(c, "2020-01-01T00:00:00Z"), Value: 100},
 				},
 			},
 			{
 				name: "2 months (same year)",
 				args: args{
-					items: []*UsageHistoryItem{
+					items: []*ResourceUsageItem{
 						{DateUTC: date(c, "2020-01-02T15:14:05Z"), Value: 10},
 						{DateUTC: date(c, "2020-01-12T16:24:05Z"), Value: 20},
 						{DateUTC: date(c, "2020-02-14T17:34:05Z"), Value: 30},
 						{DateUTC: date(c, "2020-02-28T18:44:05Z"), Value: 40},
 					},
 				},
-				want: []*UsageHistoryItem{
+				want: []*ResourceUsageItem{
 					{DateUTC: date(c, "2020-01-01T00:00:00Z"), Value: 30},
 					{DateUTC: date(c, "2020-02-01T00:00:00Z"), Value: 70},
 				},
@@ -251,14 +251,14 @@ func TestComputeCumulativeMonth(t *testing.T) {
 			{
 				name: "3 months (2 years)",
 				args: args{
-					items: []*UsageHistoryItem{
+					items: []*ResourceUsageItem{
 						{DateUTC: date(c, "2020-12-02T15:14:05Z"), Value: 10},
 						{DateUTC: date(c, "2020-12-12T16:24:05Z"), Value: 20},
 						{DateUTC: date(c, "2021-01-14T17:34:05Z"), Value: 30},
 						{DateUTC: date(c, "2021-02-28T18:44:05Z"), Value: 40},
 					},
 				},
-				want: []*UsageHistoryItem{
+				want: []*ResourceUsageItem{
 					{DateUTC: date(c, "2020-12-01T00:00:00Z"), Value: 30},
 					{DateUTC: date(c, "2021-01-01T00:00:00Z"), Value: 30},
 					{DateUTC: date(c, "2021-02-01T00:00:00Z"), Value: 40},
