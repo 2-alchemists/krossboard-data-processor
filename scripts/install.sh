@@ -54,44 +54,59 @@ echo -e "${RED_COLOR} Setting up runtime user ${PRODUCT_USER}...${NO_COLOR}"
 id -u $PRODUCT_USER &> /dev/null || useradd $PRODUCT_USER
 usermod -d $PRODUCT_HOME_DIR -G docker $PRODUCT_USER
 
-# Checking for Azure cloud builder
-if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null ; then
-    CLOUD_PROVIDER="Azure"
-    echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
-    echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
-    curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-    DIST_AZ_COMMAND=$(which az || echo "")
-    if [ "$DIST_AZ_COMMAND" != "" ]; then
-        echo "DIST_AZ_COMMAND=$DIST_AZ_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
-        echo -e "${RED_COLOR} Command az found at $DIST_AZ_COMMAND${NO_COLOR}"
-    fi    
+##############################################################
+# INSTALLING AZ CLI                                          #
+##############################################################
+echo -e "${RED_COLOR} Installing az CLI.. ${NO_COLOR}"
+curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+DIST_AZ_COMMAND=$(command -v az || echo "")
+if [ "$DIST_AZ_COMMAND" != "" ]; then
+    echo "DIST_AZ_COMMAND=$DIST_AZ_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
+    echo -e "${RED_COLOR} Command az found at $DIST_AZ_COMMAND${NO_COLOR}"
+fi
+# checking whether we're on Azure cloud
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --timeout=2 --header 'Metadata: true' -q "http://169.254.169.254/metadata/instance?api-version=2019-06-04" > /dev/null ; then
+    echo -e "${RED_COLOR} Cloud provider is Azure ${NO_COLOR}"
 fi
 
-# Checking for Google cloud builder
-if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ; then
-    CLOUD_PROVIDER="Google"
-    echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
-    echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
-    snap remove google-cloud-sdk
-    apt-get install -y google-cloud-sdk
-    DIST_GCLOUD_COMMAND=$(which gcloud || echo "")
-    if [ "$DIST_GCLOUD_COMMAND" != "" ]; then
-        echo -e "${RED_COLOR} Command gcloud found at $DIST_GCLOUD_COMMAND${NO_COLOR} "
-        echo "DIST_GCLOUD_COMMAND=$DIST_GCLOUD_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE 
-    fi  
+
+##############################################################
+# INSTALLING GCLOUD CLI                                      #
+##############################################################
+echo -e "${RED_COLOR} Installing gcloud CLI... ${NO_COLOR}"
+
+# show if we're on AWS cloud
+if [ "$CLOUD_PROVIDER" == "AUTO" ] && wget --timeout=2 --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ; then
+  echo -e "${RED_COLOR} Cloud provider is Google ${NO_COLOR}"
+  snap remove google-cloud-sdk
+  apt-get install -y google-cloud-sdk
+else
+  echo "deb http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+  apt-get update && sudo apt-get install -y google-cloud-sdk
 fi
 
-# checking for AWS cloud
-if [ "$CLOUD_PROVIDER" == "AUTO" ] &&  wget -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null ; then
-    CLOUD_PROVIDER="AWS"
-    echo -e "${RED_COLOR} Cloud provider is ${CLOUD_PROVIDER} ${NO_COLOR}"
-    echo -e "${RED_COLOR} Applying prerequisites for $CLOUD_PROVIDER cloud... ${NO_COLOR}"
-    apt-get -y install python3-pip && pip3 install --upgrade awscli
-    DIST_AWS_COMMAND=$(which aws || echo "")
-    if [ "$DIST_AWS_COMMAND" != "" ]; then
-        echo -e "${RED_COLOR} Command aws found at $DIST_AWS_COMMAND ${NO_COLOR}"
-        echo "DIST_AWS_COMMAND=$DIST_AWS_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
-    fi
+DIST_GCLOUD_COMMAND=$(command -v gcloud || echo "")
+if [ "$DIST_GCLOUD_COMMAND" != "" ]; then
+    echo -e "${RED_COLOR} Command gcloud found at $DIST_GCLOUD_COMMAND${NO_COLOR} "
+    echo "DIST_GCLOUD_COMMAND=$DIST_GCLOUD_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
+fi
+
+##############################################################
+# INSTALLING AWS CLI                                         #
+##############################################################
+echo -e "${RED_COLOR} Installing aws CLI... ${NO_COLOR}"
+
+# show if we're on AWS cloud
+if wget --timeout=2 -q "http://169.254.169.254/latest/meta-data/placement/availability-zone" > /dev/null ; then
+  echo -e "${RED_COLOR} Cloud provider is AWS ${NO_COLOR}"
+fi
+
+apt-get -y install python3-pip && pip3 install --upgrade awscli
+DIST_AWS_COMMAND=$(command -v aws || echo "")
+if [ "$DIST_AWS_COMMAND" != "" ]; then
+    echo -e "${RED_COLOR} Command aws found at $DIST_AWS_COMMAND ${NO_COLOR}"
+    echo "DIST_AWS_COMMAND=$DIST_AWS_COMMAND" >> $PRODUCT_CONFIG_DIR/$PRODUCT_CONFIG_FILE
 fi
 
 echo -e "${RED_COLOR} Dumping configuration file ${NO_COLOR}"
