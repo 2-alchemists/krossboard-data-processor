@@ -52,7 +52,6 @@ type GetClusterUsageHistoryResp struct {
 	ListOfUsageHistory map[string]*NamespaceUsageHistory `json:"usageHistory,omitempty"`
 }
 
-
 var routes = map[string]map[string]interface{}{
 	"/api/dataset/{filename}": {
 		"method": "GET",
@@ -70,9 +69,9 @@ var routes = map[string]map[string]interface{}{
 		"method": "GET",
 		"handler": GetClustersUsageHistoryHandler,
 	},
-	"/api/clusternodeusage/{clustername}": {
-		"method": "GET",
-		"handler": GetClusterNodeUsageHandler,
+	"/api/nodesusage/{clustername}": {
+		"method":  "GET",
+		"handler": GetNodesUsagHandler,
 	},
 	"/api/kubeconfig": {
 		"method": "POST",
@@ -427,8 +426,8 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(respPayload)
 }
 
-// GetClusterNodeUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
-func GetClusterNodeUsageHandler(w http.ResponseWriter, req *http.Request) {
+// GetNodesUsagHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
+func GetNodesUsagHandler(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	clusterName := params["clustername"]
 
