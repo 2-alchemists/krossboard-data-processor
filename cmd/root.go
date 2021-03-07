@@ -108,7 +108,10 @@ func init() {
 	manageLicenseCmd.Flags().StringVarP(&licenseTargetVersionOption, "target-version", "t", "", "Set target version for license creation)")
 	manageLicenseCmd.Flags().IntVarP(&licenseDurationDayOption, "duration", "d", 365, "Set the validity duration in days (default is 365 days)")
 
-	manageLicenseCmd.MarkFlagRequired("new")
+	err := manageLicenseCmd.MarkFlagRequired("new")
+	if err != nil {
+		log.Fatalln("failed creating license command", err)
+	}
 
 	rootCmd.AddCommand(manageLicenseCmd)
 }
