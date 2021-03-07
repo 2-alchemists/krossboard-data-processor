@@ -22,6 +22,14 @@ echo -e "${RED_COLOR} === Generated config file === "
 cat ${CONFIG_FILE}
 echo -e "===============================${NO_COLOR}"
 
+echo -e "${RED_COLOR} Packing Docker images... ${NO_COLOR}"
+docker pull ${KROSSBOARD_KOAINSTANCE_IMAGE}
+docker pull ${KROSSBOARD_UI_IMAGE}
+docker save \
+        ${KROSSBOARD_KOAINSTANCE_IMAGE} \
+        ${KROSSBOARD_UI_IMAGE} | \
+        gzip > ${RELEASE_DIST_PACKAGE}/dimages.tgz
+
 install -m 755 ./scripts/install.sh ${RELEASE_DIST_PACKAGE}/
 install -m 755 ./scripts/update.sh ${RELEASE_DIST_PACKAGE}/
 cp EULA INSTALLATION_NOTICE ${RELEASE_DIST_PACKAGE}/
