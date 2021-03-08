@@ -87,7 +87,7 @@ func initConfig() {
 	viper.Set("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("krossboard_status_dir")))
 	viper.Set("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_status_dir")))
-	viper.Set("krossboard_kubeconfig_dir", fmt.Sprintf("%s/kubeconfig", viper.GetString("krossboard_root_dir")))
+	viper.Set("krossboard_kubeconfig_dir", fmt.Sprintf("%s/kubeconfig.d", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_kubeconfig_max_size_kb", 10)
 
 	customFormatter := new(log.TextFormatter)
