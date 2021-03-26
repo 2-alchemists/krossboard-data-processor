@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"io/ioutil"
@@ -10,11 +9,8 @@ import (
 
 func TestNewKubeConfig(t *testing.T) {
 	Convey("Test KUBECONFIG settings", t, func() {
-
-		kconfigDir := UserHomeDir()+"/.kube"
-		_ = createDirIfNotExists(kconfigDir)
-
-		_ = ioutil.WriteFile(kconfigDir+"/config",
+		kubeconfigPath := "/tmp/config"
+		_ = ioutil.WriteFile(kubeconfigPath,
 			[]byte(`
 apiVersion: v1
 clusters:
@@ -54,10 +50,11 @@ users:
   user:
     password: some-password
     username: exp`), 0600)
+		viper.Set("KUBECONFIG", kubeconfigPath)
 		Convey("Test with no KUBECONFIG is set", func() {
 			cfg := NewKubeConfig()
 			So(len(cfg.Paths), ShouldEqual, 1)
-			So(cfg.Paths[0], ShouldEqual, fmt.Sprintf("%s/.kube/config", UserHomeDir()))
+			So(cfg.Paths[0], ShouldEqual, kubeconfigPath)
 		})
 
 
