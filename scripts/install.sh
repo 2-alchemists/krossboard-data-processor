@@ -76,13 +76,16 @@ fi
 echo -e "${RED_COLOR}➥ Installing gcloud CLI... ${NO_COLOR}"
 if wget --timeout=2 --tries=1 --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ; then
   echo -e "${RED_COLOR}➥ We're running on Google cloud ${NO_COLOR}"
+
+  echo -e "${RED_COLOR}➥ Removing gcloud installed with snap that causes permission problems ${NO_COLOR}"
   snap remove google-cloud-sdk
-  apt-get install -y google-cloud-sdk
-else
-  echo "deb http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-  apt-get update && sudo apt-get install -y google-cloud-sdk
 fi
+
+echo -e "${RED_COLOR}➥ Installing gcloud using Ubuntu packages ${NO_COLOR}"
+echo "deb http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+apt-get update
+apt-get install -y google-cloud-sdk
 
 DIST_GCLOUD_COMMAND=$(command -v gcloud || echo "")
 if [ "$DIST_GCLOUD_COMMAND" != "" ]; then
