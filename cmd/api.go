@@ -71,7 +71,7 @@ var routes = map[string]map[string]interface{}{
 	},
 	"/api/nodesusage/{clustername}": {
 		"method":  "GET",
-		"handler": GetNodesUsagHandler,
+		"handler": GetNodesUsageHandler,
 	},
 	"/api/kubeconfig": {
 		"method": "POST",
@@ -426,8 +426,8 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(respPayload)
 }
 
-// GetNodesUsagHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
-func GetNodesUsagHandler(w http.ResponseWriter, req *http.Request) {
+// GetNodesUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
+func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	clusterName := params["clustername"]
 
