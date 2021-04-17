@@ -41,14 +41,16 @@ type NamespaceUsageHistory struct {
 type NodeUsage struct {
 	DateUTC string `json:"dateUTC,omitempty"`
 	Name string `json:"name,omitempty"`
-	State string `json:"state,omitempty"`
-	Message string `json:"message,omitempty"`
-	CPUCapacity float64 `json:"cpuCapacity,omitempty"`
+	CPUCapacity    float64 `json:"cpuCapacity,omitempty"`
 	CPUAllocatable float64 `json:"cpuAllocatable,omitempty"`
-	CPUUsage float64 `json:"cpuUsage,omitempty"`
-	MEMCapacity float64 `json:"memCapacity,omitempty"`
+	CPUUsageByPods float64 `json:"cpuUsageByPods,omitempty"`
+	MEMCapacity    float64 `json:"memCapacity,omitempty"`
 	MEMAllocatable float64 `json:"memAllocatable,omitempty"`
-	MEMUsage float64 `json:"memUsage,omitempty"`
+	MEMUsageByPods float64 `json:"memUsageByPods,omitempty"`
+	PodsUsage      []*struct{
+		CPUUsage float64 `json:"cpuUsage,omitempty"`
+		MEMUsage float64 `json:"memUsage,omitempty"`
+	} `json:"podsRunning,omitempty"`
 }
 
 // K8sClusterUsage holds used and non-allocatable memory and CPU resource of a K8s cluster

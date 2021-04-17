@@ -462,8 +462,8 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 				if property == "cpuCapacity" {
 					usage.CPUCapacity = value.(float64)
 				}
-				if property == "cpuUsage" {
-					usage.CPUUsage = value.(float64)
+				if property == "cpuUsageByPods" {
+					usage.CPUUsageByPods = value.(float64)
 				}
 				if property == "memAllocatable" {
 					usage.MEMAllocatable = value.(float64)
@@ -471,17 +471,11 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 				if property == "memCapacity" {
 					usage.MEMCapacity = value.(float64)
 				}
-				if property == "memUsage" {
-					usage.MEMUsage = value.(float64)
-				}
-				if property == "message" {
-					usage.Message = value.(string)
+				if property == "memUsageByPods" {
+					usage.MEMUsageByPods = value.(float64)
 				}
 				if property == "name" {
 					usage.Name = value.(string)
-				}
-				if property == "state" {
-					usage.State = value.(string)
 				}
 			}
 			result = append(result, usage)

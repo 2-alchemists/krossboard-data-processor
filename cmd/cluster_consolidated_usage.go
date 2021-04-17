@@ -104,8 +104,8 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 
 
 // getClusterNodesUsage returns nodes usage for a given cluster
-func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
-	url :="http://127.0.0.1:1519/api/dataset/nodes.json"
+func getClusterNodesUsage(clusterName string) (map[string]NodeUsage, error){
+	url := "http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
@@ -133,7 +133,18 @@ func getClusterNodesUsage(clusterName string) (*map[string]NodeUsage, error){
 		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
 	}
 
-	return nodesUsage, nil
+	consolidatedUsage := make(map[string]NodeUsage)
+	for nname, nodeUsage := range *nodesUsage {
+		nodeUsage.CPUUsageByPods =  0.0
+		nodeUsage.MEMUsageByPods =  0.0
+		for _, podUsage := range nodeUsage.PodsUsage {
+			nodeUsage.CPUUsageByPods += podUsage.CPUUsage
+			nodeUsage.MEMUsageByPods += podUsage.MEMUsage
+		}
+		nodeUsage.PodsUsage = nil
+		consolidatedUsage[nname] = nodeUsage
+	}
+	return consolidatedUsage, nil
 }
 
 
