@@ -132,10 +132,8 @@ func TestKOAClusterNodesUsage(t *testing.T) {
 			So(node.Name, ShouldEqual, "gke-cluster-1-default-pool-7f5e6673-lxjd")
 			So(node.CPUCapacity, ShouldEqual, 2)
 			So(node.CPUAllocatable, ShouldEqual, 0.9400000000000001)
-			So(node.CPUUsage, ShouldEqual, 0.098925039)
 			So(node.MEMCapacity, ShouldEqual, 4140904448)
 			So(node.MEMAllocatable, ShouldEqual, 2967547904)
-			So(node.MEMUsage, ShouldEqual, 781180928)
 		})
 	})
 }
