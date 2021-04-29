@@ -47,9 +47,9 @@ type GetAllClustersCurrentUsageResp struct {
 
 // GetClusterUsageHistoryResp holds the message returned by the GetClusterUsageHistoryHandler API callback
 type GetClusterUsageHistoryResp struct {
-	Status             string                            `json:"status,omitempty"`
-	Message            string                            `json:"message,omitempty"`
-	ListOfUsageHistory map[string]*NamespaceUsageHistory `json:"usageHistory,omitempty"`
+	Status             string                   `json:"status,omitempty"`
+	Message            string                   `json:"message,omitempty"`
+	ListOfUsageHistory map[string]*UsageHistory `json:"usageHistory,omitempty"`
 }
 
 var routes = map[string]map[string]interface{}{
@@ -312,12 +312,12 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process  end date parameter
-	areValidParameters := false
+	parameterAreInvalid := false
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
-			areValidParameters = true
+			parameterAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
 		} else {
 			actualEndDateUTC = queryParsedEndTime
@@ -330,7 +330,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if queryStartDate != "" {
 		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
 		if err != nil {
-			areValidParameters = true
+			parameterAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
 		} else {
 			actualStartDateUTC = queryParsedStartTime
@@ -338,26 +338,26 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process cluster parameter
-	usageHistoryDbs := make(map[string]string)
+	historyDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, instance := range getInstancesResult.Instances {
-			usageHistoryDbs[instance.ClusterName] = getUsageHistoryPath(instance.ClusterName)
+			historyDbs[instance.ClusterName] = getUsageHistoryPath(instance.ClusterName)
 		}
 	} else {
 		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
 		err, dbfiles := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
-			areValidParameters = true
+			parameterAreInvalid = true
 		} else {
 			for _, dbfile := range dbfiles {
-				usageHistoryDbs[dbfile] = dbfile
+				historyDbs[dbfile] = dbfile
 			}
 		}
 	}
 
 	// finalize parameters validation before actually processing the request
-	if areValidParameters || actualStartDateUTC.After(actualEndDateUTC) {
+	if parameterAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
 		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
 		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
@@ -368,13 +368,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resultUsageHistory := &GetClusterUsageHistoryResp{
+	usageHistoryResult := &GetClusterUsageHistoryResp{
 		Status:             "ok",
-		ListOfUsageHistory: make(map[string]*NamespaceUsageHistory, len(getInstancesResult.Instances)),
+		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
 	}
-	for dbname, dbfile := range usageHistoryDbs {
-		usageDb := NewUsageDb(dbfile)
-		usageHistory, err := func() (*NamespaceUsageHistory, error) {
+	for dbname, dbfile := range historyDbs {
+		usageDb := NewUsageDb(dbfile, 100)
+		usageHistory, err := func() (*UsageHistory, error) {
 			if queryPeriod == "monthly" {
 				return usageDb.FetchUsageMonthly(actualStartDateUTC, actualEndDateUTC)
 			} else {
@@ -385,17 +385,17 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			log.WithError(err).Errorln("failed retrieving data from rrd file")
 		} else {
 			if usageHistory != nil {
-				resultUsageHistory.ListOfUsageHistory[dbname] = usageHistory
+				usageHistoryResult.ListOfUsageHistory[dbname] = usageHistory
 			}
 		}
 	}
 
 	var respPayload []byte
 	if queryFormat != "csv" {
-		respPayload, _ = json.Marshal(resultUsageHistory)
+		respPayload, _ = json.Marshal(usageHistoryResult)
 	} else {
 		var csvBuf strings.Builder
-		for itemName, itemUsage := range resultUsageHistory.ListOfUsageHistory {
+		for itemName, itemUsage := range usageHistoryResult.ListOfUsageHistory {
 			countUsageEntries := len(itemUsage.CPUUsage)
 			if countUsageEntries != len(itemUsage.MEMUsage) {
 				log.Errorf("usage entries for CPU and memory for entry %v don't match (%v != %v)\n",
@@ -430,59 +430,126 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	clusterName := params["clustername"]
+	queryParams := req.URL.Query()
+	queryStartDate := queryParams.Get("startDateUTC")
+	queryEndDate := queryParams.Get("endDateUTC")
 
-	nodeUsageDbPath := getNodeUsagePath(clusterName)
-	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath, false)
-	if err != nil {
-		log.WithError(err).Errorln("Failed creating node usage db")
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})
-		http.Error(w, string(b), http.StatusInternalServerError)
-		return
-	}
-
-	err = nodeUsageDb.Load()
-	if err != nil {
-		log.WithError(err).Errorln("Failed loading nodes usage file", nodeUsageDb.Path)
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})
-		http.Error(w, string(b), http.StatusInternalServerError)
-		return
-	}
-
-	var result []NodeUsage
-	for tsKey, nodeUsageItems_ := range nodeUsageDb.Data.Items() {
-		nodeUsageItems := nodeUsageItems_.Object.(map[string]interface{})
-		for _, nodeUsageItem_ := range nodeUsageItems {
-			nodeList := nodeUsageItem_.(map[string]interface {})
-			usage := NodeUsage{}
-			usage.DateUTC = tsKey
-			for property, value := range nodeList {
-				if property == "cpuAllocatable" {
-					usage.CPUAllocatable = value.(float64)
-				}
-				if property == "cpuCapacity" {
-					usage.CPUCapacity = value.(float64)
-				}
-				if property == "cpuUsageByPods" {
-					usage.CPUUsageByPods = value.(float64)
-				}
-				if property == "memAllocatable" {
-					usage.MEMAllocatable = value.(float64)
-				}
-				if property == "memCapacity" {
-					usage.MEMCapacity = value.(float64)
-				}
-				if property == "memUsageByPods" {
-					usage.MEMUsageByPods = value.(float64)
-				}
-				if property == "name" {
-					usage.Name = value.(string)
-				}
-			}
-			result = append(result, usage)
+	// process  end date parameter
+	parametersAreInvalid := false
+	actualEndDateUTC := time.Now().UTC()
+	if queryEndDate != "" {
+		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
+		if err != nil {
+			parametersAreInvalid = true
+			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
+		} else {
+			actualEndDateUTC = queryParsedEndTime
 		}
 	}
 
-	encodedResult, err := json.Marshal(result)
+	// process start date parameter
+	const durationMinus24Hours = -1 * 24 * time.Hour
+	actualStartDateUTC := actualEndDateUTC.Add(durationMinus24Hours)
+	if queryStartDate != "" {
+		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
+		if err != nil {
+			parametersAreInvalid = true
+			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
+		} else {
+			actualStartDateUTC = queryParsedStartTime
+		}
+	}
+
+	if parametersAreInvalid || actualEndDateUTC.Before(actualStartDateUTC){
+		log.Errorln("invalid query parameters", queryStartDate, queryEndDate)
+		w.WriteHeader(http.StatusBadRequest)
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "invalid query parameters",
+		})
+		_, _ = w.Write(outRaw)
+		return
+	}
+
+	recentNodesUsage, err := getRecentNodesUsage(clusterName)
+	if err != nil {
+		log.WithError(err).Errorln("failed getting recent cluster nodes")
+		w.WriteHeader(http.StatusInternalServerError)
+		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "rorln(\"failed getting recent cluster nodes",
+		})
+		_, _ = w.Write(outRaw)
+		return
+	}
+
+	step := time.Duration(RRDStorageStep3600Secs)*time.Second
+	if actualEndDateUTC.Sub(actualStartDateUTC) <= time.Duration(24)*time.Hour {
+		step = time.Duration(RRDStorageStep300Secs)*time.Second
+	}
+
+	nodeUsageMap := make(map[string]map[string]UsageHistory)
+	for nodeName, _ := range recentNodesUsage {
+		nodeUsageDb := NewNodeUsageDB(nodeName)
+		capacityHistory, err := nodeUsageDb.CapacityDb.FetchUsage(actualStartDateUTC, actualEndDateUTC, step)
+		if err != nil {
+			capacityHistory = &UsageHistory{}
+			log.WithError(err).Errorln("failed retrieving node capacity history", nodeUsageDb.CapacityDb.RRDFile)
+		}
+		allocatableHistory, err := nodeUsageDb.AllocatableDb.FetchUsage(actualStartDateUTC, actualEndDateUTC, step)
+		if err != nil {
+			allocatableHistory = &UsageHistory{}
+			log.WithError(err).Errorln("failed retrieving node allocatable history", nodeUsageDb.CapacityDb.RRDFile)
+		}
+		usageByPodsHistory, err := nodeUsageDb.UsageByPodsDb.FetchUsage(actualStartDateUTC, actualEndDateUTC, step)
+		if err != nil {
+			usageByPodsHistory = &UsageHistory{}
+			log.WithError(err).Errorln("failed retrieving usage by pods for node", nodeUsageDb.CapacityDb.RRDFile)
+		}
+
+		nodeUsageMap[nodeName] = map[string]UsageHistory {
+				"capacityItems" : *capacityHistory,
+				"allocatableItems" : *allocatableHistory,
+				"usageByPodItems" : *usageByPodsHistory,
+		}
+
+		//nodeUsage := NodeUsage{}
+		// handle capacity history
+		//if len(capacityHistory.CPUUsage) != len(capacityHistory.CPUUsage) {
+		//	log.WithError(err).Errorln("capacityHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
+		//} else {
+		//	for cpuHistoryItemIndex, cpuHistoryItem := range capacityHistory.CPUUsage {
+		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
+		//		nodeUsage.CPUCapacity = cpuHistoryItem.Value
+		//		nodeUsage.MEMCapacity = capacityHistory.MEMUsage[cpuHistoryItemIndex].Value
+		//	}
+		//}
+
+		// handle allocatable history
+		//if len(allocatableHistory.MEMUsage) != len(allocatableHistory.CPUUsage) {
+		//	log.WithError(err).Errorln("allocatableHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
+		//} else {
+		//	for cpuHistoryItemIndex, cpuHistoryItem := range allocatableHistory.CPUUsage {
+		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
+		//		nodeUsage.CPUAllocatable = cpuHistoryItem.Value
+		//		nodeUsage.MEMAllocatable = allocatableHistory.MEMUsage[cpuHistoryItemIndex].Value
+		//	}
+		//}
+		//
+		//// handle usage by pod history
+		//if len(usageByPodsHistory.MEMUsage) != len(usageByPodsHistory.CPUUsage) {
+		//	log.WithError(err).Errorln("usageByPodsHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
+		//} else {
+		//	for cpuHistoryItemIndex, cpuHistoryItem := range usageByPodsHistory.CPUUsage {
+		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
+		//		nodeUsage.CPUUsageByPods = cpuHistoryItem.Value
+		//		nodeUsage.MEMUsageByPods = usageByPodsHistory.MEMUsage[cpuHistoryItemIndex].Value
+		//	}
+		//}
+	}
+
+	var result []NodeUsage
+	encodedResult, err := json.Marshal(nodeUsageMap)
 	if err != nil {
 		log.WithError(err).Errorln("Failed encoding result in JSON", result)
 		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "server internal error"})

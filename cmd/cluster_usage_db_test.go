@@ -33,7 +33,7 @@ func TestUsageDb(t *testing.T) {
 
 		dbName := path.Join(tempDir, "test.db")
 		Convey("Given a new instance of UsageDB", func() {
-			usageDb := NewUsageDb(dbName)
+			usageDb := NewUsageDb(dbName, 100)
 
 			So(usageDb, ShouldNotBeNil)
 
@@ -57,19 +57,19 @@ func TestUsageDb(t *testing.T) {
 					memUsage float64
 				}
 				type input struct {
-					fetcher  func(u *NamespaceUsageDb, startTime time.Time, endTime time.Time) (*NamespaceUsageHistory, error)
+					fetcher  func(u *UsageDb, startTime time.Time, endTime time.Time) (*UsageHistory, error)
 					duration time.Duration
 					data     func() []data
 				}
 				tests := []struct {
 					name  string
 					input input
-					want  *NamespaceUsageHistory
+					want  *UsageHistory
 				}{
 					{
 						name: "hourly test case - nominal",
 						input: input{
-							fetcher:  (*NamespaceUsageDb).FetchUsageHourly,
+							fetcher:  (*UsageDb).FetchUsageHourly,
 							duration: time.Duration(15) * time.Minute,
 							data: func() []data {
 								return []data{
@@ -79,7 +79,7 @@ func TestUsageDb(t *testing.T) {
 								}
 							},
 						},
-						want: &NamespaceUsageHistory{
+						want: &UsageHistory{
 							CPUUsage: []*ResourceUsageItem{
 								{
 									DateUTC: RoundTime(start.Add(time.Duration(5*2)*time.Minute), time.Duration(usageDb.Step)*time.Second),
@@ -106,7 +106,7 @@ func TestUsageDb(t *testing.T) {
 					//{
 					//	name: "monthly test case - nominal",
 					//	input: input{
-					//		fetcher:  (*NamespaceUsageDb).FetchUsageMonthly,
+					//		fetcher:  (*UsageDb).FetchUsageMonthly,
 					//		duration: time.Duration(2664000) * time.Second * 2, // 2 months
 					//		data: func() []data {
 					//			someValues := []float64{60.466029, 94.050909, 66.456005, 43.771419, 42.463750, 68.682307, 6.563702, 15.651925, 9.696952, 30.091186}
@@ -132,7 +132,7 @@ func TestUsageDb(t *testing.T) {
 					//			return res
 					//		},
 					//	},
-					//	want: &NamespaceUsageHistory{
+					//	want: &UsageHistory{
 					//		CPUUsage: []*ResourceUsageItem{
 					//			{
 					//				DateUTC: time.Date(start.Year(), start.Month(), 1, 0, 0, 0, 0, time.UTC),

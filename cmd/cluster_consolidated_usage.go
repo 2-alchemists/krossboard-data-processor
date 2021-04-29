@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -102,9 +101,8 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 	return usage, nil
 }
 
-
-// getClusterNodesUsage returns nodes usage for a given cluster
-func getClusterNodesUsage(clusterName string) (map[string]NodeUsage, error){
+// getRecentNodesUsage returns nodes usage for a given cluster
+func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
 	url := "http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -134,7 +132,7 @@ func getClusterNodesUsage(clusterName string) (map[string]NodeUsage, error){
 	}
 
 	consolidatedUsage := make(map[string]NodeUsage)
-	for nname, nodeUsage := range *nodesUsage {
+	for nodeName, nodeUsage := range *nodesUsage {
 		nodeUsage.CPUUsageByPods =  0.0
 		nodeUsage.MEMUsageByPods =  0.0
 		for _, podUsage := range nodeUsage.PodsUsage {
@@ -142,7 +140,7 @@ func getClusterNodesUsage(clusterName string) (map[string]NodeUsage, error){
 			nodeUsage.MEMUsageByPods += podUsage.MEMUsage
 		}
 		nodeUsage.PodsUsage = nil
-		consolidatedUsage[nname] = nodeUsage
+		consolidatedUsage[nodeName] = nodeUsage
 	}
 	return consolidatedUsage, nil
 }
@@ -162,19 +160,18 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 		}
 	}
 
-	sampleTimeUTC := time.Now().Format(queryTimeLayout)
+	sampleTimeUTC := time.Now().UTC()
 	for _, clusterUsage := range allClustersUsage {
 		if ! clusterUsage.OutToDate {
 			processClusterNamespaceUsage(clusterUsage)
 		}
-		processClusterNodeUsage(clusterUsage, sampleTimeUTC)
-
+		processClusterNodesUsage(clusterUsage, sampleTimeUTC)
 	}
 }
 
 func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
 	rrdFile := getUsageHistoryPath(clusterUsage.ClusterName)
-	usageDb := NewUsageDb(rrdFile)
+	usageDb := NewUsageDb(rrdFile, 100)
 	_, err := os.Stat(rrdFile)
 	if os.IsNotExist(err) {
 		err := usageDb.CreateRRD()
@@ -195,30 +192,26 @@ func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
 
 
 
-func processClusterNodeUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC string) {
-	nodeUsageDbPath := getNodeUsagePath(clusterUsage.ClusterName)
-	nodeUsageDb, err := NewNodeUsageDB(nodeUsageDbPath, true)
+func processClusterNodesUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC time.Time) {
+	recentNodesUsage, err := getRecentNodesUsage(clusterUsage.ClusterName)
 	if err != nil {
-		log.WithError(err).Errorln("NewNodeUsageDB failed")
+		log.WithError(err).Errorln("failed getting cluster nodes usage")
 		return
 	}
+	for nodeName, nodeUsage := range recentNodesUsage {
+		nodeUsageDb := NewNodeUsageDB(nodeName)
 
-	err = nodeUsageDb.Load()
-	if err != nil {
-		log.WithError(err).Errorln("Failed loading nodes usage file", nodeUsageDb.Path)
-		return
-	}
-
-	nodeUsage, err := getClusterNodesUsage(clusterUsage.ClusterName)
-	if err != nil {
-		log.WithError(err).Errorln("getClusterNodesUsage failed")
-		return
-	}
-
-	nodeUsageDb.Data.Set(fmt.Sprint(sampleTimeUTC), nodeUsage, cache.DefaultExpiration)
-	err = nodeUsageDb.Save()
-	if err != nil {
-		log.WithError(err).Errorln("Failed saving node usage cache")
-		return
+		err = nodeUsageDb.CapacityDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUCapacity, nodeUsage.MEMCapacity)
+		if err != nil {
+			log.WithError(err).Errorln("failed saving node capacity", nodeName)
+		}
+		err = nodeUsageDb.AllocatableDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUAllocatable, nodeUsage.MEMAllocatable)
+		if err != nil {
+			log.WithError(err).Errorln("failed saving allocatable capacity", nodeName)
+		}
+		err = nodeUsageDb.UsageByPodsDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUUsageByPods, nodeUsage.MEMUsageByPods)
+		if err != nil {
+			log.WithError(err).Errorln("failed saving capacity used by pods", nodeName)
+		}
 	}
 }
