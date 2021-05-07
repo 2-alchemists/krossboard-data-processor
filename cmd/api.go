@@ -489,7 +489,7 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	nodeUsageMap := make(map[string]map[string]UsageHistory)
-	for nodeName, _ := range recentNodesUsage {
+	for nodeName := range recentNodesUsage {
 		nodeUsageDb := NewNodeUsageDB(nodeName)
 		capacityHistory, err := nodeUsageDb.CapacityDb.FetchUsage(actualStartDateUTC, actualEndDateUTC, step)
 		if err != nil {
