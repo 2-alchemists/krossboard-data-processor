@@ -512,40 +512,6 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 				"allocatableItems" : *allocatableHistory,
 				"usageByPodItems" : *usageByPodsHistory,
 		}
-
-		//nodeUsage := NodeUsage{}
-		// handle capacity history
-		//if len(capacityHistory.CPUUsage) != len(capacityHistory.CPUUsage) {
-		//	log.WithError(err).Errorln("capacityHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
-		//} else {
-		//	for cpuHistoryItemIndex, cpuHistoryItem := range capacityHistory.CPUUsage {
-		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
-		//		nodeUsage.CPUCapacity = cpuHistoryItem.Value
-		//		nodeUsage.MEMCapacity = capacityHistory.MEMUsage[cpuHistoryItemIndex].Value
-		//	}
-		//}
-
-		// handle allocatable history
-		//if len(allocatableHistory.MEMUsage) != len(allocatableHistory.CPUUsage) {
-		//	log.WithError(err).Errorln("allocatableHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
-		//} else {
-		//	for cpuHistoryItemIndex, cpuHistoryItem := range allocatableHistory.CPUUsage {
-		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
-		//		nodeUsage.CPUAllocatable = cpuHistoryItem.Value
-		//		nodeUsage.MEMAllocatable = allocatableHistory.MEMUsage[cpuHistoryItemIndex].Value
-		//	}
-		//}
-		//
-		//// handle usage by pod history
-		//if len(usageByPodsHistory.MEMUsage) != len(usageByPodsHistory.CPUUsage) {
-		//	log.WithError(err).Errorln("usageByPodsHistory: weird behavior with inconsistent numbers of CPU/MEM usage items", nodeName)
-		//} else {
-		//	for cpuHistoryItemIndex, cpuHistoryItem := range usageByPodsHistory.CPUUsage {
-		//		nodeUsage.DateUTC = cpuHistoryItem.DateUTC
-		//		nodeUsage.CPUUsageByPods = cpuHistoryItem.Value
-		//		nodeUsage.MEMUsageByPods = usageByPodsHistory.MEMUsage[cpuHistoryItemIndex].Value
-		//	}
-		//}
 	}
 
 	var result []NodeUsage
