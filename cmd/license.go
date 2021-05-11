@@ -12,7 +12,7 @@ import (
 
 type AppLicense struct {
 	MajorVersion    string
-	GeneratedAt     time.Time
+	IssuedAt        time.Time
 	ExpireAt        time.Time
 	Issuer          string
 	ExtendedSupport bool
@@ -52,14 +52,14 @@ func createLicenseTokenFromEnvConfig(appVersion string, duration time.Duration) 
 	licenseIssueDate := time.Now()
 	licenseDoc := AppLicense{
 		MajorVersion:    fmt.Sprintf("%s.%s", semVerParts[0], semVerParts[1]),
-		GeneratedAt:     licenseIssueDate,
+		IssuedAt:        licenseIssueDate,
 		ExpireAt:        licenseIssueDate.Add(duration),
 		Issuer:          "2Alchemists SAS",
 		ExtendedSupport: false,
 	}
 
 	// marshall the license document to json:
-	docBytes, err := json.Marshal(licenseDoc)
+	licenseDocEncoded, err := json.Marshal(licenseDoc)
 	if err != nil {
 		return "", errors.Wrap(err, "failed encoding JSON license document")
 	}
@@ -70,7 +70,7 @@ func createLicenseTokenFromEnvConfig(appVersion string, duration time.Duration) 
 		return "", errors.Wrap(err, "base64-decoding of the private key failed")
 	}
 
-	license, err := lk.NewLicense(privKey, docBytes)
+	license, err := lk.NewLicense(privKey, licenseDocEncoded)
 	if err != nil {
 		return "", errors.Wrap(err, "failed generating a license")
 	}
@@ -84,11 +84,6 @@ func createLicenseTokenFromEnvConfig(appVersion string, duration time.Duration) 
 }
 
 func validateLicenseFromEnvConfig(version string) (licenseDoc *AppLicense, err error) {
-	semVerParts := strings.Split(version, ".")
-	if len(semVerParts) != 3 {
-		return nil, errors.New("unexpected version string => " + version)
-	}
-
 	licenseB64 := viper.GetString(KrossboardLicenseTokenConfigKey)
 	license, err := lk.LicenseFromB64String(licenseB64)
 	if err != nil {
@@ -113,7 +108,17 @@ func validateLicenseFromEnvConfig(version string) (licenseDoc *AppLicense, err e
 	}
 
 	if licenseDoc.ExpireAt.Before(time.Now()) {
-		return nil, errors.New(fmt.Sprintln("license expired on:", licenseDoc.ExpireAt.Format("2006-01-02")))
+		return nil, errors.New(fmt.Sprintf(
+			"license issued at %v expired at %v", licenseDoc.IssuedAt,licenseDoc.ExpireAt))
+	}
+
+	semVerParts := strings.Split(version, ".")
+	if len(semVerParts) != 3 {
+		return nil, errors.New("unexpected version string => " + version)
+	}
+	majorVersion := fmt.Sprintf("%s.%s", semVerParts[0], semVerParts[1])
+	if licenseDoc.MajorVersion != majorVersion {
+		return nil, errors.New(fmt.Sprintf("the license is valid with the major version %v (current version: %v)", licenseDoc.MajorVersion, version))
 	}
 
 	return licenseDoc,nil
