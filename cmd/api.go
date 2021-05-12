@@ -518,7 +518,7 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
-			Message: "rorln(\"failed getting recent cluster nodes",
+			Message: "failed getting recent cluster nodes",
 		})
 		_, _ = w.Write(apiResp)
 		return
