@@ -341,12 +341,12 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process  end date parameter
-	parameterAreInvalid := false
+	parametersAreInvalid := false
 	actualEndDateUTC := time.Now().UTC()
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
 		} else {
 			actualEndDateUTC = queryParsedEndTime
@@ -359,7 +359,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if queryStartDate != "" {
 		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
 		if err != nil {
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
 		} else {
 			actualStartDateUTC = queryParsedStartTime
@@ -377,7 +377,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		err, dbfiles := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 		} else {
 			for _, dbfile := range dbfiles {
 				historyDbs[dbfile] = dbfile
@@ -386,7 +386,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// finalize parameters validation before actually processing the request
-	if parameterAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
+	if parametersAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
 		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
