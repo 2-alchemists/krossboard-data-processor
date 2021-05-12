@@ -107,11 +107,6 @@ func validateLicenseFromEnvConfig(version string) (licenseDoc *AppLicense, err e
 		return nil, errors.Wrap(err, "failed decoding in JSON")
 	}
 
-	if licenseDoc.ExpireAt.Before(time.Now()) {
-		return nil, errors.New(fmt.Sprintf(
-			"license issued at %v expired at %v", licenseDoc.IssuedAt,licenseDoc.ExpireAt))
-	}
-
 	semVerParts := strings.Split(version, ".")
 	if len(semVerParts) != 3 {
 		return nil, errors.New("unexpected version string => " + version)
