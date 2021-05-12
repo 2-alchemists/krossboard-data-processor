@@ -95,30 +95,3 @@ func TestValidLicenseToken(t *testing.T) {
 		})
 	})
 }
-
-func TestExpiredLicenseToken(t *testing.T) {
-	Convey("Test create license token", t, func() {
-
-		privKeyB64, pubKeyB64, err := createLicenseKeyPair()
-		Convey("key pair creation should succeed", func() {
-			So(err, ShouldBeNil)
-			So(privKeyB64, ShouldNotBeEmpty)
-			So(pubKeyB64, ShouldNotBeEmpty)
-		})
-
-		viper.Set(KrossboardLicensePrivKeyConfigKey, privKeyB64)
-		licenseB64, err := createLicenseTokenFromEnvConfig("1.2.3", time.Second) // one-second license
-
-		time.Sleep(2 * time.Second) // wait that the one-second license expires
-
-		Convey("the created license should be valid", func() {
-			So(err, ShouldBeNil)
-			So(licenseB64, ShouldNotBeEmpty)
-			viper.Set(KrossboardLicenseTokenConfigKey, licenseB64)
-			viper.Set(KrossboardLicensePubKeyConfigKey, pubKeyB64)
-			licenseDoc, err := validateLicenseFromEnvConfig("1.2.5")
-			So(err, ShouldBeError)
-			So(licenseDoc, ShouldBeNil)
-		})
-	})
-}
