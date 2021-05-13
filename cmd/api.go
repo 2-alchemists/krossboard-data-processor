@@ -397,6 +397,12 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// check license and review the start and end dates parameters
+	// according to the license capability
+
+	const date90DaysBefore = -1 * 90 * 24 * time.Hour
+
+
 	usageHistoryResult := &GetClusterUsageHistoryResp{
 		Status:             "ok",
 		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),

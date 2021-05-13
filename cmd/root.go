@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
-	"time"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,43 +51,6 @@ var startCollectorServiceCmd = &cobra.Command{
 	},
 }
 
-var manageLicenseCmd = &cobra.Command{
-	Use:   "license",
-	Short: "Create a new license key pair",
-
-	Run: func(cmd *cobra.Command, args []string) {
-		if optionLicenseTargetAction == "keypair" {
-			privKeyB64, pubKeyB64, err := createLicenseKeyPair()
-			if err != nil {
-				fmt.Println("✘ Can't create license key pair:", err)
-			} else {
-				fmt.Println("✓ Success")
-				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicensePrivKeyConfigKey), privKeyB64)
-				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicensePubKeyConfigKey), pubKeyB64)
-			}
-			return
-		}
-
-		if optionLicenseTargetAction == "license" {
-			licenseDuration := time.Hour * 24 * 365
-			if optionLicenseDurationDays > 0 {
-				licenseDuration = time.Hour * 24 * time.Duration(optionLicenseDurationDays)
-			}
-			licenseB64, err := createLicenseTokenFromEnvConfig(optionLicenseTargetVersion, licenseDuration)
-			if err != nil {
-				fmt.Println("✘ Can't generate a license:", err)
-			} else {
-				fmt.Println("✓ Success")
-				fmt.Printf("%s=%s\n", strings.ToUpper(KrossboardLicenseTokenConfigKey), licenseB64)
-			}
-			return
-		}
-
-		fmt.Println("unknown license management target", optionLicenseTargetAction)
-		os.Exit(1)
-	},
-}
-
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -99,21 +60,9 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
 	rootCmd.AddCommand(startAPIServiceCmd)
 	rootCmd.AddCommand(startConsolidatorServiceCmd)
 	rootCmd.AddCommand(startCollectorServiceCmd)
-
-	manageLicenseCmd.Flags().StringVarP(&optionLicenseTargetAction, "new", "c", "", "(Required) Specify the action to perform. Values can be 'keypair' or 'license')")
-	manageLicenseCmd.Flags().StringVarP(&optionLicenseTargetVersion, "target-version", "t", "", "Set target version for license creation)")
-	manageLicenseCmd.Flags().IntVarP(&optionLicenseDurationDays, "duration", "d", 365, "Set the validity duration in days (default is 365 days)")
-
-	err := manageLicenseCmd.MarkFlagRequired("new")
-	if err != nil {
-		log.Fatalln("failed creating license command", err)
-	}
-
-	rootCmd.AddCommand(manageLicenseCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
