@@ -11,9 +11,6 @@ import (
 const KrossboardVersion = "1.2.0"
 
 var kubeconfig *KubeConfig
-var optionLicenseTargetAction string
-var optionLicenseTargetVersion string
-var optionLicenseDurationDays int
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",

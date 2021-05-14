@@ -132,7 +132,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 				Status:  "error",
-				Message: "We're sorry, your license does not support nodes usage analytics",
+				Message: "nodes usage analytics is not supported by your current license",
 			})
 			_, _ = w.Write(apiResp)
 			return
@@ -342,7 +342,8 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	// process  end date parameter
 	parametersAreInvalid := false
-	actualEndDateUTC := time.Now().UTC()
+	now := time.Now().UTC()
+	actualEndDateUTC := now
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
@@ -399,9 +400,19 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	// check license and review the start and end dates parameters
 	// according to the license capability
-
-	const date90DaysBefore = -1 * 90 * 24 * time.Hour
-
+	date90DaysBefore := now.Add(-1 * 90 * 24 * time.Hour)
+	_, errLicense := validateLicenseFromEnvConfig(KrossboardVersion)
+	if errLicense != nil &&
+		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
+		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
+		w.WriteHeader(http.StatusBadRequest)
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "the selected time frame is out of 90 days (not supported by your current license)",
+		})
+		_, _ = w.Write(apiResp)
+		return
+	}
 
 	usageHistoryResult := &GetClusterUsageHistoryResp{
 		Status:             "ok",
@@ -469,7 +480,7 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
-			Message: "We're sorry, your license does not support nodes usage analytics",
+			Message: "nodes usage analytics is not supported by your current license",
 		})
 		_, _ = w.Write(apiResp)
 		return
