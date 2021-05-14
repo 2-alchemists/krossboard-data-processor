@@ -129,7 +129,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	if datafile == "nodes.json" {
 		if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
 			log.WithError(err).Errorln("invalid license getting nodes occupation")
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.WriteHeader(http.StatusPaymentRequired)
 			apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 				Status:  "error",
 				Message: "nodes usage analytics is not supported by your current license",
@@ -374,7 +374,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if errLicense != nil &&
 		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
 		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusPaymentRequired)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "the selected time frame is out of 90 days (not supported by your current license)",
@@ -477,7 +477,7 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 
 	if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
 		log.WithError(err).Errorln("invalid license getting nodes usage history")
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusPaymentRequired)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "nodes usage analytics is not supported by your current license",
