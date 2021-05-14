@@ -367,6 +367,22 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// check license and review the start and end date parameters
+	// according to the license capability
+	date90DaysBefore := now.Add(-1 * 90 * 24 * time.Hour)
+	_, errLicense := validateLicenseFromEnvConfig(KrossboardVersion)
+	if errLicense != nil &&
+		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
+		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
+		w.WriteHeader(http.StatusBadRequest)
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "the selected time frame is out of 90 days (not supported by your current license)",
+		})
+		_, _ = w.Write(apiResp)
+		return
+	}
+
 	// process cluster parameter
 	historyDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
@@ -393,22 +409,6 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "invalid query parameters",
-		})
-		_, _ = w.Write(apiResp)
-		return
-	}
-
-	// check license and review the start and end dates parameters
-	// according to the license capability
-	date90DaysBefore := now.Add(-1 * 90 * 24 * time.Hour)
-	_, errLicense := validateLicenseFromEnvConfig(KrossboardVersion)
-	if errLicense != nil &&
-		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
-		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
-		w.WriteHeader(http.StatusBadRequest)
-		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
-			Status:  "error",
-			Message: "the selected time frame is out of 90 days (not supported by your current license)",
 		})
 		_, _ = w.Write(apiResp)
 		return
