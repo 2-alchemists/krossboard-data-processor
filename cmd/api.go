@@ -232,8 +232,18 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 		discoveryResp.Message = "cannot load running configuration"
 		log.WithField("message", err.Error()).Errorln("Cannot load system status")
 	} else {
+		isValidLicense := false
+		licenseDoc, licenseCheckErr := validateLicenseFromEnvConfig(KrossboardVersion)
+		if licenseCheckErr == nil {
+			isValidLicense = true
+			discoveryResp.Message = fmt.Sprintf("Active Krossboard License: v%v (+bug/security changes)", licenseDoc.MajorVersion)
+		}
 		discoveryResp.Status = "ok"
-		for _, instance := range runningConfig.Instances {
+		for instanceItemIndex, instance := range runningConfig.Instances {
+			if ! isValidLicense && instanceItemIndex == 3 {
+				discoveryResp.Message = fmt.Sprintf("Free License. Limited to 3 Kubernetes clusters (out of %v discovered)", len(runningConfig.Instances))
+				break
+			}
 			discoveryResp.Instances = append(discoveryResp.Instances, &KOAAPI{
 				ClusterName: instance.ClusterName,
 				Endpoint:    fmt.Sprintf("http://127.0.0.1:%v", instance.HostPort),
