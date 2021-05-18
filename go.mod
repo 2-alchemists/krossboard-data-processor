@@ -13,6 +13,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gorilla/mux v1.8.0
+	github.com/hyperboloide/lk v0.0.0-20200504060759-b535f1973118
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/moby/term v0.0.0-20200611042045-63b9a826fb74 // indirect

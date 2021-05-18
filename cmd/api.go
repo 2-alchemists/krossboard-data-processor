@@ -125,12 +125,29 @@ func startAPI() {
 func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	datafile := params["filename"]
+
+	if datafile == "nodes.json" {
+		if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
+			log.WithError(err).Errorln("invalid license getting nodes occupation")
+			w.WriteHeader(http.StatusPaymentRequired)
+			apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
+				Status:  "error",
+				Message: "nodes usage analytics is not supported by your current license",
+			})
+			_, _ = w.Write(apiResp)
+			return
+		}
+	}
+
 	clusterName := req.Header.Get("X-Krossboard-Cluster")
 
 	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "cannot load system status"})
+		b, _ := json.Marshal(&ErrorResp{
+			Status: "error",
+			Message: "cannot load system status",
+		})
 		http.Error(w, string(b), http.StatusInternalServerError)
 		return
 	}
@@ -138,7 +155,10 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	instance, err := systemStatus.GetInstance(clusterName)
 	if err != nil {
 		log.WithError(err).Errorln("requested resource not found", clusterName)
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "requested resource not found"})
+		b, _ := json.Marshal(&ErrorResp{
+			Status: "error",
+			Message: "requested resource not found",
+		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
@@ -146,7 +166,10 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 
 	if req.RequestURI == "/" {
 		log.Errorln("no API context")
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "no API context"})
+		b, _ := json.Marshal(&ErrorResp{
+			Status: "error",
+			Message: "no API context",
+		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
@@ -154,7 +177,10 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
 		log.WithError(err).Errorln("http.NewRequest failed on URL", apiUrl)
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
+		b, _ := json.Marshal(&ErrorResp{
+			Status: "error",
+			Message: "failed calling target API",
+		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
@@ -163,13 +189,16 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	resp, err := httpClient.Do(proxyReq)
 	if err != nil {
 		log.WithError(err).Errorln("httpClient.Do failed on URL", apiUrl)
-		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed calling target API"})
+		b, _ := json.Marshal(&ErrorResp{
+			Status: "error",
+			Message: "failed calling target API",
+		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	apiResp, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.WithError(err).Errorln("failed reading response body")
 		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed reading response body"})
@@ -182,7 +211,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 			w.Header().Add(hk, hval)
 		}
 	}
-	_, _ = w.Write(respBody)
+	_, _ = w.Write(apiResp)
 }
 
 // DiscoveryHandler returns current system status along with Kubernetes Opex Analytics instances' endpoints
@@ -203,8 +232,18 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 		discoveryResp.Message = "cannot load running configuration"
 		log.WithField("message", err.Error()).Errorln("Cannot load system status")
 	} else {
+		isValidLicense := false
+		licenseDoc, licenseCheckErr := validateLicenseFromEnvConfig(KrossboardVersion)
+		if licenseCheckErr == nil {
+			isValidLicense = true
+			discoveryResp.Message = fmt.Sprintf("Active Krossboard License: v%v (+bug/security changes)", licenseDoc.MajorVersion)
+		}
 		discoveryResp.Status = "ok"
-		for _, instance := range runningConfig.Instances {
+		for instanceItemIndex, instance := range runningConfig.Instances {
+			if ! isValidLicense && instanceItemIndex == 3 {
+				discoveryResp.Message = fmt.Sprintf("Free License. Limited to 3 Kubernetes clusters (out of %v discovered)", len(runningConfig.Instances))
+				break
+			}
 			discoveryResp.Instances = append(discoveryResp.Instances, &KOAAPI{
 				ClusterName: instance.ClusterName,
 				Endpoint:    fmt.Sprintf("http://127.0.0.1:%v", instance.HostPort),
@@ -213,8 +252,8 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	outRaw, _ := json.Marshal(discoveryResp)
-	_, _ = w.Write(outRaw)
+	apiResp, _ := json.Marshal(discoveryResp)
+	_, _ = w.Write(apiResp)
 }
 
 // GetAllClustersCurrentUsageHandler returns current usage of all clusters
@@ -244,8 +283,8 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(respHTTPStatus)
-	outRaw, _ := json.Marshal(currentUsageResp)
-	_, _ = w.Write(outRaw)
+	apiResp, _ := json.Marshal(currentUsageResp)
+	_, _ = w.Write(apiResp)
 }
 
 // GetClustersUsageHistoryHandler returns all clusters usage history
@@ -256,11 +295,11 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
 		w.WriteHeader(http.StatusInternalServerError)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed loading system status",
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -268,11 +307,11 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.WithError(err).Errorln("failed retrieving managed instances")
 		w.WriteHeader(http.StatusInternalServerError)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "failed retrieving managed instances",
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -288,11 +327,11 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		err := fmt.Errorf("invalid value '%s' for query parameter 'format'. Valid values are: 'json', 'csv'", queryFormat)
 		log.WithError(err).WithField("param", "format").Warnln("Bad request")
 		w.WriteHeader(http.StatusBadRequest)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: err.Error(),
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -300,11 +339,11 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if queryPeriod != "" && queryPeriod != "hourly" && queryPeriod != "monthly" {
 		err := fmt.Errorf("invalid value '%s' for query parameter 'period'. Valid values are: 'hourly', 'monthly'", queryPeriod)
 		log.WithError(err).WithField("param", "period").Warnln("Bad request")
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: err.Error(),
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 	if queryPeriod == "" {
@@ -312,12 +351,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process  end date parameter
-	parameterAreInvalid := false
-	actualEndDateUTC := time.Now().UTC()
+	parametersAreInvalid := false
+	now := time.Now().UTC()
+	actualEndDateUTC := now
 	if queryEndDate != "" {
 		queryParsedEndTime, err := time.Parse(queryTimeLayout, queryEndDate)
 		if err != nil {
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date", queryEndDate)
 		} else {
 			actualEndDateUTC = queryParsedEndTime
@@ -330,11 +370,27 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if queryStartDate != "" {
 		queryParsedStartTime, err := time.Parse(queryTimeLayout, queryStartDate)
 		if err != nil {
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 			log.WithError(err).Errorln("failed parsing query end date ", queryStartDate)
 		} else {
 			actualStartDateUTC = queryParsedStartTime
 		}
+	}
+
+	// check license and review the start and end date parameters
+	// according to the license capability
+	date90DaysBefore := now.Add(-1 * 90 * 24 * time.Hour)
+	_, errLicense := validateLicenseFromEnvConfig(KrossboardVersion)
+	if errLicense != nil &&
+		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
+		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
+		w.WriteHeader(http.StatusPaymentRequired)
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "the selected time frame is out of 90 days (not supported by your current license)",
+		})
+		_, _ = w.Write(apiResp)
+		return
 	}
 
 	// process cluster parameter
@@ -348,7 +404,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		err, dbfiles := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
-			parameterAreInvalid = true
+			parametersAreInvalid = true
 		} else {
 			for _, dbfile := range dbfiles {
 				historyDbs[dbfile] = dbfile
@@ -357,14 +413,14 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// finalize parameters validation before actually processing the request
-	if parameterAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
+	if parametersAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
 		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -428,6 +484,18 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetNodesUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
 func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
+
+	if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
+		log.WithError(err).Errorln("invalid license getting nodes usage history")
+		w.WriteHeader(http.StatusPaymentRequired)
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
+			Status:  "error",
+			Message: "nodes usage analytics is not supported by your current license",
+		})
+		_, _ = w.Write(apiResp)
+		return
+	}
+
 	params := mux.Vars(req)
 	clusterName := params["clustername"]
 	queryParams := req.URL.Query()
@@ -463,11 +531,11 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 	if parametersAreInvalid || actualEndDateUTC.Before(actualStartDateUTC){
 		log.Errorln("invalid query parameters", queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
 			Message: "invalid query parameters",
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -475,11 +543,11 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.WithError(err).Errorln("failed getting recent cluster nodes")
 		w.WriteHeader(http.StatusInternalServerError)
-		outRaw, _ := json.Marshal(&GetClusterUsageHistoryResp{
+		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
-			Message: "rorln(\"failed getting recent cluster nodes",
+			Message: "failed getting recent cluster nodes",
 		})
-		_, _ = w.Write(outRaw)
+		_, _ = w.Write(apiResp)
 		return
 	}
 
@@ -508,9 +576,9 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 		}
 
 		nodeUsageMap[nodeName] = map[string]UsageHistory {
-				"capacityItems" : *capacityHistory,
-				"allocatableItems" : *allocatableHistory,
-				"usageByPodItems" : *usageByPodsHistory,
+			"capacityItems" : *capacityHistory,
+			"allocatableItems" : *allocatableHistory,
+			"usageByPodItems" : *usageByPodsHistory,
 		}
 	}
 

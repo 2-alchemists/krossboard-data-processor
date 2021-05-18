@@ -57,10 +57,10 @@ jobs:
     - name: Patch version
       run: |
         KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
-        VERSION_LINE=$(grep -n 'Version:' cmd/root.go | cut -f1 -d:)
-        VERSION_ORIG=$(grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}')
+        VERSION_LINE=$(grep -n 'KrossboardVersion =' cmd/root.go | cut -f1 -d:)
+        VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
         sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
-        echo "==>>> Release version is `grep 'Version:' cmd/root.go | awk -F '"' '{print $(NF-1)}'`"
+        echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
         
     - name: Setup GCP credentials
       continue-on-error: true

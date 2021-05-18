@@ -8,17 +8,19 @@ import (
 	"os"
 )
 
+const KrossboardVersion = "1.2.0"
+
 var kubeconfig *KubeConfig
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
 	Short:   "Multi-cluster Kubernetes usage analytics tool",
 	Long:    `Krossboard tracks the usage of your Kubernetes clusters at an one single place`,
-	Version: "1.1.0",
+	Version: KrossboardVersion,
 	//	Run: func(cmd *cobra.Command, args []string) { },
 }
 
-var apiCmd = &cobra.Command{
+var startAPIServiceCmd = &cobra.Command{
 	Use:   "api",
 	Short: "Start the REST API service",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -27,7 +29,7 @@ var apiCmd = &cobra.Command{
 	},
 }
 
-var consolidatorCmd = &cobra.Command{
+var startConsolidatorServiceCmd = &cobra.Command{
 	Use:   "consolidator",
 	Short: "Start the resource usage consolidator",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -36,7 +38,7 @@ var consolidatorCmd = &cobra.Command{
 		log.Infoln(" analytics consolidation completed")
 	},
 }
-var collectorCmd = &cobra.Command{
+var startCollectorServiceCmd = &cobra.Command{
 	Use:   "collector",
 	Short: "Run the clusters data collector",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -55,15 +57,16 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.AddCommand(apiCmd)
-	rootCmd.AddCommand(consolidatorCmd)
-	rootCmd.AddCommand(collectorCmd)
+	rootCmd.AddCommand(startAPIServiceCmd)
+	rootCmd.AddCommand(startConsolidatorServiceCmd)
+	rootCmd.AddCommand(startCollectorServiceCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	// handle default config variables
 	viper.AutomaticEnv()
+	// default parameters fixed parameters
 	viper.SetDefault("krossboard_log_level", "info")
 	viper.SetDefault("krossboard_cloud_provider", "AUTO")
 	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
@@ -74,7 +77,6 @@ func initConfig() {
 	viper.SetDefault("krossboard_cost_model", "CUMULATIVE_RATIO")
 	viper.SetDefault("krossboard_cors_origins", "*")
 	viper.SetDefault("docker_api_version", "1.39")
-	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 	viper.SetDefault("krossboard_awscli_command", "aws")
 	viper.SetDefault("krossboard_aws_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_gcloud_command", "gcloud")
@@ -82,6 +84,15 @@ func initConfig() {
 	viper.SetDefault("krossboard_az_command", "az")
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
+
+	// license public key
+	// => should if we suspect a hacked license
+	viper.SetDefault(KrossboardLicensePubKeyConfigKey, "BFnQyafgL1GKPbSDnmlQtTfufPcsdbVHLR5sxpPcdnDU7ZMuw/ZUChhRc5BmhH6STCRMVNVcVgIRJgFBmerkZ9+D5DWRFtLw26o3ScIhdFhOBP2h4X99sG7iYHK7jjyb9Q==")
+
+	// fixed environment variables
+	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
+
+	// fixed parameters
 	viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_credentials_dir", fmt.Sprintf("%s/.cred", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
