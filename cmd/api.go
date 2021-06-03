@@ -656,6 +656,6 @@ func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	b, _ := json.Marshal(&ErrorResp{Status: "success", Message: "upload completed successfully "+destFilename})
-	http.Error(w, string(b), http.StatusBadRequest)
+	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(b)
 }
