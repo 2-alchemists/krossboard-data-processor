@@ -597,6 +597,8 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 
 // KubeConfigHandler handles API calls to manage KUBECONFIG
 func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	maxUploadKb := viper.GetInt64("krossboard_kubeconfig_max_size_kb")
 	err := req.ParseMultipartForm(maxUploadKb *  (1 << 10))
 	if err != nil {
@@ -656,6 +658,5 @@ func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	b, _ := json.Marshal(&ErrorResp{Status: "success", Message: "upload completed successfully "+destFilename})
-	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(b)
 }
