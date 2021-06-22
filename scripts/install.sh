@@ -73,7 +73,10 @@ fi
 ##############################################################
 # INSTALLING GCLOUD CLI                                      #
 ##############################################################
+
 echo -e "${RED_COLOR}➥ Installing gcloud CLI... ${NO_COLOR}"
+echo -e "\n# Cloud CLI\n#\n" >> $CONFIG_PATH
+
 if wget --timeout=2 --tries=1 --header 'Metadata-Flavor: Google' -q "http://metadata.google.internal/computeMetadata/v1/project/numeric-project-id" > /dev/null ; then
   echo -e "${RED_COLOR}➥ We're running on Google cloud ${NO_COLOR}"
 
