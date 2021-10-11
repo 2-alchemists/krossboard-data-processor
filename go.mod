@@ -23,7 +23,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/smartystreets/goconvey v1.6.4
+	github.com/smartystreets/goconvey v1.6.6
 	github.com/spf13/afero v1.3.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.1
