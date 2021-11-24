@@ -9,7 +9,7 @@ require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/docker/distribution v0.0.0-20200319173657-742aab907b54 // indirect
-	github.com/docker/docker v17.12.0-ce-rc1.0.20200612211812-aaf470eca7b5+incompatible
+	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gorilla/mux v1.8.0
