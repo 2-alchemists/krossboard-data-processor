@@ -33,5 +33,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210517163617-5e0236093d7a
 	gopkg.in/ini.v1 v1.57.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/client-go v0.21.0
+	k8s.io/client-go v0.23.1
 )
