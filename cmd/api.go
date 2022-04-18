@@ -126,19 +126,6 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	params := mux.Vars(req)
 	datafile := params["filename"]
 
-	if datafile == "nodes.json" {
-		if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
-			log.WithError(err).Errorln("invalid license getting nodes occupation")
-			w.WriteHeader(http.StatusPaymentRequired)
-			apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
-				Status:  "error",
-				Message: "nodes usage analytics is not supported by your current license",
-			})
-			_, _ = w.Write(apiResp)
-			return
-		}
-	}
-
 	clusterName := req.Header.Get("X-Krossboard-Cluster")
 
 	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
@@ -232,18 +219,8 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 		discoveryResp.Message = "cannot load running configuration"
 		log.WithField("message", err.Error()).Errorln("Cannot load system status")
 	} else {
-		isValidLicense := false
-		licenseDoc, licenseCheckErr := validateLicenseFromEnvConfig(KrossboardVersion)
-		if licenseCheckErr == nil {
-			isValidLicense = true
-			discoveryResp.Message = fmt.Sprintf("Active Krossboard License: v%v (+bug/security changes)", licenseDoc.MajorVersion)
-		}
 		discoveryResp.Status = "ok"
-		for instanceItemIndex, instance := range runningConfig.Instances {
-			if ! isValidLicense && instanceItemIndex == 3 {
-				discoveryResp.Message = fmt.Sprintf("Free License. Limited to 3 Kubernetes clusters (out of %v discovered)", len(runningConfig.Instances))
-				break
-			}
+		for _, instance := range runningConfig.Instances {
 			discoveryResp.Instances = append(discoveryResp.Instances, &KOAAPI{
 				ClusterName: instance.ClusterName,
 				Endpoint:    fmt.Sprintf("http://127.0.0.1:%v", instance.HostPort),
@@ -377,22 +354,6 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// check license and review the start and end date parameters
-	// according to the license capability
-	date90DaysBefore := now.Add(-1 * 90 * 24 * time.Hour)
-	_, errLicense := validateLicenseFromEnvConfig(KrossboardVersion)
-	if errLicense != nil &&
-		(actualStartDateUTC.Before(date90DaysBefore) || actualEndDateUTC.Before(date90DaysBefore)) {
-		log.Errorln("the selected time frame is out of 90 days (not supported by your current license)", actualStartDateUTC, actualEndDateUTC)
-		w.WriteHeader(http.StatusPaymentRequired)
-		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
-			Status:  "error",
-			Message: "the selected time frame is out of 90 days (not supported by your current license)",
-		})
-		_, _ = w.Write(apiResp)
-		return
-	}
-
 	// process cluster parameter
 	historyDbs := make(map[string]string)
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
@@ -484,17 +445,6 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 // GetNodesUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
 func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
-
-	if _, err := validateLicenseFromEnvConfig(KrossboardVersion); err != nil {
-		log.WithError(err).Errorln("invalid license getting nodes usage history")
-		w.WriteHeader(http.StatusPaymentRequired)
-		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
-			Status:  "error",
-			Message: "nodes usage analytics is not supported by your current license",
-		})
-		_, _ = w.Write(apiResp)
-		return
-	}
 
 	params := mux.Vars(req)
 	clusterName := params["clustername"]

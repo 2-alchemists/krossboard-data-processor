@@ -85,10 +85,6 @@ func initConfig() {
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
 
-	// license public key
-	// => should if we suspect a hacked license
-	viper.SetDefault(KrossboardLicensePubKeyConfigKey, "BFnQyafgL1GKPbSDnmlQtTfufPcsdbVHLR5sxpPcdnDU7ZMuw/ZUChhRc5BmhH6STCRMVNVcVgIRJgFBmerkZ9+D5DWRFtLw26o3ScIhdFhOBP2h4X99sG7iYHK7jjyb9Q==")
-
 	// fixed environment variables
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
 
