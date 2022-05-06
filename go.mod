@@ -8,9 +8,8 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/aws/aws-sdk-go v1.36.30
 	github.com/buger/jsonparser v1.1.1
-	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/docker/distribution v0.0.0-20200319173657-742aab907b54 // indirect
-	github.com/docker/docker v20.10.14+incompatible
+	github.com/docker/docker v20.10.15+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gorilla/mux v1.8.0
@@ -33,6 +32,5 @@ require (
 	github.com/ziutek/rrd v0.0.3
 	google.golang.org/genproto v0.0.0-20211221195035-429b39de9b1c
 	gopkg.in/ini.v1 v1.57.0 // indirect
-	gotest.tools v2.2.0+incompatible // indirect
 	k8s.io/client-go v0.21.0
 )
