@@ -2,7 +2,7 @@
 
 
 ![Test and build](https://github.com/2-alchemists/krossboard-data-processor/workflows/test-and-build/badge.svg)
-![Test and build](https://github.com/2-alchemists/krossboard-data-processor/workflows/golangci-lint/badge.svg)
+![golangci-lint](https://github.com/2-alchemists/krossboard-data-processor/workflows/golangci-lint/badge.svg)
 ![Build cloud images](https://github.com/2-alchemists/krossboard-data-processor/workflows/build-cloud-imagess/badge.svg)
 
 ---
