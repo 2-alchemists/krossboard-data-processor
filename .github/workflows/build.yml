@@ -1,10 +1,14 @@
-name: Lint, test and build
+name: test-and-build
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - master
+      - main
   pull_request:
-    branches: [ master ]
+    branches:
+      - master
+      - main
 
 jobs:
   lint:
@@ -17,11 +21,6 @@ jobs:
       - name: Setup build environment   
         run: |
           make build-deps
-
-      - name: Check code quality
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.32.2
 
   build:
     name: Build

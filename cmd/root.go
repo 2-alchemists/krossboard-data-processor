@@ -1,3 +1,20 @@
+/*
+Copyright (c) 2020 2Alchemists SAS.
+
+This file is part of Krossboard.
+
+Krossboard is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3
+of the License, or (at your option) any later version.
+
+Krossboard is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Krossboard.
+If not, see <https://www.gnu.org/licenses/>.
+*/
+
 package cmd
 
 import (
@@ -84,10 +101,6 @@ func initConfig() {
 	viper.SetDefault("krossboard_az_command", "az")
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
-
-	// license public key
-	// => should if we suspect a hacked license
-	viper.SetDefault(KrossboardLicensePubKeyConfigKey, "BFnQyafgL1GKPbSDnmlQtTfufPcsdbVHLR5sxpPcdnDU7ZMuw/ZUChhRc5BmhH6STCRMVNVcVgIRJgFBmerkZ9+D5DWRFtLw26o3ScIhdFhOBP2h4X99sG7iYHK7jjyb9Q==")
 
 	// fixed environment variables
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))
