@@ -1,0 +1,78 @@
+name: build-azure-images
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Setup build environment   
+        run: |
+          make build-deps
+
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.45.2
+
+  build:
+    name: Build Azure images
+    runs-on: ubuntu-18.04
+
+    env:
+      KROSSBOARD_UI_IMAGE: ${{ secrets.KROSSBOARD_UI_IMAGE }}
+      KROSSBOARD_KOAINSTANCE_IMAGE: ${{ secrets.KROSSBOARD_KOAINSTANCE_IMAGE }}
+
+    steps:
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install build dependencies   
+      run: |
+        make build-deps
+
+    - name: Test package
+      run: |
+        make test
+
+    - name: Patch version
+      run: |
+        KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
+        VERSION_LINE=$(grep -n 'KrossboardVersion =' cmd/root.go | cut -f1 -d:)
+        VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
+        sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
+        echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
+   
+    - name: Build Azure image    
+      continue-on-error: true
+      shell: bash
+      id: azure-build
+      env:
+        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      run: |
+        make dist-cloud-image-azure
