@@ -27,3 +27,10 @@ Key features:
 * [Setup Krossboard for Amazon EKS](https://krossboard.app/docs/50_deploy-for-amazon-eks/)
 * [Setup Krossboard for Azure AKS](https://krossboard.app/docs/30_deploy-for-azure-aks/)
 * [Setup Krossboard for Google GKE](https://krossboard.app/docs/20_deploy-for-google-gke/)
+
+# Open to Contributions
+We encourage feedback and always make our best to handle any issues as fast as possible. Don't hesitate to submit issues or feature requests.
+
+Read the [code of conduct](CODE-OF-CONDUCT.md).
+
+[![StackShare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/2alchemists/krossboard)
