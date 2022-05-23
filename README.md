@@ -2,10 +2,14 @@
 
 
 ![Test and build](https://github.com/2-alchemists/krossboard-data-processor/workflows/test-and-build/badge.svg)
+<!--- 
+ 
 ![golangci-lint](https://github.com/2-alchemists/krossboard-data-processor/workflows/golangci-lint/badge.svg)
 ![Build AWS images](https://github.com/2-alchemists/krossboard-data-processor/workflows/build-aws-images/badge.svg)
 ![Build GCP images](https://github.com/2-alchemists/krossboard-data-processor/workflows/build-gcp-images/badge.svg)
 ![Build Azure images](https://github.com/2-alchemists/krossboard-data-processor/workflows/build-azure-images/badge.svg)
+--> 
+
 
 ---
 
