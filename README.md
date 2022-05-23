@@ -10,7 +10,7 @@
 # Overview
 `krossboard-data-processor` is the backend component of [Krossboard](https://github.com/2-alchemists/krossboard).
 
-Key features:
+Key features of Krossboard:
 
  * **Multi-Kubernetes Data Collection**: Periodically collecting raw metrics related to containers, pods and nodes from several Kubernetes source clusters. By design, the data collection period is 5 minutes.
  * **Powerful Analytics Processing**: Internally process raw metrics to produce insightful Kubernetes usage accounting and analytics metrics. By design, these analytics metrics are handled on a hourly-basis, for every namespace, cluster, and also globally.
@@ -29,8 +29,12 @@ Key features:
 * [Setup Krossboard for Google GKE](https://krossboard.app/docs/20_deploy-for-google-gke/)
 
 # Open to Contributions
-We encourage feedback and always make our best to handle any issues as fast as possible. Don't hesitate to submit issues or feature requests.
+We encourage feedback and always make our best to handle any issues as fast as possible. 
 
-Read the [code of conduct](CODE-OF-CONDUCT.md).
+Don't hesitate to submit a issue or make a feature request.
+
+All contributions, including, code and documentation, are accepted under the terms of [GNU Affero General Public License](LICENSE.md).
+
+Read the [code of conduct](CODE-OF-CONDUCT.md) to learn more about our contribution guideline. 
 
 [![StackShare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/2alchemists/krossboard)
