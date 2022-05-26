@@ -33,10 +33,10 @@ jobs:
       KROSSBOARD_KOAINSTANCE_IMAGE: ${{ secrets.KROSSBOARD_KOAINSTANCE_IMAGE }}
 
     steps:
-    - name: Set up Go 1.13
+    - name: Set up Go
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.18
 
     - name: Check out code
       uses: actions/checkout@v2
@@ -64,8 +64,7 @@ jobs:
         sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
         echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
    
-    - name: Build Azure image    
-      continue-on-error: true
+    - name: Build binaries and Azure images
       shell: bash
       id: azure-build
       env:

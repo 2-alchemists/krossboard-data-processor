@@ -1,0 +1,1 @@
+cd /app && ./krossboard-data-processor
