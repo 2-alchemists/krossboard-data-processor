@@ -1,1 +1,1 @@
-cd /app && ./krossboard-data-processor
+./krossboard-data-processor

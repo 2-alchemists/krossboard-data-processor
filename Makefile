@@ -10,7 +10,7 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOVENDOR=govendor
-GOVERSION='1.18.2-alpine'
+GOIMAGE=golang:1.18.2
 GOLANGCI=GO111MODULE=on ./bin/golangci-lint
 UPX=upx
 PACKER=packer
@@ -28,7 +28,7 @@ build-deps:
 	wget https://releases.hashicorp.com/packer/$(PACKER_VERSION)/packer_$(PACKER_VERSION)_linux_amd64.zip -O /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip
 	unzip /tmp/packer_$(PACKER_VERSION)_linux_amd64.zip && sudo mv packer /usr/local/bin/
 
-build: dist-check-prereqs
+build:
 	$(GOBUILD) -o $(PROGRAM_ARTIFACT) -v
 
 build-compress: build
@@ -37,12 +37,23 @@ build-compress: build
 build-docker:
 	docker run --rm \
 		-it \
-		-v "$(GOPATH)":/go \
-		- e GOOS=linux \
-		- e GOARCH=amd64 \
-		-w /build \
+		-v "$(PWD)":/go \
+		-e GOOS=linux \
+		-e GOARCH=amd64 \
+		-w /go \
 		golang:$(GOVERSION) \
-		go build -o $(PROGRAM_ARTIFACT) -v
+		go build -o $(PROGRAM_ARTIFACT) .
+
+build-ci:
+	docker run --rm \
+	-e GO111MODULE=on \
+	-e CGO_ENABLED=0 \
+	-e GOOS=linux \
+	-e GOARCH=amd64 \
+	-v "$(PWD)":/app \
+	-w /app \
+	$(GOIMAGE) \
+	go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o "./bin/$(PACKAGE_NAME)" -v
 
 test:
 	$(GOCMD) clean -testcache
@@ -67,7 +78,7 @@ tools:
 check: tools
 	$(GOLANGCI) run .
 
-dist-cloud: build build-compress
+dist-cloud: dist-check-prereqs build build-compress
 	./tooling/create-distrib-package.sh $(PROGRAM_ARTIFACT) $(RELEASE_PACKAGE_CLOUD) $(KROSSBOARD_KOAINSTANCE_IMAGE) $(KROSSBOARD_UI_IMAGE)
 
 dist-public: dist-check-prereqs build build-compress
@@ -96,7 +107,6 @@ dist-ovf: dist-public
 publish-ovf: dist-ovf
 	./tooling/publish-release.sh $(RELEASE_PUBLIC_VERSION) $(RELEASE_PACKAGE_PUBLIC)
 
-dist-docker: build-docker
 
 
 
