@@ -1,9 +1,12 @@
-name: build-azure-images
+name: build-docker-images
 
 on:
   push:
     tags:
       - v*
+  pull_request:
+    branches:
+      - main
 
 jobs:
   lint:
@@ -25,7 +28,7 @@ jobs:
           version: v1.45.2
 
   build:
-    name: Build Azure images
+    name: Build VM images
     runs-on: ubuntu-18.04
 
     env:
@@ -63,15 +66,21 @@ jobs:
         VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
         sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
         echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
-   
-    - name: Build binaries and Azure images
+
+    - name: Build binaries and Docker image
+      continue-on-error: true
       shell: bash
-      id: azure-build
       env:
-        AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
-        AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        IMAGE_NAME: "${{ secrets.CONTAINER_REGISTRY }}/krossboard-data-processor"
+        REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+        REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
       run: |
-        make dist-cloud-image-azure
+        make build
+
+        export GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
+
+        docker build --file Dockerfile --tag ${IMAGE_NAME}:${IMAGE_TAG} .
+
+        echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
+        docker push ${IMAGE_NAME}:${IMAGE_TAG}
