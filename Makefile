@@ -10,7 +10,7 @@ GOBUILD=$(GOCMD) build
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOVENDOR=govendor
-GOIMAGE=golang:1.18.2
+GOIMAGE=golang:1.18.2-alpine3.16
 GOLANGCI=GO111MODULE=on ./bin/golangci-lint
 UPX=upx
 PACKER=packer
@@ -34,26 +34,8 @@ build:
 build-compress: build
 	$(UPX) $(PROGRAM_ARTIFACT)
 
-build-docker:
-	docker run --rm \
-		-it \
-		-v "$(PWD)":/go \
-		-e GOOS=linux \
-		-e GOARCH=amd64 \
-		-w /go \
-		golang:$(GOVERSION) \
-		go build -o $(PROGRAM_ARTIFACT) .
-
 build-ci:
-	docker run --rm \
-	-e GO111MODULE=on \
-	-e CGO_ENABLED=0 \
-	-e GOOS=linux \
-	-e GOARCH=amd64 \
-	-v "$(PWD)":/app \
-	-w /app \
-	$(GOIMAGE) \
-	go build -a -tags netgo -ldflags '-w -extldflags "-static"' -o "./bin/$(PACKAGE_NAME)" -v
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(PROGRAM_ARTIFACT) -v
 
 test:
 	$(GOCMD) clean -testcache

@@ -1,1 +1,0 @@
-./krossboard-data-processor
