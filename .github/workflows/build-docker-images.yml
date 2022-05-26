@@ -1,0 +1,86 @@
+name: build-docker-images
+
+on:
+  push:
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Setup build environment   
+        run: |
+          make build-deps
+
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.45.2
+
+  build:
+    name: Build VM images
+    runs-on: ubuntu-18.04
+
+    env:
+      KROSSBOARD_UI_IMAGE: ${{ secrets.KROSSBOARD_UI_IMAGE }}
+      KROSSBOARD_KOAINSTANCE_IMAGE: ${{ secrets.KROSSBOARD_KOAINSTANCE_IMAGE }}
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.18
+
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install build dependencies   
+      run: |
+        make build-deps
+
+    - name: Test package
+      run: |
+        make test
+
+    - name: Patch version
+      run: |
+        KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
+        VERSION_LINE=$(grep -n 'KrossboardVersion =' cmd/root.go | cut -f1 -d:)
+        VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
+        sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
+        echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
+
+    - name: Build binaries and Docker image
+      continue-on-error: true
+      shell: bash
+      env:
+        IMAGE_NAME: "${{ secrets.CONTAINER_REGISTRY }}/krossboard-data-processor"
+        REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
+        REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
+      run: |
+        make build-docker
+
+        export GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+        export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
+
+        docker build --file Dockerfile --tag ${IMAGE_NAME}:${IMAGE_TAG} .
+
+        echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
+         docker push ${IMAGE_NAME}:${IMAGE_TAG}
