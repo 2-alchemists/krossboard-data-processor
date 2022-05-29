@@ -71,7 +71,6 @@ jobs:
       continue-on-error: true
       shell: bash
       env:
-        IMAGE_NAME: "${{ secrets.CONTAINER_REGISTRY }}/krossboard-data-processor"
         REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
         REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
       run: |
@@ -86,7 +85,8 @@ jobs:
         #  * YYYY-MM-DD-<latest-sha> if the latest tag does not match the last commit.
         #
         export GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
-        CHANGES_SINCE_LAST_TAG=$(git log ${GIT_TAG}..HEAD --oneline)
+        export CHANGES_SINCE_LAST_TAG=$(git log ${GIT_TAG}..HEAD --oneline)
+        export IMAGE_REPO=krossboard/krossboard-data-processor
         export IMAGE_TAG="$(date +%F)-$(git rev-parse --short HEAD)"
         if [ "$CHANGES_SINCE_LAST_TAG" == "" ]; then
           export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
@@ -95,6 +95,6 @@ jobs:
         #
         # Build and push the container image
         #
-        docker build . --file Dockerfile --tag ${IMAGE_NAME}:${IMAGE_TAG}
+        docker build . --file Dockerfile --tag ${IMAGE_REPO}:${IMAGE_TAG}
         echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
         docker push ${IMAGE_NAME}:${IMAGE_TAG}
