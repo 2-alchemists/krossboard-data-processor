@@ -77,7 +77,7 @@ jobs:
         #
         # Generate the binary
         #
-        make build-docker
+        make build
 
         #
         # Compute image version as follows:
