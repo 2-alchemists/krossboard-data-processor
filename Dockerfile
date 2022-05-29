@@ -12,8 +12,7 @@ RUN apt-get update --no-install-recommends && \
     addgroup $RUNTIME_USER && \
     adduser --disabled-password --no-create-home  --gecos "" --home $APP_HOME --ingroup $RUNTIME_USER $RUNTIME_USER
 
-COPY entrypoint.sh \
-     bin/krossboard-data-processor \
+COPY bin/krossboard-data-processor \
      LICENSE.md \
      $APP_HOME/
 

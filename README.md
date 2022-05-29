@@ -1,8 +1,7 @@
 ![](krossboard-architecture-thumbnail.png)
 
 ![Apache License](https://img.shields.io/github/license/2-alchemists/krossboard-data-processor.svg?label=License&style=for-the-badge)
-[![golangci-lint](<https://img.shields.io/github/workflow/status/2-alchemists/krossboard-data-processor/golangci-lint?label=golangci-lint&logo=GitHub&style=for-the-badge>)](https://github.com/2-alchemists/krossboard-data-processor/actions/workflows/golangci-lint.yml)
-[![test-and-build](<https://img.shields.io/github/workflow/status/2-alchemists/krossboard-data-processor/test-and-build?label=test-and-build&logo=GitHub&style=for-the-badge>)](https://github.com/2-alchemists/krossboard-data-processor/actions/workflows/build.yml)
+[![lint-test-build](<https://img.shields.io/github/workflow/status/2-alchemists/krossboard-data-processor/lint-test-build?label=lint-test-build&logo=GitHub&style=for-the-badge>)](https://github.com/2-alchemists/krossboard-data-processor/actions/workflows/build.yml)
 
 <!--- 
 ![Build AWS images](https://github.com/2-alchemists/krossboard-data-processor/workflows/build-aws-images/badge.svg)

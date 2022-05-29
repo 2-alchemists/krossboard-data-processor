@@ -1,4 +1,4 @@
-name: test-and-build
+name: lint-test-build
 
 on:
   push:
@@ -19,6 +19,12 @@ jobs:
       - name: Setup build environment   
         run: |
           make build-deps
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.45.2
 
   build:
     name: Build
