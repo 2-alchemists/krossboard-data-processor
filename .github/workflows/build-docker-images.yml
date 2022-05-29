@@ -28,7 +28,7 @@ jobs:
           version: v1.45.2
 
   build:
-    name: Build VM images
+    name: Build Docker images
     runs-on: ubuntu-18.04
 
     env:
@@ -87,15 +87,14 @@ jobs:
         #
         export GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
         CHANGES_SINCE_LAST_TAG=$(git log ${GIT_TAG}..HEAD --oneline)
+        export IMAGE_TAG="$(date +%F)-$(git rev-parse --short HEAD)"
         if [ "$CHANGES_SINCE_LAST_TAG" == "" ]; then
           export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
-        else
-          export IMAGE_TAG="$(date +%F)-$(git rev-parse --short HEAD)"
         fi
 
         #
         # Build and push the container image
         #
-        docker build --file Dockerfile --tag ${IMAGE_NAME}:${IMAGE_TAG} .
+        docker build . --file Dockerfile --tag ${IMAGE_NAME}:${IMAGE_TAG}
         echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
         docker push ${IMAGE_NAME}:${IMAGE_TAG}
