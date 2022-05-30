@@ -1,6 +1,6 @@
 ![](krossboard-architecture-thumbnail.png)
 
-![Apache License](https://img.shields.io/github/license/2-alchemists/krossboard-data-processor.svg?label=License&style=for-the-badge)
+![license](https://img.shields.io/github/license/2-alchemists/krossboard-data-processor.svg?label=License&style=for-the-badge)
 [![lint-test-build](<https://img.shields.io/github/workflow/status/2-alchemists/krossboard-data-processor/lint-test-build?label=lint-test-build&logo=GitHub&style=for-the-badge>)](https://github.com/2-alchemists/krossboard-data-processor/actions/workflows/build.yml)
 
 <!--- 
