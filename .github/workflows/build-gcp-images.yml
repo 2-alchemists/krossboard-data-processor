@@ -65,8 +65,8 @@ jobs:
         echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
         
     - name: Setup GCP credentials
-      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      id: gcp-setu-cred
+      uses: google-github-actions/setup-gcloud@v0
+      id: gcp-setup-cred
       with:
         version: '290.0.1'
         project_id: ${{ secrets.GCP_PROJECT_ID }}
