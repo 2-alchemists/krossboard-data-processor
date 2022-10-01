@@ -1,18 +1,18 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
@@ -24,6 +24,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,15 +34,13 @@ import (
 	"github.com/ziutek/rrd"
 )
 
-func getAllClustersCurrentUsage(kconfig *KubeConfig) ([]*K8sClusterUsage, error) {
-	clusters := kconfig.ListClusters()
-	if len(clusters) == 0 {
-		return nil, errors.New("no cluster found")
+func getAllClustersCurrentUsage(clusterNames []string) ([]*K8sClusterUsage, error) {
+	if len(clusterNames) == 0 {
+		return nil, errors.New("no cluster provided")
 	}
-
 	var allUsage []*K8sClusterUsage
 	baseDataDir := viper.GetString("krossboard_root_data_dir")
-	for clusterName := range clusters {
+	for _, clusterName := range clusterNames {
 		usage, err := getClusterCurrentUsage(baseDataDir, clusterName)
 		if err != nil {
 			log.WithError(err).Warnln("error getting current cluster usage for entry:", clusterName)
@@ -119,7 +118,7 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 }
 
 // getRecentNodesUsage returns nodes usage for a given cluster
-func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
+func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 	url := "http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -150,8 +149,8 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
 
 	consolidatedUsage := make(map[string]NodeUsage)
 	for nodeName, nodeUsage := range *nodesUsage {
-		nodeUsage.CPUUsageByPods =  0.0
-		nodeUsage.MEMUsageByPods =  0.0
+		nodeUsage.CPUUsageByPods = 0.0
+		nodeUsage.MEMUsageByPods = 0.0
 		for _, podUsage := range nodeUsage.PodsUsage {
 			nodeUsage.CPUUsageByPods += podUsage.CPUUsage
 			nodeUsage.MEMUsageByPods += podUsage.MEMUsage
@@ -162,9 +161,23 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
 	return consolidatedUsage, nil
 }
 
+func processConsolidatedUsage() {
 
-func processConsolidatedUsage(kubeconfig *KubeConfig) {
-	allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
+	var clusterNames []string
+
+	clusterNamesFromConfigVar := viper.GetString("krossboard_selected_cluster_names")
+	if clusterNamesFromConfigVar != "" {
+		clusterNames = strings.Split(clusterNamesFromConfigVar, " ")
+	} else {
+		kubeconfig := NewKubeConfig()
+		managedClusters := kubeconfig.ListClusters()
+		clusterNames = make([]string, len(managedClusters))
+		for cname := range managedClusters {
+			clusterNames = append(clusterNames, cname)
+		}
+	}
+
+	allClustersUsage, err := getAllClustersCurrentUsage(clusterNames)
 	if err != nil {
 		log.WithError(err).Errorln("failed getting all clusters usage")
 	} else {
@@ -179,7 +192,7 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 
 	sampleTimeUTC := time.Now().UTC()
 	for _, clusterUsage := range allClustersUsage {
-		if ! clusterUsage.OutToDate {
+		if !clusterUsage.OutToDate {
 			processClusterNamespaceUsage(clusterUsage)
 		}
 		processClusterNodesUsage(clusterUsage, sampleTimeUTC)
@@ -206,8 +219,6 @@ func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
 	}
 
 }
-
-
 
 func processClusterNodesUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC time.Time) {
 	recentNodesUsage, err := getRecentNodesUsage(clusterUsage.ClusterName)
