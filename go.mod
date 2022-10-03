@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/container v1.0.0
 	github.com/Microsoft/go-winio v0.4.14 // indirect
-	github.com/aws/aws-sdk-go v1.36.30
+	github.com/aws/aws-sdk-go v1.44.109
 	github.com/buger/jsonparser v1.1.1
 	github.com/containerd/containerd v1.3.4 // indirect
 	github.com/docker/distribution v0.0.0-20200319173657-742aab907b54 // indirect
