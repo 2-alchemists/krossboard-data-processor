@@ -69,7 +69,7 @@ type KoaInstance struct {
 type KbInstancesK8sList struct {
 	Items []struct {
 		Status struct {
-			KoaInstances []KoaInstance `json:"items,koaInstances"`
+			KoaInstances []KoaInstance `json:"koaInstances,omitempty"`
 		} `json:"status,omitempty"`
 	} `json:"items,omitempty"`
 }
