@@ -1,34 +1,36 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	kclient "k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
+
+	kclient "k8s.io/client-go/tools/clientcmd"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
@@ -55,6 +57,23 @@ type DiscoveryResp struct {
 	Instances []*KOAAPI `json:"instances,omitempty"`
 }
 
+// KoaInstance defines a desired state of a kube-opex-analytics instance
+type KoaInstance struct {
+	Name               string `json:"name,omitempty"`
+	Image              string `json:"image,omitempty"`
+	EndpointUrl        string `json:"endpointUrl,omitempty"`
+	ClusterName        string `json:"clusterName,omitempty"`
+	ClusterEndpointURL string `json:"clusterEndpoint,omitempty"`
+}
+
+type KbInstancesK8sList struct {
+	Items []struct {
+		Status struct {
+			KoaInstances []KoaInstance `json:"items,koaInstances"`
+		} `json:"status,omitempty"`
+	} `json:"items,omitempty"`
+}
+
 // GetAllClustersCurrentUsageResp holds the message return edby the GetAllClustersCurrentUsageHandler API callback
 type GetAllClustersCurrentUsageResp struct {
 	Status       string             `json:"status,omitempty"`
@@ -71,19 +90,19 @@ type GetClusterUsageHistoryResp struct {
 
 var routes = map[string]map[string]interface{}{
 	"/api/dataset/{filename}": {
-		"method": "GET",
+		"method":  "GET",
 		"handler": GetDatasetHandler,
 	},
 	"/api/discovery": {
-		"method": "GET",
+		"method":  "GET",
 		"handler": DiscoveryHandler,
 	},
 	"/api/currentusage": {
-		"method": "GET",
-		"handler" :GetAllClustersCurrentUsageHandler,
+		"method":  "GET",
+		"handler": GetAllClustersCurrentUsageHandler,
 	},
 	"/api/usagehistory": {
-		"method": "GET",
+		"method":  "GET",
 		"handler": GetClustersUsageHistoryHandler,
 	},
 	"/api/nodesusage/{clustername}": {
@@ -91,11 +110,10 @@ var routes = map[string]map[string]interface{}{
 		"handler": GetNodesUsageHandler,
 	},
 	"/api/kubeconfig": {
-		"method": "POST",
+		"method":  "POST",
 		"handler": KubeConfigHandler,
 	},
 }
-
 
 func startAPI() {
 	var wait time.Duration
@@ -140,49 +158,78 @@ func startAPI() {
 
 // GetDatasetHandler provides reverse proxy to download dataset from KOA instances
 func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
-	params := mux.Vars(req)
-	datafile := params["filename"]
 
-	clusterName := req.Header.Get("X-Krossboard-Cluster")
+	k8sApi := "https://kubernetes.default.svc"
+	kbOperatorVersion := "v1alpha1"
 
-	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
+	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	client := &http.Client{Transport: tr}
+	respGetKbInstances, err := client.Get(fmt.Sprintf("%v/apis/krossboard.krossboard.app/%v/krossboards", k8sApi, kbOperatorVersion))
 	if err != nil {
-		log.WithError(err).Errorln("cannot load system status")
+		log.WithError(err).Errorln("failing query krossboard operator from Kubernetes")
 		b, _ := json.Marshal(&ErrorResp{
-			Status: "error",
-			Message: "cannot load system status",
+			Status:  "error",
+			Message: "cannot query krossboard operator from Kubernetes",
 		})
 		http.Error(w, string(b), http.StatusInternalServerError)
 		return
 	}
 
-	instance, err := systemStatus.GetInstance(clusterName)
+	kbInstancesData, err := ioutil.ReadAll(respGetKbInstances.Body)
 	if err != nil {
-		log.WithError(err).Errorln("requested resource not found", clusterName)
+		log.WithError(err).Errorln("failed reading krossboard instances data from http response")
 		b, _ := json.Marshal(&ErrorResp{
-			Status: "error",
-			Message: "requested resource not found",
+			Status:  "error",
+			Message: "failed reading krossboard instances data from http response",
+		})
+		http.Error(w, string(b), http.StatusInternalServerError)
+		return
+	}
+
+	kbInstancesList := &KbInstancesK8sList{}
+	err = json.Unmarshal(kbInstancesData, kbInstancesList)
+
+	params := mux.Vars(req)
+	datafile := params["filename"]
+	clusterName := req.Header.Get("X-Krossboard-Cluster")
+	koaInstanceFound := false
+	koaInstance := KoaInstance{}
+	for _, kbInstanceItem := range kbInstancesList.Items {
+		for _, koaInstanceItem := range kbInstanceItem.Status.KoaInstances {
+			if clusterName == koaInstanceItem.ClusterName {
+				koaInstanceFound = true
+				koaInstance = koaInstanceItem
+				break
+			}
+		}
+	}
+
+	if !koaInstanceFound {
+		log.WithError(err).Errorln("requested cluster not found", clusterName)
+		b, _ := json.Marshal(&ErrorResp{
+			Status:  "error",
+			Message: fmt.Sprintf("requested cluster not found => %s", clusterName),
 		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
-	apiUrl := fmt.Sprintf("http://127.0.0.1:%v/dataset/%v", instance.HostPort, datafile)
 
+	koaDatasetUrl := fmt.Sprintf("%s/dataset/%v", koaInstance.EndpointUrl, datafile)
 	if req.RequestURI == "/" {
 		log.Errorln("no API context")
 		b, _ := json.Marshal(&ErrorResp{
-			Status: "error",
+			Status:  "error",
 			Message: "no API context",
 		})
 		http.Error(w, string(b), http.StatusBadRequest)
 		return
 	}
 
-	proxyReq, err := http.NewRequest("GET", apiUrl, nil)
+	proxyReq, err := http.NewRequest("GET", koaDatasetUrl, nil)
 	if err != nil {
-		log.WithError(err).Errorln("http.NewRequest failed on URL", apiUrl)
+		log.WithError(err).Errorln("http.NewRequest failed on URL", koaDatasetUrl)
 		b, _ := json.Marshal(&ErrorResp{
-			Status: "error",
+			Status:  "error",
 			Message: "failed calling target API",
 		})
 		http.Error(w, string(b), http.StatusBadRequest)
@@ -192,9 +239,9 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	httpClient := http.Client{}
 	resp, err := httpClient.Do(proxyReq)
 	if err != nil {
-		log.WithError(err).Errorln("httpClient.Do failed on URL", apiUrl)
+		log.WithError(err).Errorln("httpClient.Do failed on URL", koaDatasetUrl)
 		b, _ := json.Marshal(&ErrorResp{
-			Status: "error",
+			Status:  "error",
 			Message: "failed calling target API",
 		})
 		http.Error(w, string(b), http.StatusBadRequest)
@@ -495,7 +542,7 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if parametersAreInvalid || actualEndDateUTC.Before(actualStartDateUTC){
+	if parametersAreInvalid || actualEndDateUTC.Before(actualStartDateUTC) {
 		log.Errorln("invalid query parameters", queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
@@ -518,9 +565,9 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	step := time.Duration(RRDStorageStep3600Secs)*time.Second
+	step := time.Duration(RRDStorageStep3600Secs) * time.Second
 	if actualEndDateUTC.Sub(actualStartDateUTC) <= time.Duration(24)*time.Hour {
-		step = time.Duration(RRDStorageStep300Secs)*time.Second
+		step = time.Duration(RRDStorageStep300Secs) * time.Second
 	}
 
 	nodeUsageMap := make(map[string]map[string]UsageHistory)
@@ -542,10 +589,10 @@ func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
 			log.WithError(err).Errorln("failed retrieving usage by pods for node", nodeUsageDb.CapacityDb.RRDFile)
 		}
 
-		nodeUsageMap[nodeName] = map[string]UsageHistory {
-			"capacityItems" : *capacityHistory,
-			"allocatableItems" : *allocatableHistory,
-			"usageByPodItems" : *usageByPodsHistory,
+		nodeUsageMap[nodeName] = map[string]UsageHistory{
+			"capacityItems":    *capacityHistory,
+			"allocatableItems": *allocatableHistory,
+			"usageByPodItems":  *usageByPodsHistory,
 		}
 	}
 
@@ -567,7 +614,7 @@ func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	maxUploadKb := viper.GetInt64("krossboard_kubeconfig_max_size_kb")
-	err := req.ParseMultipartForm(maxUploadKb *  (1 << 10))
+	err := req.ParseMultipartForm(maxUploadKb * (1 << 10))
 	if err != nil {
 		log.WithError(err).Errorln("failed parsing multi-part form")
 		b, _ := json.Marshal(&ErrorResp{Status: "error", Message: "failed parsing input"})
@@ -624,6 +671,6 @@ func KubeConfigHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	b, _ := json.Marshal(&ErrorResp{Status: "success", Message: "upload completed successfully "+destFilename})
+	b, _ := json.Marshal(&ErrorResp{Status: "success", Message: "upload completed successfully " + destFilename})
 	_, _ = w.Write(b)
 }
