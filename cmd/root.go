@@ -100,6 +100,8 @@ func initConfig() {
 	viper.SetDefault("krossboard_az_command", "az")
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
+	viper.SetDefault("krossboard_k8s_api_endpoint", "https://kubernetes.default.svc")
+	viper.SetDefault("krossboard_operator_api_version", "v1alpha1")
 
 	// fixed environment variables
 	os.Setenv("DOCKER_API_VERSION", viper.GetString("docker_api_version"))

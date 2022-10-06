@@ -156,17 +156,38 @@ func startAPI() {
 	os.Exit(0)
 }
 
-// GetDatasetHandler provides reverse proxy to download dataset from KOA instances
-func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
-
-	k8sApi := "https://kubernetes.default.svc"
-	kbOperatorVersion := "v1alpha1"
+// GetKrossboardInstances queries Krossboard instanes from Kubernetes API
+func GetKrossboardInstances() (*KbInstancesK8sList, error) {
+	k8sApi := viper.GetString("krossboard_k8s_api_endpoint")
+	kbOperatorVersion := viper.GetString("krossboard_operator_api_version")
 
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	client := &http.Client{Transport: tr}
 	respGetKbInstances, err := client.Get(fmt.Sprintf("%v/apis/krossboard.krossboard.app/%v/krossboards", k8sApi, kbOperatorVersion))
 	if err != nil {
-		log.WithError(err).Errorln("failing query krossboard operator from Kubernetes")
+		return nil, fmt.Errorf("failing query krossboard operator from Kubernetes => %v", err.Error())
+	}
+
+	kbInstancesData, err := ioutil.ReadAll(respGetKbInstances.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed reading krossboard instances data from http response => %v", err.Error())
+	}
+
+	kbInstancesList := &KbInstancesK8sList{}
+	err = json.Unmarshal(kbInstancesData, kbInstancesList)
+	if err != nil {
+		return nil, fmt.Errorf("failed decoding krossboard instances data => %v", err.Error())
+	}
+
+	return kbInstancesList, nil
+}
+
+// GetDatasetHandler provides reverse proxy to download dataset from KOA instances
+func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
+
+	kbInstances, err := GetKrossboardInstances()
+	if err != nil {
+		log.WithError(err).Errorln("GetKrossboardInstances failed")
 		b, _ := json.Marshal(&ErrorResp{
 			Status:  "error",
 			Message: "cannot query krossboard operator from Kubernetes",
@@ -175,26 +196,12 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	kbInstancesData, err := ioutil.ReadAll(respGetKbInstances.Body)
-	if err != nil {
-		log.WithError(err).Errorln("failed reading krossboard instances data from http response")
-		b, _ := json.Marshal(&ErrorResp{
-			Status:  "error",
-			Message: "failed reading krossboard instances data from http response",
-		})
-		http.Error(w, string(b), http.StatusInternalServerError)
-		return
-	}
-
-	kbInstancesList := &KbInstancesK8sList{}
-	err = json.Unmarshal(kbInstancesData, kbInstancesList)
-
 	params := mux.Vars(req)
 	datafile := params["filename"]
 	clusterName := req.Header.Get("X-Krossboard-Cluster")
 	koaInstanceFound := false
 	koaInstance := KoaInstance{}
-	for _, kbInstanceItem := range kbInstancesList.Items {
+	for _, kbInstanceItem := range kbInstances.Items {
 		for _, koaInstanceItem := range kbInstanceItem.Status.KoaInstances {
 			if clusterName == koaInstanceItem.ClusterName {
 				koaInstanceFound = true
