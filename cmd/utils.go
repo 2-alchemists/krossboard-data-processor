@@ -1,18 +1,18 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -37,33 +36,10 @@ func createDirIfNotExists(path string) error {
 	return nil
 }
 
-func getCloudProvider() string {
-	_, err := getGCPProjectID()
-	if err == nil {
-		return "GCP"
-	} else {
-		log.WithError(err).Debug("GCP cloud not detected")
-	}
-	_, err = getAWSRegion()
-	if err == nil {
-		return "AWS"
-	} else {
-		log.WithError(err).Debug("AWS cloud not detected")
-	}
-	_, err = getAzureSubscriptionID()
-	if err == nil {
-		return "AZURE"
-	} else {
-		log.WithError(err).Debug("Azure cloud not detected")
-	}
-	return viper.GetString("KROSSBOARD_CLOUD_PROVIDER")
-}
-
 // RoundTime rounds the given time to the provided resolution.
 func RoundTime(t time.Time, resolution time.Duration) time.Time {
 	return time.Unix(0, (t.UnixNano()/resolution.Nanoseconds())*resolution.Nanoseconds())
 }
-
 
 func getUsageHistoryPath(clusterName string) string {
 	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterName)

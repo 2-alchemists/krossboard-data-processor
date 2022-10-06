@@ -54,15 +54,6 @@ var startConsolidatorServiceCmd = &cobra.Command{
 		log.Infoln(" analytics consolidation completed")
 	},
 }
-var startCollectorServiceCmd = &cobra.Command{
-	Use:   "collector",
-	Short: "Run the clusters data collector",
-	Run: func(cmd *cobra.Command, args []string) {
-		log.Infoln("starting clusters data collection")
-		runClusterDataCollection()
-		log.Infoln("clusters data collection completed")
-	},
-}
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
@@ -75,7 +66,6 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.AddCommand(startAPIServiceCmd)
 	rootCmd.AddCommand(startConsolidatorServiceCmd)
-	rootCmd.AddCommand(startCollectorServiceCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -110,7 +100,6 @@ func initConfig() {
 	viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_credentials_dir", fmt.Sprintf("%s/.cred", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
-	viper.Set("krossboard_status_file", fmt.Sprintf("%s/instances.json", viper.GetString("krossboard_status_dir")))
 	viper.Set("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_status_dir")))
 	viper.Set("krossboard_kubeconfig_dir", fmt.Sprintf("%s/kubeconfig.d", viper.GetString("krossboard_root_dir")))
 	viper.Set("krossboard_kubeconfig_max_size_kb", 10)

@@ -61,7 +61,7 @@ type DiscoveryResp struct {
 type KoaInstance struct {
 	Name               string `json:"name,omitempty"`
 	Image              string `json:"image,omitempty"`
-	EndpointUrl        string `json:"endpointUrl,omitempty"`
+	ContainerPort      int64  `json:"containerPort,omitempty"`
 	ClusterName        string `json:"clusterName,omitempty"`
 	ClusterEndpointURL string `json:"clusterEndpoint,omitempty"`
 }
@@ -162,9 +162,21 @@ func GetKrossboardInstances() (*KbInstancesK8sList, error) {
 	k8sApi := viper.GetString("krossboard_k8s_api_endpoint")
 	kbOperatorVersion := viper.GetString("krossboard_operator_api_version")
 
-	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	client := &http.Client{Transport: tr}
-	respGetKbInstances, err := client.Get(fmt.Sprintf("%v/apis/krossboard.krossboard.app/%v/krossboards", k8sApi, kbOperatorVersion))
+	saToken, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		return nil, fmt.Errorf("failed reading serviceaccount token file => %v", err.Error())
+	}
+
+	resUrl := fmt.Sprintf("%v/apis/krossboard.krossboard.app/%v/krossboards", k8sApi, kbOperatorVersion)
+	req, err := http.NewRequest("GET", resUrl, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failing creating HTTP request => %v", err.Error())
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", string(saToken)))
+	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	respGetKbInstances, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failing query krossboard operator from Kubernetes => %v", err.Error())
 	}
@@ -172,6 +184,10 @@ func GetKrossboardInstances() (*KbInstancesK8sList, error) {
 	kbInstancesData, err := ioutil.ReadAll(respGetKbInstances.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed reading krossboard instances data from http response => %v", err.Error())
+	}
+
+	if respGetKbInstances.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(string(kbInstancesData))
 	}
 
 	kbInstancesList := &KbInstancesK8sList{}
@@ -201,19 +217,19 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 	datafile := params["filename"]
 	clusterName := req.Header.Get("X-Krossboard-Cluster")
 	koaInstanceFound := false
-	koaInstance := KoaInstance{}
+	koaInst := KoaInstance{}
 	for _, kbInstanceItem := range kbInstances.Items {
 		for _, koaInstanceItem := range kbInstanceItem.Status.KoaInstances {
 			if clusterName == koaInstanceItem.ClusterName {
 				koaInstanceFound = true
-				koaInstance = koaInstanceItem
+				koaInst = koaInstanceItem
 				break
 			}
 		}
 	}
 
 	if !koaInstanceFound {
-		log.WithError(err).Errorln("requested cluster not found", clusterName)
+		log.Errorln("requested cluster not found =>", clusterName)
 		b, _ := json.Marshal(&ErrorResp{
 			Status:  "error",
 			Message: fmt.Sprintf("requested cluster not found => %s", clusterName),
@@ -222,7 +238,7 @@ func GetDatasetHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	koaDatasetUrl := fmt.Sprintf("%s/dataset/%v", koaInstance.EndpointUrl, datafile)
+	koaDatasetUrl := fmt.Sprintf("http://127.0.0.1:%d/dataset/%v", koaInst.ContainerPort, datafile)
 	if req.RequestURI == "/" {
 		log.Errorln("no API context")
 		b, _ := json.Marshal(&ErrorResp{
@@ -278,24 +294,20 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	discoveryResp := &DiscoveryResp{}
-	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
+
+	kbInstances, err := GetKrossboardInstances()
 	if err != nil {
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load system status"
-		log.WithField("message", err.Error()).Errorln("Cannot load system status")
+		log.WithField("message", err.Error()).Errorln("cannot get Krossboard status")
 	}
 
-	runningConfig, err := systemStatus.GetInstances()
-	if err != nil {
-		discoveryResp.Status = "error"
-		discoveryResp.Message = "cannot load running configuration"
-		log.WithField("message", err.Error()).Errorln("Cannot load system status")
-	} else {
-		discoveryResp.Status = "ok"
-		for _, instance := range runningConfig.Instances {
+	discoveryResp.Status = "ok"
+	for _, kbInstanceItem := range kbInstances.Items {
+		for _, koaInstance := range kbInstanceItem.Status.KoaInstances {
 			discoveryResp.Instances = append(discoveryResp.Instances, &KOAAPI{
-				ClusterName: instance.ClusterName,
-				Endpoint:    fmt.Sprintf("http://127.0.0.1:%v", instance.HostPort),
+				ClusterName: koaInstance.ClusterName,
+				Endpoint:    fmt.Sprintf("http://127.0.0.1:%v", koaInstance.ContainerPort),
 			})
 		}
 	}
@@ -340,25 +352,13 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	systemStatus, err := LoadSystemStatus(viper.GetString("krossboard_status_file"))
+	kbInstances, err := GetKrossboardInstances()
 	if err != nil {
 		log.WithError(err).Errorln("cannot load system status")
 		w.WriteHeader(http.StatusInternalServerError)
 		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
 			Status:  "error",
-			Message: "failed loading system status",
-		})
-		_, _ = w.Write(apiResp)
-		return
-	}
-
-	getInstancesResult, err := systemStatus.GetInstances()
-	if err != nil {
-		log.WithError(err).Errorln("failed retrieving managed instances")
-		w.WriteHeader(http.StatusInternalServerError)
-		apiResp, _ := json.Marshal(&GetClusterUsageHistoryResp{
-			Status:  "error",
-			Message: "failed retrieving managed instances",
+			Message: "failed loading Krossboard status",
 		})
 		_, _ = w.Write(apiResp)
 		return
@@ -428,9 +428,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	// process cluster parameter
 	historyDbs := make(map[string]string)
+	koaInstancesCount := 0
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
-		for _, instance := range getInstancesResult.Instances {
-			historyDbs[instance.ClusterName] = getUsageHistoryPath(instance.ClusterName)
+		for _, kbInstanceItem := range kbInstances.Items {
+			for _, koaInstance := range kbInstanceItem.Status.KoaInstances {
+				historyDbs[koaInstance.ClusterName] = getUsageHistoryPath(koaInstance.ClusterName)
+				koaInstancesCount += 1
+			}
 		}
 	} else {
 		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
@@ -445,7 +449,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// finalize parameters validation before actually processing the request
+	// finalizing parameters validation before actually processing the request
 	if parametersAreInvalid || actualStartDateUTC.After(actualEndDateUTC) {
 		log.Errorln("invalid query parameters", queryCluster, queryStartDate, queryEndDate)
 		w.WriteHeader(http.StatusBadRequest)
@@ -459,8 +463,9 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 
 	usageHistoryResult := &GetClusterUsageHistoryResp{
 		Status:             "ok",
-		ListOfUsageHistory: make(map[string]*UsageHistory, len(getInstancesResult.Instances)),
+		ListOfUsageHistory: make(map[string]*UsageHistory, koaInstancesCount),
 	}
+
 	for dbname, dbfile := range historyDbs {
 		usageDb := NewUsageDb(dbfile, 100)
 		usageHistory, err := func() (*UsageHistory, error) {
@@ -510,14 +515,12 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			),
 		)
 	}
-
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(respPayload)
 }
 
 // GetNodesUsageHandler returns the node usage for a cluster set in the "X-Krossboard-Cluster header
 func GetNodesUsageHandler(w http.ResponseWriter, req *http.Request) {
-
 	params := mux.Vars(req)
 	clusterName := params["clustername"]
 	queryParams := req.URL.Query()
