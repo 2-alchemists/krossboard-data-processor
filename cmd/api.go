@@ -66,6 +66,7 @@ type KoaInstance struct {
 	ClusterEndpointURL string `json:"clusterEndpoint,omitempty"`
 }
 
+// KbInstancesK8sList holds a list of Krossboard instances as returned by Kubernetes
 type KbInstancesK8sList struct {
 	Items []struct {
 		Status struct {
