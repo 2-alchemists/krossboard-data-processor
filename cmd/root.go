@@ -51,7 +51,17 @@ var startConsolidatorServiceCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Infoln("starting analytics consolidation")
 		processConsolidatedUsage()
-		log.Infoln(" analytics consolidation completed")
+		log.Infoln("analytics consolidation completed")
+	},
+}
+
+var startClusterCredentialsHandlerCmd = &cobra.Command{
+	Use:   "cluster-credentials-handler",
+	Short: "Start cluster credentials handler",
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Infoln("starting cluster credentials handler")
+		processClusterCredentials()
+		log.Infoln("cluster credentials handler completed")
 	},
 }
 
@@ -66,6 +76,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.AddCommand(startAPIServiceCmd)
 	rootCmd.AddCommand(startConsolidatorServiceCmd)
+	rootCmd.AddCommand(startClusterCredentialsHandlerCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -123,7 +134,7 @@ func initConfig() {
 
 	err = createDirIfNotExists(viper.GetString("krossboard_credentials_dir"))
 	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("failed initializing credential directory")
+		log.WithField("message", err.Error()).Fatalln("failed initializing credentials directory")
 	}
 
 }
