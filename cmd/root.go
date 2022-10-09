@@ -101,14 +101,15 @@ func initConfig() {
 	viper.SetDefault("krossboard_az_command", "az")
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
-	viper.SetDefault("krossboard_k8s_api_endpoint", "https://kubernetes.default.svc")
-	viper.SetDefault("krossboard_operator_api_version", "v1alpha1")
+	viper.SetDefault("krossboard_root_dir", "/krossboard")
 	viper.SetDefault("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
+	viper.SetDefault("krossboard_run_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
+	viper.SetDefault("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_run_dir")))
 	viper.SetDefault("krossboard_credentials_dir", fmt.Sprintf("%s/.cred", viper.GetString("krossboard_root_dir")))
-	viper.SetDefault("krossboard_status_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
-	viper.SetDefault("krossboard_current_usage_file", fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_status_dir")))
 	viper.SetDefault("krossboard_kubeconfig_dir", fmt.Sprintf("%s/kubeconfig.d", viper.GetString("krossboard_root_dir")))
 	viper.SetDefault("krossboard_kubeconfig_max_size_kb", 10)
+	viper.SetDefault("krossboard_k8s_api_endpoint", "https://kubernetes.default.svc")
+	viper.SetDefault("krossboard_operator_api_version", "v1alpha1")
 
 	customFormatter := new(log.TextFormatter)
 	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
@@ -127,7 +128,7 @@ func initConfig() {
 		log.WithField("message", err.Error()).Fatalln("failed initializing config directory")
 	}
 
-	err = createDirIfNotExists(viper.GetString("krossboard_status_dir"))
+	err = createDirIfNotExists(viper.GetString("krossboard_run_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("failed initializing status directory")
 	}
