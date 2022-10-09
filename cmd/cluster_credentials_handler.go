@@ -40,7 +40,7 @@ func processClusterCredentials() {
 			continue
 		}
 
-		dataVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), managedCluster.Name)
+		dataVol := fmt.Sprintf("%s/%s", viper.GetString("krossboard_data_dir"), managedCluster.Name)
 		err := createDirIfNotExists(dataVol)
 		if err != nil {
 			log.WithFields(log.Fields{"path": dataVol, "message": err.Error()}).Errorln("failed creating data volume")

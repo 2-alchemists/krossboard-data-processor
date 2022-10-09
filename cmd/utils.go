@@ -42,7 +42,7 @@ func RoundTime(t time.Time, resolution time.Duration) time.Time {
 }
 
 func getUsageHistoryPath(clusterName string) string {
-	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_root_data_dir"), clusterName)
+	return fmt.Sprintf("%s/.usagehistory_%s", viper.GetString("krossboard_data_dir"), clusterName)
 }
 
 func listRegularFiles(folder string) (error, []string) {

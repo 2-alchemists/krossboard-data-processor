@@ -437,7 +437,7 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_root_data_dir"), queryCluster)
+		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_data_dir"), queryCluster)
 		err, dbfiles := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)

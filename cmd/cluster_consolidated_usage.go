@@ -39,9 +39,8 @@ func getAllClustersCurrentUsage(clusterNames []string) ([]*K8sClusterUsage, erro
 		return nil, errors.New("no cluster provided")
 	}
 	var allUsage []*K8sClusterUsage
-	baseDataDir := viper.GetString("krossboard_root_data_dir")
 	for _, clusterName := range clusterNames {
-		usage, err := getClusterCurrentUsage(baseDataDir, clusterName)
+		usage, err := getClusterCurrentUsage(clusterName)
 		if err != nil {
 			log.WithError(err).Warnln("error getting current cluster usage for entry:", clusterName)
 		} else {
@@ -51,14 +50,15 @@ func getAllClustersCurrentUsage(clusterNames []string) ([]*K8sClusterUsage, erro
 	return allUsage, nil
 }
 
-func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sClusterUsage, error) {
+func getClusterCurrentUsage(clusterName string) (*K8sClusterUsage, error) {
 	const (
 		RRDLastUsageFetchWindow = -2 * RRDStorageStep300Secs
 	)
+	baseDataDir := viper.GetString("krossboard_data_dir")
+	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
 	rrdEndEpoch := int64(int64(time.Now().Unix()/RRDStorageStep300Secs) * RRDStorageStep300Secs)
 	rrdEnd := time.Unix(rrdEndEpoch, 0)
 	rrdStart := rrdEnd.Add(RRDLastUsageFetchWindow * time.Second)
-	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
 
 	foundFiles, err := ioutil.ReadDir(rrdDir)
 	if err != nil {
@@ -181,7 +181,7 @@ func processConsolidatedUsage() {
 	if err != nil {
 		log.WithError(err).Errorln("failed getting all clusters usage")
 	} else {
-		currentUsageFile := viper.GetString("krossboard_current_usage_file")
+		currentUsageFile := fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_run_dir"))
 		serializedData, _ := json.Marshal(allClustersUsage)
 		err = ioutil.WriteFile(currentUsageFile, serializedData, 0644)
 		if err != nil {
