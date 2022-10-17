@@ -50,7 +50,7 @@ type NodeUsageDb struct {
 }
 
 func NewNodeUsageDB(nodeName string) *NodeUsageDb {
-	dbDir := viper.GetString("krossboard_data_dir")
+	dbDir := viper.GetString("krossboard_rawdb_dir")
 	capacityDbPath := fmt.Sprintf("%s/.nodeusage_%s_capacity", dbDir, nodeName)
 	allocatableDbPath := fmt.Sprintf("%s/.nodeusage_%s_allocatable", dbDir, nodeName)
 	usageByPodsDbPath := fmt.Sprintf("%s/.nodeusage_%s_usage_by_pods", dbDir, nodeName)

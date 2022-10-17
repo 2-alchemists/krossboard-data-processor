@@ -19,6 +19,7 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -83,7 +84,7 @@ func NewKubeConfig() *KubeConfig {
 	}
 
 	kconfigDir := viper.GetString("krossboard_kubeconfig_dir")
-	err, kconfigFiles := listRegularFiles(kconfigDir)
+	kconfigFiles, err := listRegularFiles(kconfigDir)
 	if err != nil {
 		log.WithError(err).Debugln("ignoring KUBECONFIG directory", kconfigDir)
 	} else {
@@ -142,19 +143,32 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		return authInfo.Token, nil // auth with Bearer token
 	}
 
-	authHookCmd := ""
+	progPath := "/authHookCmd/path"
 	var args []string
+	var err error
 	if authInfo.AuthProvider != nil {
-		authHookCmd = authInfo.AuthProvider.Config["cmd-path"]
+		progPath = authInfo.AuthProvider.Config["cmd-path"]
 		args = strings.Split(authInfo.AuthProvider.Config["cmd-args"], " ")
 	} else if authInfo.Exec != nil {
-		authHookCmd = authInfo.Exec.Command
+		progPath = authInfo.Exec.Command
 		args = authInfo.Exec.Args
 	} else {
 		return "", errors.New("no AuthInfo command provided")
 	}
 
-	cmd := exec.Command(authHookCmd, args...)
+	authHookCmdName := "not-found-cmd"
+	progPathSplitted := strings.Split(progPath, "/")
+	if len(progPathSplitted) > 0 {
+		authHookCmdName = progPathSplitted[len(progPathSplitted)-1]
+	} else {
+		authHookCmdName = progPath
+	}
+
+	authHookCmdAbsPath, err := exec.LookPath(authHookCmdName)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("authHookCmd (%s) not found in PATH", authHookCmdName))
+	}
+	cmd := exec.Command(authHookCmdAbsPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.Wrap(err, string(out))

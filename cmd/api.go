@@ -322,7 +322,7 @@ func GetAllClustersCurrentUsageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	currentUsageResp := &GetAllClustersCurrentUsageResp{}
-	currentUsageFile := viper.GetString("krossboard_current_usage_file")
+	currentUsageFile := getCurrentClusterUsagePath()
 	currentUsageData, err := ioutil.ReadFile(currentUsageFile)
 	respHTTPStatus := http.StatusInternalServerError
 	if err != nil {
@@ -432,13 +432,13 @@ func GetClustersUsageHistoryHandler(w http.ResponseWriter, r *http.Request) {
 	if queryCluster == "" || strings.ToLower(queryCluster) == "all" {
 		for _, kbInstanceItem := range kbInstances.Items {
 			for _, koaInstance := range kbInstanceItem.Status.KoaInstances {
-				historyDbs[koaInstance.ClusterName] = getUsageHistoryPath(koaInstance.ClusterName)
+				historyDbs[koaInstance.ClusterName] = getHistoryDbPath(koaInstance.ClusterName)
 				koaInstancesCount += 1
 			}
 		}
 	} else {
-		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_data_dir"), queryCluster)
-		err, dbfiles := listRegularFiles(dbdir)
+		dbdir := fmt.Sprintf("%s/%s", viper.GetString("krossboard_rawdb_dir"), queryCluster)
+		dbfiles, err := listRegularFiles(dbdir)
 		if err != nil {
 			log.WithError(err).Errorln("failed listing dbs for cluster", queryCluster)
 			parametersAreInvalid = true

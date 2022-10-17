@@ -20,6 +20,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -27,6 +30,7 @@ import (
 )
 
 const KrossboardVersion = "1.3.0"
+const queryTimeLayout = "2006-01-02T15:04:05"
 
 var rootCmd = &cobra.Command{
 	Use:     "krossboard-data-processor",
@@ -87,7 +91,6 @@ func initConfig() {
 	viper.SetDefault("krossboard_log_level", "info")
 	viper.SetDefault("krossboard_cloud_provider", "AUTO")
 	viper.SetDefault("krossboard_api_addr", "127.0.0.1:1519")
-	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
 	viper.SetDefault("krossboard_k8s_verify_ssl", "true")
 	viper.SetDefault("krossboard_koainstance_image", "rchakode/kube-opex-analytics:latest")
 	viper.SetDefault("krossboard_koainstance_token_dir", "/var/run/secrets/kubernetes.io/serviceaccount")
@@ -101,8 +104,9 @@ func initConfig() {
 	viper.SetDefault("krossboard_az_command", "az")
 	viper.SetDefault("krossboard_azure_metadata_service", "http://169.254.169.254")
 	viper.SetDefault("krossboard_azure_keyvault_aks_password_secret", "krossboard-aks-password")
-	viper.SetDefault("krossboard_root_dir", "/krossboard")
-	viper.SetDefault("krossboard_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
+	viper.SetDefault("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
+	viper.SetDefault("krossboard_rawdb_dir", fmt.Sprintf("%s/db-raw", viper.GetString("krossboard_root_dir")))
+	viper.SetDefault("krossboard_historydb_dir", fmt.Sprintf("%s/db-history", viper.GetString("krossboard_root_dir")))
 	viper.SetDefault("krossboard_run_dir", fmt.Sprintf("%s/run", viper.GetString("krossboard_root_dir")))
 	viper.SetDefault("krossboard_credentials_dir", fmt.Sprintf("%s/.cred", viper.GetString("krossboard_root_dir")))
 	viper.SetDefault("krossboard_kubeconfig_dir", fmt.Sprintf("%s/kubeconfig.d", viper.GetString("krossboard_root_dir")))
@@ -126,15 +130,38 @@ func initConfig() {
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("failed initializing config directory")
 	}
+}
 
-	err = createDirIfNotExists(viper.GetString("krossboard_run_dir"))
-	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("failed initializing status directory")
+func createDirIfNotExists(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return os.MkdirAll(path, 0755)
 	}
+	return nil
+}
 
-	err = createDirIfNotExists(viper.GetString("krossboard_credentials_dir"))
-	if err != nil {
-		log.WithField("message", err.Error()).Fatalln("failed initializing credentials directory")
+// RoundTime rounds the given time to the provided resolution.
+func RoundTime(t time.Time, resolution time.Duration) time.Time {
+	return time.Unix(0, (t.UnixNano()/resolution.Nanoseconds())*resolution.Nanoseconds())
+}
+
+func getHistoryDbPath(clusterName string) string {
+	return fmt.Sprintf("%s/historydb-%s", viper.GetString("krossboard_historydb_dir"), clusterName)
+}
+
+func getCurrentClusterUsagePath() string {
+	return fmt.Sprintf("%s/currentusage.json", viper.GetString("krossboard_run_dir"))
+}
+
+func listRegularFiles(folder string) ([]string, error) {
+	if _, err := os.Stat(folder); err != nil {
+		return nil, err
 	}
-
+	var files []string
+	err := filepath.Walk(folder, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() && !strings.HasPrefix(info.Name(), ".") {
+			files = append(files, fmt.Sprintf("%s/%s", folder, info.Name()))
+		}
+		return nil
+	})
+	return files, err
 }
