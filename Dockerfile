@@ -1,4 +1,5 @@
 FROM ubuntu:20.04
+#FROM google/cloud-sdk:406.0.0-slim
 
 ARG GOOS="linux"
 ARG GOARCH="amd64"
