@@ -164,7 +164,7 @@ func GetKrossboardInstances() (*KbInstancesK8sList, error) {
 
 	saToken, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
-		return nil, fmt.Errorf("failed reading serviceaccount token file => %v", err.Error())
+		return nil, fmt.Errorf("failed getting service account credentials => %v", err.Error())
 	}
 
 	resUrl := fmt.Sprintf("%v/apis/krossboard.krossboard.app/%v/krossboards", k8sApi, kbOperatorVersion)
@@ -297,9 +297,16 @@ func DiscoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 	kbInstances, err := GetKrossboardInstances()
 	if err != nil {
+		log.WithField("message", err.Error()).Errorln("cannot get Krossboard status")
 		discoveryResp.Status = "error"
 		discoveryResp.Message = "cannot load system status"
-		log.WithField("message", err.Error()).Errorln("cannot get Krossboard status")
+
+		apiResp, _ := json.Marshal(discoveryResp)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write(apiResp)
+
+		return
 	}
 
 	discoveryResp.Status = "ok"
