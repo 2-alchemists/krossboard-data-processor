@@ -126,7 +126,6 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 	}
 
 	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
-
 	httpClient := http.Client{
 		Timeout: time.Second * 5,
 	}
@@ -138,13 +137,13 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 
 	respRaw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed reading response from URL => %s", url))
 	}
 
 	nodesUsage := &map[string]NodeUsage{}
 	err = json.Unmarshal(respRaw, nodesUsage)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed unmarshalling node data => %s", string(respRaw)))
 	}
 
 	consolidatedUsage := make(map[string]NodeUsage)
