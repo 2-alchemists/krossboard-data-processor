@@ -163,14 +163,13 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 }
 
 func processConsolidatedUsage() {
-
 	err := createDirIfNotExists(viper.GetString("krossboard_run_dir"))
 	if err != nil {
 		log.WithField("message", err.Error()).Fatalln("failed initializing status directory")
 	}
 
 	var clusterNames []string
-	clusterNamesFromConfigVar := viper.GetString("krossboard_selected_cluster_names")
+	clusterNamesFromConfigVar := strings.Trim(viper.GetString("krossboard_selected_cluster_names"), " ")
 	if clusterNamesFromConfigVar != "" {
 		clusterNames = strings.Split(clusterNamesFromConfigVar, " ")
 	} else {
