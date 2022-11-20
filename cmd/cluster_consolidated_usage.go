@@ -125,10 +125,12 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
 	}
 
-	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
 	httpClient := http.Client{
 		Timeout: time.Second * 5,
 	}
+
+	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
+
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("httpClient.Do failed on URL %s", url))
