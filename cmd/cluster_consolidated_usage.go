@@ -232,18 +232,17 @@ func processClusterNodesUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC time.
 	}
 	for nodeName, nodeUsage := range recentNodesUsage {
 		nodeUsageDb := NewNodeUsageDB(nodeName)
-
 		err = nodeUsageDb.CapacityDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUCapacity, nodeUsage.MEMCapacity)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving node capacity", nodeName)
+			log.WithError(err).Errorln("failed saving node capacity =>", nodeName)
 		}
 		err = nodeUsageDb.AllocatableDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUAllocatable, nodeUsage.MEMAllocatable)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving allocatable capacity", nodeName)
+			log.WithError(err).Errorln("failed saving allocatable capacity =>", nodeName)
 		}
 		err = nodeUsageDb.UsageByPodsDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUUsageByPods, nodeUsage.MEMUsageByPods)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving capacity used by pods", nodeName)
+			log.WithError(err).Errorln("failed saving capacity used by node =>", nodeName)
 		}
 	}
 }
