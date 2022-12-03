@@ -143,21 +143,23 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		return authInfo.Token, nil // auth with Bearer token
 	}
 
-	progPath := "/authHookCmd/path"
 	var args []string
 	var err error
+	progPath := "UNDEFINED"
 	if authInfo.AuthProvider != nil {
 		progPath = authInfo.AuthProvider.Config["cmd-path"]
 		args = strings.Split(authInfo.AuthProvider.Config["cmd-args"], " ")
 	} else if authInfo.Exec != nil {
 		progPath = authInfo.Exec.Command
 		args = authInfo.Exec.Args
-	} else {
+	}
+
+	if progPath == "UNDEFINED" {
 		return "", errors.New("no AuthInfo command provided")
 	}
 
-	authHookCmdName := "not-found-cmd"
 	progPathSplitted := strings.Split(progPath, "/")
+	var authHookCmdName string
 	if len(progPathSplitted) > 0 {
 		authHookCmdName = progPathSplitted[len(progPathSplitted)-1]
 	} else {
