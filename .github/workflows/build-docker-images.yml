@@ -61,43 +61,40 @@ jobs:
       run: |
         make test
 
-    - name: Patch version
-      run: |
-        KB_RELEASE_VERSION=$(./tooling/get-dist-version.sh)
-        VERSION_LINE=$(grep -n 'KrossboardVersion =' cmd/root.go | cut -f1 -d:)
-        VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
-        sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
-        echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
-
     - name: Build binaries and Docker image
       shell: bash
       env:
         REGISTRY_USERNAME: ${{ secrets.CONTAINER_REGISTRY_USERNAME }}
         REGISTRY_PASSWORD: ${{ secrets.CONTAINER_REGISTRY_PASSWORD }}
       run: |
-        #
-        # Generate the binary
-        #
-        make build
-
-        #
-        # Compute image version as follows:
-        #  * the latest tag match the latest commit.
-        #  * YYYY-MM-DD-<latest-sha> if the latest tag does not match the last commit.
-        #
+        echo "↳ Computing image version"
+        echo ""
         export GIT_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
         export CHANGES_SINCE_LAST_TAG=$(git log ${GIT_TAG}..HEAD --oneline)
-        export IMAGE_REPO=krossboard/krossboard-data-processor
         export IMAGE_TAG="$(date +%F)-$(git rev-parse --short HEAD)"
         if [ "$CHANGES_SINCE_LAST_TAG" == "" ]; then
           export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
         fi
         
-        echo "image : ${IMAGE_REPO}:${IMAGE_TAG} ; git tag $GIT_TAG"
-        #
-        # Build and push the container image
-        #
-        docker build . --file Dockerfile --tag "${IMAGE_REPO}:${IMAGE_TAG}"
+        echo "  > release version: ${IMAGE_TAG}"
+        
+        echo "↳ Patching version in source files"
+        echo ""
+        KB_RELEASE_VERSION=$IMAGE_TAG
+        VERSION_LINE=$(grep -n 'KrossboardVersion =' cmd/root.go | cut -f1 -d:)
+        VERSION_ORIG=$(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')
+        sed -i "${VERSION_LINE}s/${VERSION_ORIG}/${KB_RELEASE_VERSION}/" cmd/root.go
+        echo "==>>> Release version is $(grep 'KrossboardVersion =' cmd/root.go | awk -F '"' '{print $(NF-1)}')"
+
+        echo "↳ Building binaries the binary"
+        echo ""
+        make build
+
+        
+        echo "↳ Building/pushing container image"
+        echo ""
+        docker build . --file Dockerfile --tag "krossboard/krossboard-data-processor:${IMAGE_TAG}"
         echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
         docker push ${IMAGE_NAME}:${IMAGE_TAG}
         
+        echo "  > image url: krossboard/krossboard-data-processor:${IMAGE_TAG}"
