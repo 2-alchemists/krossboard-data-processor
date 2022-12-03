@@ -76,7 +76,7 @@ jobs:
           export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
         fi
         
-        IMAGE_TAGGED_URL=krossboard/krossboard-data-processor
+        IMAGE_TAGGED_URL=krossboard/krossboard-data-processor:${IMAGE_TAG}
         echo "  > release version: ${IMAGE_TAG}"
         echo "  > image url: ${IMAGE_TAGGED_URL}"
         
