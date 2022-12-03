@@ -89,7 +89,11 @@ dist-ovf: dist-public
 publish-ovf: dist-ovf
 	./tooling/publish-release.sh $(RELEASE_PUBLIC_VERSION) $(RELEASE_PACKAGE_PUBLIC)
 
+.PHONY: docker-build
+docker-build: build
+	docker build -t krossboard/krossboard-data-processor:v$(DATETIME_VERSION)-$(GIT_SHA) .
 
-
-
+.PHONY: docker-push
+docker-push: docker-build
+	docker push krossboard/krossboard-data-processor:v$(DATETIME_VERSION)-$(GIT_SHA)
 

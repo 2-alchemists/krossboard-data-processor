@@ -1,18 +1,18 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
@@ -24,6 +24,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,16 +34,13 @@ import (
 	"github.com/ziutek/rrd"
 )
 
-func getAllClustersCurrentUsage(kconfig *KubeConfig) ([]*K8sClusterUsage, error) {
-	clusters := kconfig.ListClusters()
-	if len(clusters) == 0 {
-		return nil, errors.New("no cluster found")
+func getAllClustersCurrentUsage(clusterNames []string) ([]*K8sClusterUsage, error) {
+	if len(clusterNames) == 0 {
+		return nil, errors.New("no cluster provided")
 	}
-
 	var allUsage []*K8sClusterUsage
-	baseDataDir := viper.GetString("krossboard_root_data_dir")
-	for clusterName := range clusters {
-		usage, err := getClusterCurrentUsage(baseDataDir, clusterName)
+	for _, clusterName := range clusterNames {
+		usage, err := getClusterCurrentUsage(clusterName)
 		if err != nil {
 			log.WithError(err).Warnln("error getting current cluster usage for entry:", clusterName)
 		} else {
@@ -52,14 +50,15 @@ func getAllClustersCurrentUsage(kconfig *KubeConfig) ([]*K8sClusterUsage, error)
 	return allUsage, nil
 }
 
-func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sClusterUsage, error) {
+func getClusterCurrentUsage(clusterName string) (*K8sClusterUsage, error) {
 	const (
 		RRDLastUsageFetchWindow = -2 * RRDStorageStep300Secs
 	)
+	baseDataDir := viper.GetString("krossboard_rawdb_dir")
+	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
 	rrdEndEpoch := int64(int64(time.Now().Unix()/RRDStorageStep300Secs) * RRDStorageStep300Secs)
 	rrdEnd := time.Unix(rrdEndEpoch, 0)
 	rrdStart := rrdEnd.Add(RRDLastUsageFetchWindow * time.Second)
-	rrdDir := fmt.Sprintf("%s/%s", baseDataDir, clusterName)
 
 	foundFiles, err := ioutil.ReadDir(rrdDir)
 	if err != nil {
@@ -119,18 +118,19 @@ func getClusterCurrentUsage(baseDataDir string, clusterName string) (*K8sCluster
 }
 
 // getRecentNodesUsage returns nodes usage for a given cluster
-func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
+func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error) {
 	url := "http://127.0.0.1:1519/api/dataset/nodes.json"
 	httpReq, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("http.NewRequest failed on URL %s", url))
 	}
 
-	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
-
 	httpClient := http.Client{
 		Timeout: time.Second * 5,
 	}
+
+	httpReq.Header.Set("X-Krossboard-Cluster", clusterName)
+
 	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		return nil, errors.Wrap(err, fmt.Sprintf("httpClient.Do failed on URL %s", url))
@@ -139,19 +139,19 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
 
 	respRaw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed reading response from URL => %s", url))
 	}
 
 	nodesUsage := &map[string]NodeUsage{}
 	err = json.Unmarshal(respRaw, nodesUsage)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("ioutil.ReadAll failed on URL %s", url))
+		return nil, errors.Wrap(err, fmt.Sprintf("failed unmarshalling node data => %s", string(respRaw)))
 	}
 
 	consolidatedUsage := make(map[string]NodeUsage)
 	for nodeName, nodeUsage := range *nodesUsage {
-		nodeUsage.CPUUsageByPods =  0.0
-		nodeUsage.MEMUsageByPods =  0.0
+		nodeUsage.CPUUsageByPods = 0.0
+		nodeUsage.MEMUsageByPods = 0.0
 		for _, podUsage := range nodeUsage.PodsUsage {
 			nodeUsage.CPUUsageByPods += podUsage.CPUUsage
 			nodeUsage.MEMUsageByPods += podUsage.MEMUsage
@@ -162,13 +162,30 @@ func getRecentNodesUsage(clusterName string) (map[string]NodeUsage, error){
 	return consolidatedUsage, nil
 }
 
+func processConsolidatedUsage() {
+	err := createDirIfNotExists(viper.GetString("krossboard_run_dir"))
+	if err != nil {
+		log.WithField("message", err.Error()).Fatalln("failed initializing status directory")
+	}
 
-func processConsolidatedUsage(kubeconfig *KubeConfig) {
-	allClustersUsage, err := getAllClustersCurrentUsage(kubeconfig)
+	var clusterNames []string
+	clusterNamesFromConfigVar := strings.Trim(viper.GetString("krossboard_selected_cluster_names"), " ")
+	if clusterNamesFromConfigVar != "" {
+		clusterNames = strings.Split(clusterNamesFromConfigVar, " ")
+	} else {
+		kubeconfig := NewKubeConfig()
+		managedClusters := kubeconfig.ListClusters()
+		clusterNames = make([]string, len(managedClusters))
+		for cname := range managedClusters {
+			clusterNames = append(clusterNames, cname)
+		}
+	}
+
+	allClustersUsage, err := getAllClustersCurrentUsage(clusterNames)
 	if err != nil {
 		log.WithError(err).Errorln("failed getting all clusters usage")
 	} else {
-		currentUsageFile := viper.GetString("krossboard_current_usage_file")
+		currentUsageFile := getCurrentClusterUsagePath()
 		serializedData, _ := json.Marshal(allClustersUsage)
 		err = ioutil.WriteFile(currentUsageFile, serializedData, 0644)
 		if err != nil {
@@ -179,7 +196,7 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 
 	sampleTimeUTC := time.Now().UTC()
 	for _, clusterUsage := range allClustersUsage {
-		if ! clusterUsage.OutToDate {
+		if !clusterUsage.OutToDate {
 			processClusterNamespaceUsage(clusterUsage)
 		}
 		processClusterNodesUsage(clusterUsage, sampleTimeUTC)
@@ -187,7 +204,7 @@ func processConsolidatedUsage(kubeconfig *KubeConfig) {
 }
 
 func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
-	rrdFile := getUsageHistoryPath(clusterUsage.ClusterName)
+	rrdFile := getHistoryDbPath(clusterUsage.ClusterName)
 	usageDb := NewUsageDb(rrdFile, 100)
 	_, err := os.Stat(rrdFile)
 	if os.IsNotExist(err) {
@@ -207,8 +224,6 @@ func processClusterNamespaceUsage(clusterUsage *K8sClusterUsage) {
 
 }
 
-
-
 func processClusterNodesUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC time.Time) {
 	recentNodesUsage, err := getRecentNodesUsage(clusterUsage.ClusterName)
 	if err != nil {
@@ -217,18 +232,17 @@ func processClusterNodesUsage(clusterUsage *K8sClusterUsage, sampleTimeUTC time.
 	}
 	for nodeName, nodeUsage := range recentNodesUsage {
 		nodeUsageDb := NewNodeUsageDB(nodeName)
-
 		err = nodeUsageDb.CapacityDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUCapacity, nodeUsage.MEMCapacity)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving node capacity", nodeName)
+			log.WithError(err).Errorln("failed saving node capacity =>", nodeName)
 		}
 		err = nodeUsageDb.AllocatableDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUAllocatable, nodeUsage.MEMAllocatable)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving allocatable capacity", nodeName)
+			log.WithError(err).Errorln("failed saving allocatable capacity =>", nodeName)
 		}
 		err = nodeUsageDb.UsageByPodsDb.UpdateRRD(sampleTimeUTC, nodeUsage.CPUUsageByPods, nodeUsage.MEMUsageByPods)
 		if err != nil {
-			log.WithError(err).Errorln("failed saving capacity used by pods", nodeName)
+			log.WithError(err).Errorln("failed saving capacity used by node =>", nodeName)
 		}
 	}
 }

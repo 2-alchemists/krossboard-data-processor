@@ -1,30 +1,32 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
 
 import (
 	"flag"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 
 	"github.com/buger/jsonparser"
 	"github.com/pkg/errors"
@@ -82,7 +84,7 @@ func NewKubeConfig() *KubeConfig {
 	}
 
 	kconfigDir := viper.GetString("krossboard_kubeconfig_dir")
-	err, kconfigFiles := listRegularFiles(kconfigDir)
+	kconfigFiles, err := listRegularFiles(kconfigDir)
 	if err != nil {
 		log.WithError(err).Debugln("ignoring KUBECONFIG directory", kconfigDir)
 	} else {
@@ -100,7 +102,7 @@ func NewKubeConfigFrom(path string) *KubeConfig {
 
 // ListClusters lists Kubernetes clusters available in KUBECONFIG
 func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
-	discoveredClusters := make(map[string]*ManagedCluster)
+	managedClusters := make(map[string]*ManagedCluster)
 	for _, path := range m.Paths {
 		config, err := kclient.LoadFromFile(path)
 		if err != nil {
@@ -115,7 +117,7 @@ func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
 
 		for clusterName, clusterInfo := range config.Clusters {
 			clusterNameEscaped := strings.ReplaceAll(clusterName, "/", "@")
-			discoveredClusters[clusterNameEscaped] = &ManagedCluster{
+			managedClusters[clusterNameEscaped] = &ManagedCluster{
 				Name:        clusterNameEscaped,
 				APIEndpoint: clusterInfo.Server,
 				CaData:      clusterInfo.CertificateAuthorityData,
@@ -123,12 +125,12 @@ func (m *KubeConfig) ListClusters() map[string]*ManagedCluster {
 		}
 		for _, context := range config.Contexts {
 			clusterNameEscaped := strings.ReplaceAll(context.Cluster, "/", "@")
-			if cluster, found := discoveredClusters[clusterNameEscaped]; found {
+			if cluster, found := managedClusters[clusterNameEscaped]; found {
 				cluster.AuthInfo = config.AuthInfos[context.AuthInfo]
 			}
 		}
 	}
-	return discoveredClusters
+	return managedClusters
 }
 
 // GetAccessToken retrieves access token from AuthInfo
@@ -141,19 +143,32 @@ func (m *KubeConfig) GetAccessToken(authInfo *kapi.AuthInfo) (string, error) {
 		return authInfo.Token, nil // auth with Bearer token
 	}
 
-	authHookCmd := ""
+	progPath := "/authHookCmd/path"
 	var args []string
+	var err error
 	if authInfo.AuthProvider != nil {
-		authHookCmd = authInfo.AuthProvider.Config["cmd-path"]
+		progPath = authInfo.AuthProvider.Config["cmd-path"]
 		args = strings.Split(authInfo.AuthProvider.Config["cmd-args"], " ")
 	} else if authInfo.Exec != nil {
-		authHookCmd = authInfo.Exec.Command
+		progPath = authInfo.Exec.Command
 		args = authInfo.Exec.Args
 	} else {
 		return "", errors.New("no AuthInfo command provided")
 	}
 
-	cmd := exec.Command(authHookCmd, args...)
+	authHookCmdName := "not-found-cmd"
+	progPathSplitted := strings.Split(progPath, "/")
+	if len(progPathSplitted) > 0 {
+		authHookCmdName = progPathSplitted[len(progPathSplitted)-1]
+	} else {
+		authHookCmdName = progPath
+	}
+
+	authHookCmdAbsPath, err := exec.LookPath(authHookCmdName)
+	if err != nil {
+		return "", errors.New(fmt.Sprintf("authHookCmd (%s) not found in PATH", authHookCmdName))
+	}
+	cmd := exec.Command(authHookCmdAbsPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", errors.Wrap(err, string(out))

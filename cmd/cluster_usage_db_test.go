@@ -1,18 +1,18 @@
 /*
-    Copyright (C) 2020  2ALCHEMISTS SAS.
+   Copyright (C) 2020  2ALCHEMISTS SAS.
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Affero General Public License as
-    published by the Free Software Foundation, either version 3 of the
-    License, or (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Affero General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU Affero General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU Affero General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 package cmd
@@ -26,20 +26,8 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/spf13/viper"
 	"github.com/ziutek/rrd"
 )
-
-func TestSpec(t *testing.T) {
-	Convey("Given valid base config settings", t, func() {
-		viper.Set("krossboard_root_dir", fmt.Sprintf("%s/.krossboard", UserHomeDir()))
-		viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
-
-		Convey("Empty tests", func() {
-			So(nil, ShouldBeNil)
-		})
-	})
-}
 
 func TestUsageDb(t *testing.T) {
 	Convey("Given a temporary file", t, func() {
@@ -230,11 +218,9 @@ func TestComputeCumulativeMonth(t *testing.T) {
 			{
 				name: "empty",
 				args: args{
-					items: []*ResourceUsageItem{
-					},
+					items: []*ResourceUsageItem{},
 				},
-				want: []*ResourceUsageItem{
-				},
+				want: []*ResourceUsageItem{},
 			},
 			{
 				name: "1 month",
@@ -301,19 +287,3 @@ func date(c C, dateStr string) time.Time {
 
 	return t
 }
-
-// func TestSpec(t *testing.T) {
-// 	Convey("Given valid base config settings", t, func() {
-// 		viper.Set("krossboard_root_dir", fmt.Sprintf("%s/.kube-opex-analytics-mc", UserHomeDir()))
-// 		viper.Set("krossboard_root_data_dir", fmt.Sprintf("%s/data", viper.GetString("krossboard_root_dir")))
-
-// 		Convey("If a given cluster name is valid", func() {
-// 			clusterName := "toto"
-
-// 			Convey("The call getAllClustersCurrentUsage  should succeed", func() {
-// 				_, err := getAllClustersCurrentUsage()
-// 				So(err, ShouldBeNil)
-// 			})
-// 		})
-// 	})
-// }
