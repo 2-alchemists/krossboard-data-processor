@@ -76,7 +76,9 @@ jobs:
           export IMAGE_TAG=$(echo $GIT_TAG | sed 's/v//')
         fi
         
+        IMAGE_TAGGED_URL=krossboard/krossboard-data-processor
         echo "  > release version: ${IMAGE_TAG}"
+        echo "  > image url: ${IMAGE_TAGGED_URL}"
         
         echo "↳ Patching version in source files"
         echo ""
@@ -93,8 +95,8 @@ jobs:
         
         echo "↳ Building/pushing container image"
         echo ""
-        docker build . --file Dockerfile --tag "krossboard/krossboard-data-processor:${IMAGE_TAG}"
+        docker build . --file Dockerfile --tag ${IMAGE_TAGGED_URL}
         echo "$REGISTRY_PASSWORD" | docker login -u $REGISTRY_USERNAME --password-stdin
-        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-        
-        echo "  > image url: krossboard/krossboard-data-processor:${IMAGE_TAG}"
+        docker push ${IMAGE_TAGGED_URL}
+
+        echo "  > image url: ${IMAGE_TAGGED_URL}"
